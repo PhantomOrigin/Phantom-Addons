@@ -6,6 +6,7 @@ A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 - Incorrect Pickobulus Blocker
 - Eaten Timer
 - Cannon Auto Close
+- Stun Preview / Waypoint
 ### Dynamic Pearl Waypoints
 - Timer Accurate to current angle, not preset
 - Change colour on hover
@@ -24,6 +25,7 @@ A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 - M7 Dragons Auto GFS
 - Range Based Explosion Hider
 - Lava Colour / Opacity Tools
+- Item transformations including swing speed, position and rotation
 
 ## KNOWN INCOMPATABILITIES:
 Phantom Addons is incompatible with KIC Elle dialogue hider. 
