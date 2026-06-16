@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.kuudrahelper.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "UseItemMixin",
+    "TitleMixin",
+    "WorldRendererMixin",
+    "ClientWorldExplosionMixin",
+    "HeldItemRendererMixin",
+    "HandledScreenMixin",
+    "LivingEntitySwingMixin",
+    "ItemRendererScaleMixin",
+    "PlayerInventoryAccessor",
+    "BossHealthOverlayAccessor",
+    "BossHealthOverlayMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

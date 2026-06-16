@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.kuudrahelper.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.kuudrahelper.mixin.SodiumMixinPlugin",
+  "client": [
+    "SodiumFluidRendererMixin",
+    "DefaultFluidRendererAccessor",
+    "SodiumFluidRendererImplMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
