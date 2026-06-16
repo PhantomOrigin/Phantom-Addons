@@ -1,7 +1,8 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Beta Version 1.6.0 available for 26.1.2
+Latest Version: 1.6.0
+Supported Minecraft Versions: 26.1.2
 
 ### Supplies Features
 - Supply Beacons
@@ -10,7 +11,7 @@ Beta Version 1.6.0 available for 26.1.2
 - Crate Priority HUD
 - Custom Supply Recovery Message
 - Supply Location Announce
-- Supply Progress Tracker
+- Supply Start Timer
 - Supply Hitbox
 - Supply Pull Radius
 - Supply Pearl Hitbox
@@ -53,7 +54,7 @@ Beta Version 1.6.0 available for 26.1.2
 - Explosion Hider
 - Split Timer
 - Moveable Crate Pickup Progress Bar
-- Armor Stand Hider
+- Kuudra Mob Scale
 ### Other Features
 - M7 Dragons Auto GFS Poisons
 - Held Item Animation / Position / Scale Customiser
@@ -64,7 +65,8 @@ Beta Version 1.6.0 available for 26.1.2
 - Slot Binds
 - Vanilla Boss Bar Hider
 - Party Commands
-
-## KNOWN INCOMPATABILITIES:
-Phantom Addons is incompatible with KIC Elle dialogue hider. 
-Certain features will not work if you use moveable crate pickup progress bar from KIC.
+- Hide Falling Blocks
+- Prevent Placing Weapons
+- Prevent Placing Skulls
+- Player Scale Features
+- Mob Fire Hider
