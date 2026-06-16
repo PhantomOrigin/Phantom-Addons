@@ -1,6 +1,8 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.features.EtherwarpPredictor;
+import com.kuudrahelper.features.PreventPlacingPlayerHeads;
+import com.kuudrahelper.features.PreventPlacingWeapons;
 import com.kuudrahelper.features.SlotBlocker;
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.features.PickoblockManager;
@@ -10,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -53,6 +56,28 @@ public class UseItemMixin {
         if (!PickoblockManager.isPickobulusItem(stack)) return;
         if (!PickoblockManager.isPickobulusAllowedThisTick()) {
             cir.setReturnValue(InteractionResult.FAIL);
+        }
+    }
+
+    @Inject(
+            method = "useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;",
+            at = @At("HEAD"),
+            cancellable = true)
+    private void kuudrahelper$blockPlacing(
+            net.minecraft.client.player.LocalPlayer player,
+            InteractionHand hand,
+            BlockHitResult hitResult,
+            CallbackInfoReturnable<InteractionResult> cir) {
+
+        ItemStack stack = player.getItemInHand(hand);
+
+        if (PreventPlacingPlayerHeads.shouldCancel(player, stack)) {
+            cir.setReturnValue(InteractionResult.PASS);
+            return;
+        }
+
+        if (PreventPlacingWeapons.shouldCancel(player, stack)) {
+            cir.setReturnValue(InteractionResult.PASS);
         }
     }
 }

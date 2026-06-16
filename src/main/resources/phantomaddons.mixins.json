@@ -14,7 +14,12 @@
     "ItemRendererScaleMixin",
     "PlayerInventoryAccessor",
     "BossHealthOverlayAccessor",
-    "BossHealthOverlayMixin"
+    "BossHealthOverlayMixin",
+    "ArmorStandRendererMixin",
+    "FallingBlockMixin",
+    "EntityScaleMixin",
+    "KuudraScaleMixin",
+    "EntityFireMixin"
   ],
   "injectors": {
     "defaultRequire": 1

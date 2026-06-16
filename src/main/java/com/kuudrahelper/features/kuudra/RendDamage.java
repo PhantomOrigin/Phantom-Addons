@@ -13,7 +13,8 @@ import net.minecraft.world.entity.monster.Slime;
 
 public final class RendDamage {
 
-    private static final int  KUUDRA_MAX_HP  = 25_000;
+    public  static final int  KUUDRA_SLIME_MAX_HP = 25_000;
+    private static final int  KUUDRA_MAX_HP       = KUUDRA_SLIME_MAX_HP;
     private static final int  MIN_PULL_DIFF  = 1_666;
     private static final int  HP_MULTIPLIER  = 9_600;
 

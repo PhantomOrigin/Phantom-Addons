@@ -2,32 +2,43 @@ package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
 import net.minecraft.client.Minecraft;
-
-import java.util.regex.Pattern;
+import net.minecraft.world.entity.player.Player;
 
 public final class HollowWandAnnouncer {
 
-    // Matches a title that is brackets enclosing exactly two non-whitespace symbols,
-    // with optional surrounding whitespace — e.g. "[ ⚡ ⚡ ]" or "[✿✿]"
-    private static final Pattern WAND_TITLE =
-            Pattern.compile("^\\s*\\[\\s*\\S\\s+\\S\\s*\\]\\s*$");
+    private static final String ICHOR_MSG    = "Casting Spell: Ichor Pool!";
+    private static final String SPIRIT_MSG   = "Casting Spell: Spirit Spark!";
+    private static final String RUSH_MSG     = "Casting Spell: Hollowed Rush!";
+    private static final String WIND_MSG     = "Casting Spell: Raging Wind!";
 
-    private static long lastSentMs = 0;
+    private static long lastSentMs  = 0;
     private static final long COOLDOWN_MS = 2000;
 
     private HollowWandAnnouncer() {}
 
-    public static void onTitle(String text) {
+    public static void onChat(String clean) {
         if (!KuudraConfig.isHollowWandEnabled()) return;
-        String stripped = text.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-        if (!WAND_TITLE.matcher(stripped).matches()) return;
+        if (!clean.contains("Casting Spell:")) return;
+
+        String abbrev;
+        if      (clean.contains(ICHOR_MSG))  abbrev = "Ichor";
+        else if (clean.contains(SPIRIT_MSG)) abbrev = "Spirit";
+        else if (clean.contains(RUSH_MSG))   abbrev = "Rush";
+        else if (clean.contains(WIND_MSG))   abbrev = "Wind";
+        else return;
 
         long now = System.currentTimeMillis();
         if (now - lastSentMs < COOLDOWN_MS) return;
         lastSentMs = now;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.getConnection() != null)
-            mc.getConnection().sendCommand("pc W");
+        if (mc.getConnection() == null || mc.player == null) return;
+
+        Player p = mc.player;
+        String pos = String.format("(%d, %d, %d)",
+                (int) p.getX(), (int) p.getY(), (int) p.getZ());
+        mc.getConnection().sendCommand("pc [Phantom] " + abbrev + " @ " + pos);
     }
+
+    public static void onTitle(String text) {}
 }

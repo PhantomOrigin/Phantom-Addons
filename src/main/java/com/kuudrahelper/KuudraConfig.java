@@ -108,6 +108,10 @@ public class KuudraConfig {
     private static boolean        supplyPearlHitboxEnabled     = false;
     private static boolean        pearlRefillEnabled           = false;
     private static boolean        hideSelfieEnabled            = false;
+    private static boolean        preventPlacingPlayerHeadsEnabled      = false;
+    private static boolean        preventPlacingPlayerHeadsExceptGarden = true;
+    private static boolean        preventPlacingWeaponsEnabled          = false;
+    private static boolean        supplyGiantHitboxEnabled              = false;
 
     // ── HUD layout ────────────────────────────────────────────────────────────
 
@@ -143,10 +147,23 @@ public class KuudraConfig {
     private static boolean soloNotifyEnabled        = false;
     private static boolean noPreNotifyEnabled       = false;
     private static boolean cratePriorityEnabled     = false;
+    private static boolean hideArmorStandsEnabled      = false;
+    private static boolean hideArmorStandsBuild        = true;
+    private static boolean hideArmorStandsRightCannon  = true;
+    private static boolean hideArmorStandsLeftCannon   = true;
+    private static boolean hideArmorStandsShop         = true;
+    private static boolean hideArmorStandsOthers       = true;
+
     private static boolean kuudraHpHudEnabled       = false;
+    private static boolean kuudraHpShowRaw          = false;
     private static boolean hollowWandEnabled        = false;
     private static boolean hideBossBarEnabled       = false;
+    private static boolean hideFallingBlocksEnabled  = false;
     private static boolean manaDrainAnnouncerEnabled = false;
+    private static boolean hideEntityFireEnabled  = false;
+    private static float   selfPlayerScale        = 100.0f;
+    private static float   otherPlayerScale       = 100.0f;
+    private static float   kuudraSizeScale        = 100.0f;
 
     private static float kuudraHpHudX     = 0.5f;
     private static float kuudraHpHudY     = 0.07f;
@@ -295,6 +312,10 @@ public class KuudraConfig {
     public static boolean        isSupplyPearlHitboxEnabled()      { return supplyPearlHitboxEnabled; }
     public static boolean        isPearlRefillEnabled()            { return pearlRefillEnabled; }
     public static boolean        isHideSelfieEnabled()             { return hideSelfieEnabled; }
+    public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return preventPlacingPlayerHeadsEnabled; }
+    public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return preventPlacingPlayerHeadsExceptGarden; }
+    public static boolean        isPreventPlacingWeaponsEnabled()          { return preventPlacingWeaponsEnabled; }
+    public static boolean        isSupplyGiantHitboxEnabled()              { return supplyGiantHitboxEnabled; }
 
     public static int getPickupDurationMs() {
         int tier = KuudraTierDetector.getTier();
@@ -381,12 +402,12 @@ public class KuudraConfig {
     // ── Setters ───────────────────────────────────────────────────────────────
 
     // General
-    public static void setRoleMode(RoleMode m)          { roleMode = m; }
-    public static void setDpsValue(int v)               { dpsValue = v; }
-    public static void setStunValue(int v)              { stunValue = v; }
-    public static void setEatenTimerEnabled(boolean v)  { eatenTimerEnabled = v; }
-    public static void setPickoblockEnabled(boolean v)  { pickoblockEnabled = v; }
-    public static void setHideElleDialogue(boolean v)   { hideElleDialogue = v; }
+    public static void setRoleMode(RoleMode m)          { roleMode = m;           save(); }
+    public static void setDpsValue(int v)               { dpsValue = v;           save(); }
+    public static void setStunValue(int v)              { stunValue = v;          save(); }
+    public static void setEatenTimerEnabled(boolean v)  { eatenTimerEnabled = v;  save(); }
+    public static void setPickoblockEnabled(boolean v)  { pickoblockEnabled = v;  save(); }
+    public static void setHideElleDialogue(boolean v)   { hideElleDialogue = v;   save(); }
     public static void setAutoGfsEnabled(boolean v)     { autoGfsEnabled = v;     save(); }
     public static void toggleEtherwarpLavaBlock()       { etherwarpLavaBlock = !etherwarpLavaBlock; save(); }
 
@@ -456,6 +477,10 @@ public class KuudraConfig {
     public static void setSupplyPearlHitboxEnabled(boolean v)        { supplyPearlHitboxEnabled = v;            save(); }
     public static void setPearlRefillEnabled(boolean v)              { pearlRefillEnabled = v;                  save(); }
     public static void setHideSelfieEnabled(boolean v)               { hideSelfieEnabled = v;                    save(); }
+    public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { preventPlacingPlayerHeadsEnabled = v;      save(); }
+    public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { preventPlacingPlayerHeadsExceptGarden = v; save(); }
+    public static void setPreventPlacingWeaponsEnabled(boolean v)          { preventPlacingWeaponsEnabled = v;          save(); }
+    public static void setSupplyGiantHitboxEnabled(boolean v)              { supplyGiantHitboxEnabled = v;              save(); }
 
     // HUD layout (no auto-save — HudEditorScreen calls save() on close)
     public static float getMountTimerHudX()     { return mountTimerHudX; }
@@ -508,27 +533,51 @@ public class KuudraConfig {
     public static void setCratePriorityHudY(float v)      { cratePriorityHudY     = Math.max(0, Math.min(1, v)); }
     public static void setCratePriorityHudScale(float v)  { cratePriorityHudScale = Math.max(0.2f, Math.min(3f, v)); }
     public static boolean isSupplyRecoveryMsgEnabled()      { return supplyRecoveryMsgEnabled; }
-    public static void setSupplyRecoveryMsgEnabled(boolean v){ supplyRecoveryMsgEnabled = v; }
+    public static void setSupplyRecoveryMsgEnabled(boolean v){ supplyRecoveryMsgEnabled = v;  save(); }
     public static boolean isFreshNotifyEnabled()            { return freshNotifyEnabled; }
-    public static void setFreshNotifyEnabled(boolean v)     { freshNotifyEnabled = v; }
+    public static void setFreshNotifyEnabled(boolean v)     { freshNotifyEnabled = v;         save(); }
     public static boolean isBuildStartedNotifyEnabled()     { return buildStartedNotifyEnabled; }
-    public static void setBuildStartedNotifyEnabled(boolean v){ buildStartedNotifyEnabled = v; }
+    public static void setBuildStartedNotifyEnabled(boolean v){ buildStartedNotifyEnabled = v; save(); }
     public static boolean isFastDpsNotifyEnabled()          { return fastDpsNotifyEnabled; }
-    public static void setFastDpsNotifyEnabled(boolean v)   { fastDpsNotifyEnabled = v; }
+    public static void setFastDpsNotifyEnabled(boolean v)   { fastDpsNotifyEnabled = v;       save(); }
     public static boolean isSoloNotifyEnabled()             { return soloNotifyEnabled; }
-    public static void setSoloNotifyEnabled(boolean v)      { soloNotifyEnabled = v; }
+    public static void setSoloNotifyEnabled(boolean v)      { soloNotifyEnabled = v;           save(); }
     public static boolean isNoPreNotifyEnabled()            { return noPreNotifyEnabled; }
-    public static void setNoPreNotifyEnabled(boolean v)     { noPreNotifyEnabled = v; }
+    public static void setNoPreNotifyEnabled(boolean v)     { noPreNotifyEnabled = v;          save(); }
     public static boolean isCratePriorityEnabled()          { return cratePriorityEnabled; }
-    public static void setCratePriorityEnabled(boolean v)   { cratePriorityEnabled = v; }
+    public static void setCratePriorityEnabled(boolean v)   { cratePriorityEnabled = v;        save(); }
+    public static boolean isHideArmorStandsEnabled()              { return hideArmorStandsEnabled; }
+    public static void setHideArmorStandsEnabled(boolean v)       { hideArmorStandsEnabled = v; save(); }
+    public static boolean isHideArmorStandsBuild()                { return hideArmorStandsBuild; }
+    public static void setHideArmorStandsBuild(boolean v)         { hideArmorStandsBuild = v; save(); }
+    public static boolean isHideArmorStandsRightCannon()          { return hideArmorStandsRightCannon; }
+    public static void setHideArmorStandsRightCannon(boolean v)   { hideArmorStandsRightCannon = v; save(); }
+    public static boolean isHideArmorStandsLeftCannon()           { return hideArmorStandsLeftCannon; }
+    public static void setHideArmorStandsLeftCannon(boolean v)    { hideArmorStandsLeftCannon = v; save(); }
+    public static boolean isHideArmorStandsShop()                 { return hideArmorStandsShop; }
+    public static void setHideArmorStandsShop(boolean v)          { hideArmorStandsShop = v; save(); }
+    public static boolean isHideArmorStandsOthers()               { return hideArmorStandsOthers; }
+    public static void setHideArmorStandsOthers(boolean v)        { hideArmorStandsOthers = v; save(); }
     public static boolean isKuudraHpHudEnabled()            { return kuudraHpHudEnabled; }
     public static void setKuudraHpHudEnabled(boolean v)     { kuudraHpHudEnabled = v; save(); }
+    public static boolean isKuudraHpShowRaw()               { return kuudraHpShowRaw; }
+    public static void setKuudraHpShowRaw(boolean v)        { kuudraHpShowRaw = v; save(); }
     public static boolean isHollowWandEnabled()             { return hollowWandEnabled; }
     public static void setHollowWandEnabled(boolean v)      { hollowWandEnabled = v; save(); }
     public static boolean isHideBossBarEnabled()              { return hideBossBarEnabled; }
+    public static boolean isHideFallingBlocksEnabled()        { return hideFallingBlocksEnabled; }
     public static void setHideBossBarEnabled(boolean v)       { hideBossBarEnabled = v; save(); }
+    public static void setHideFallingBlocksEnabled(boolean v) { hideFallingBlocksEnabled = v; save(); }
     public static boolean isManaDrainAnnouncerEnabled()       { return manaDrainAnnouncerEnabled; }
     public static void setManaDrainAnnouncerEnabled(boolean v){ manaDrainAnnouncerEnabled = v; save(); }
+    public static boolean isHideEntityFireEnabled()           { return hideEntityFireEnabled; }
+    public static void setHideEntityFireEnabled(boolean v)    { hideEntityFireEnabled = v; save(); }
+    public static float getSelfPlayerScale()                  { return selfPlayerScale; }
+    public static void setSelfPlayerScale(float v)            { selfPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
+    public static float getOtherPlayerScale()                 { return otherPlayerScale; }
+    public static void setOtherPlayerScale(float v)           { otherPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
+    public static float getKuudraSizeScale()                  { return kuudraSizeScale; }
+    public static void setKuudraSizeScale(float v)            { kuudraSizeScale = Math.max(1f, Math.min(200f, v)); save(); }
     public static float getKuudraHpHudX()                   { return kuudraHpHudX; }
     public static float getKuudraHpHudY()                   { return kuudraHpHudY; }
     public static float getKuudraHpHudScale()               { return kuudraHpHudScale; }
@@ -657,6 +706,10 @@ public class KuudraConfig {
             supplyPearlHitboxEnabled      = d.supplyPearlHitboxEnabled;
             pearlRefillEnabled            = d.pearlRefillEnabled;
             hideSelfieEnabled             = d.hideSelfieEnabled;
+            preventPlacingPlayerHeadsEnabled      = d.preventPlacingPlayerHeadsEnabled;
+            preventPlacingPlayerHeadsExceptGarden = d.preventPlacingPlayerHeadsExceptGarden;
+            preventPlacingWeaponsEnabled          = d.preventPlacingWeaponsEnabled;
+            supplyGiantHitboxEnabled              = d.supplyGiantHitboxEnabled;
             kuudraDirectionEnabled = d.kuudraDirectionEnabled;
 
             mountTimerHudX     = d.mountTimerHudX;
@@ -690,10 +743,22 @@ public class KuudraConfig {
             soloNotifyEnabled        = d.soloNotifyEnabled;
             noPreNotifyEnabled       = d.noPreNotifyEnabled;
             cratePriorityEnabled     = d.cratePriorityEnabled;
+            hideArmorStandsEnabled     = d.hideArmorStandsEnabled;
+            hideArmorStandsBuild       = d.hideArmorStandsBuild;
+            hideArmorStandsRightCannon = d.hideArmorStandsRightCannon;
+            hideArmorStandsLeftCannon  = d.hideArmorStandsLeftCannon;
+            hideArmorStandsShop        = d.hideArmorStandsShop;
+            hideArmorStandsOthers      = d.hideArmorStandsOthers;
             kuudraHpHudEnabled       = d.kuudraHpHudEnabled;
+            kuudraHpShowRaw          = d.kuudraHpShowRaw;
             hollowWandEnabled        = d.hollowWandEnabled;
             hideBossBarEnabled         = d.hideBossBarEnabled;
+            hideFallingBlocksEnabled  = d.hideFallingBlocksEnabled;
             manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
+            hideEntityFireEnabled      = d.hideEntityFireEnabled;
+            selfPlayerScale            = d.selfPlayerScale;
+            otherPlayerScale           = d.otherPlayerScale;
+            kuudraSizeScale            = d.kuudraSizeScale;
             kuudraHpHudX             = d.kuudraHpHudX;
             kuudraHpHudY             = d.kuudraHpHudY;
             kuudraHpHudScale         = d.kuudraHpHudScale;
@@ -821,6 +886,10 @@ public class KuudraConfig {
         d.supplyPearlHitboxEnabled      = supplyPearlHitboxEnabled;
         d.pearlRefillEnabled            = pearlRefillEnabled;
         d.hideSelfieEnabled             = hideSelfieEnabled;
+        d.preventPlacingPlayerHeadsEnabled      = preventPlacingPlayerHeadsEnabled;
+        d.preventPlacingPlayerHeadsExceptGarden = preventPlacingPlayerHeadsExceptGarden;
+        d.preventPlacingWeaponsEnabled          = preventPlacingWeaponsEnabled;
+        d.supplyGiantHitboxEnabled              = supplyGiantHitboxEnabled;
         d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
 
         d.mountTimerHudX     = mountTimerHudX;
@@ -854,10 +923,22 @@ public class KuudraConfig {
         d.soloNotifyEnabled        = soloNotifyEnabled;
         d.noPreNotifyEnabled       = noPreNotifyEnabled;
         d.cratePriorityEnabled     = cratePriorityEnabled;
+        d.hideArmorStandsEnabled     = hideArmorStandsEnabled;
+        d.hideArmorStandsBuild       = hideArmorStandsBuild;
+        d.hideArmorStandsRightCannon = hideArmorStandsRightCannon;
+        d.hideArmorStandsLeftCannon  = hideArmorStandsLeftCannon;
+        d.hideArmorStandsShop        = hideArmorStandsShop;
+        d.hideArmorStandsOthers      = hideArmorStandsOthers;
         d.kuudraHpHudEnabled       = kuudraHpHudEnabled;
+        d.kuudraHpShowRaw          = kuudraHpShowRaw;
         d.hollowWandEnabled        = hollowWandEnabled;
         d.hideBossBarEnabled         = hideBossBarEnabled;
+        d.hideFallingBlocksEnabled  = hideFallingBlocksEnabled;
         d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
+        d.hideEntityFireEnabled      = hideEntityFireEnabled;
+        d.selfPlayerScale            = selfPlayerScale;
+        d.otherPlayerScale           = otherPlayerScale;
+        d.kuudraSizeScale            = kuudraSizeScale;
         d.kuudraHpHudX             = kuudraHpHudX;
         d.kuudraHpHudY             = kuudraHpHudY;
         d.kuudraHpHudScale         = kuudraHpHudScale;
@@ -1001,6 +1082,10 @@ public class KuudraConfig {
         boolean supplyPearlHitboxEnabled     = false;
         boolean pearlRefillEnabled           = false;
         boolean hideSelfieEnabled            = false;
+        boolean preventPlacingPlayerHeadsEnabled      = false;
+        boolean preventPlacingPlayerHeadsExceptGarden = true;
+        boolean preventPlacingWeaponsEnabled          = false;
+        boolean supplyGiantHitboxEnabled              = false;
         boolean kuudraDirectionEnabled  = false;
 
         float mountTimerHudX     = 0.5f;
@@ -1034,10 +1119,22 @@ public class KuudraConfig {
         boolean soloNotifyEnabled        = false;
         boolean noPreNotifyEnabled       = false;
         boolean cratePriorityEnabled     = false;
+        boolean hideArmorStandsEnabled     = false;
+        boolean hideArmorStandsBuild       = true;
+        boolean hideArmorStandsRightCannon = true;
+        boolean hideArmorStandsLeftCannon  = true;
+        boolean hideArmorStandsShop        = true;
+        boolean hideArmorStandsOthers      = true;
         boolean kuudraHpHudEnabled       = false;
+        boolean kuudraHpShowRaw          = false;
         boolean hollowWandEnabled        = false;
         boolean hideBossBarEnabled         = false;
+        boolean hideFallingBlocksEnabled  = false;
         boolean manaDrainAnnouncerEnabled  = false;
+        boolean hideEntityFireEnabled      = false;
+        float   selfPlayerScale            = 100.0f;
+        float   otherPlayerScale           = 100.0f;
+        float   kuudraSizeScale            = 100.0f;
         float   kuudraHpHudX             = 0.5f;
         float   kuudraHpHudY             = 0.07f;
         float   kuudraHpHudScale         = 1.0f;

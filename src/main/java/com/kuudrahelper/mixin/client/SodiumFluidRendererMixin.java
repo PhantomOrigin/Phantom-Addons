@@ -41,11 +41,6 @@ public class SodiumFluidRendererMixin {
         return state;
     }
 
-    // ── Swap material to translucent inside writeQuad ────────────────────────
-    // Targeting writeQuad instead of render avoids @ModifyVariable conflicts
-    // and ensures the material is TRANSLUCENT for both isTranslucent() check
-    // and the builder.push() fallback path.
-
     @ModifyVariable(
             method = "writeQuad",
             at = @At("HEAD"),

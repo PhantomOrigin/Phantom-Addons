@@ -14,6 +14,7 @@ public final class NotificationHud {
     private record Notification(String text, long expiresAt) {}
 
     private static final List<Notification> notifications = new ArrayList<>();
+    private static volatile String countdown = null;
 
     private NotificationHud() {}
 
@@ -26,8 +27,12 @@ public final class NotificationHud {
         });
     }
 
+    public static void setCountdown(String text) { countdown = text; }
+    public static void clearCountdown()          { countdown = null; }
+
     public static void reset() {
         notifications.clear();
+        countdown = null;
     }
 
     public static void register() {
@@ -36,7 +41,8 @@ public final class NotificationHud {
                 (ctx, tc) -> {
                     long now = System.currentTimeMillis();
                     notifications.removeIf(n -> n.expiresAt() <= now);
-                    if (notifications.isEmpty()) return;
+                    String cd = countdown;
+                    if (notifications.isEmpty() && cd == null) return;
 
                     Minecraft mc = Minecraft.getInstance();
                     if (mc.player == null || mc.font == null) return;
@@ -54,12 +60,20 @@ public final class NotificationHud {
                     matrices.scale(scale, scale);
 
                     int lineH = mc.font.lineHeight + 2;
-                    int startY = -(notifications.size() * lineH) / 2;
+                    int totalLines = notifications.size() + (cd != null ? 1 : 0);
+                    int startY = -(totalLines * lineH) / 2;
+                    int row = 0;
 
-                    for (int i = 0; i < notifications.size(); i++) {
-                        String text = notifications.get(i).text();
+                    if (cd != null) {
+                        int tw = mc.font.width(cd);
+                        ctx.text(mc.font, cd, -tw / 2, startY + row * lineH, 0xFFFFFFFF, true);
+                        row++;
+                    }
+                    for (Notification n : notifications) {
+                        String text = n.text();
                         int tw = mc.font.width(text);
-                        ctx.text(mc.font, text, -tw / 2, startY + i * lineH, 0xFFFFFF, true);
+                        ctx.text(mc.font, text, -tw / 2, startY + row * lineH, 0xFFFFFFFF, true);
+                        row++;
                     }
 
                     matrices.popMatrix();

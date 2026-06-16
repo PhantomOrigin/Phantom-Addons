@@ -11,23 +11,15 @@ import java.util.Map;
 
 public final class SlotBinds {
 
-    // Slot ranges in player inventory screen
     private static final int INV_MIN = 9;   // main inventory (excludes armor/crafting 0-8)
     private static final int INV_MAX = 35;  // main inventory end
     private static final int HOT_MIN = 36;  // hotbar start
     private static final int HOT_MAX = 43;  // hotbar end (slot 44 = 9th slot, excluded)
 
-    // Binding-mode state: first selected slot waiting for second selection
     private static Integer pendingSlot = null;
 
     private SlotBinds() {}
 
-    // ── Bind key pressed while inventory is open ──────────────────────────────
-
-    /**
-     * Called from HandledScreenMixin#keyPressed.
-     * Returns true if the key event should be cancelled.
-     */
     public static boolean handleKeyPress(AbstractContainerScreen<?> screen, int keyCode, Slot hovered) {
         if (!KuudraConfig.isSlotBindsEnabled()) return false;
 
@@ -77,7 +69,6 @@ public final class SlotBinds {
             Map<Integer, Integer> bindings = KuudraConfig.getSlotBindings();
 
             if (Integer.valueOf(hotbarIndex).equals(bindings.get(invSlot))) {
-                // Same binding already exists — remove it
                 KuudraConfig.clearSlotBinding(invSlot);
                 sendMsg("§7Removed binding for inventory slot " + invSlot + ".");
             } else {
@@ -88,12 +79,6 @@ public final class SlotBinds {
         return true;
     }
 
-    // ── Shift-click on a bound slot ───────────────────────────────────────────
-
-    /**
-     * Called from HandledScreenMixin when a shift-click (QUICK_MOVE) fires on a slot.
-     * Returns true if the click was intercepted and replaced with a SWAP.
-     */
     public static boolean handleShiftClick(AbstractContainerScreen<?> screen, Slot slot) {
         if (!KuudraConfig.isSlotBindsEnabled()) return false;
         if (slot == null) return false;
@@ -118,11 +103,7 @@ public final class SlotBinds {
         return true;
     }
 
-    // ── Screen closed ─────────────────────────────────────────────────────────
-
     public static void clearPending() { pendingSlot = null; }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static boolean isInventorySlot(int id) { return id >= INV_MIN && id <= INV_MAX; }
     private static boolean isHotbarSlot(int id)    { return id >= HOT_MIN && id <= HOT_MAX; }

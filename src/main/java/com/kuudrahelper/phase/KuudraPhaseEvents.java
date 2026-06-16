@@ -10,10 +10,11 @@ import com.kuudrahelper.features.supplies.SupplyProgressHud;
 import com.kuudrahelper.features.supplies.SupplyWaypointTracker;
 import com.kuudrahelper.features.FastDpsWarning;
 import com.kuudrahelper.features.SoloDetector;
-import com.kuudrahelper.features.pearls.PearlWaypointManager;
 import com.kuudrahelper.features.splits.KuudraSplitTimer;
+import com.kuudrahelper.features.pearls.PearlWaypointManager;
 import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.utils.Phase2BuildTracker;
+import com.kuudrahelper.features.HideArmorStands;
 import com.kuudrahelper.features.kuudra.RendDamage;
 import com.kuudrahelper.utils.RoleManager;
 import net.minecraft.client.Minecraft;
@@ -28,6 +29,7 @@ public final class KuudraPhaseEvents {
             switch (phase) {
 
                 case SUPPLIES -> {
+                    HideArmorStands.activate();
                     SupplyWaypointTracker.onSuppliesStart();
                     NoPreAnnounce.onSuppliesStart();
                     SupplyProgressHud.onSuppliesStart();
@@ -55,6 +57,8 @@ public final class KuudraPhaseEvents {
                 }
 
                 case EATEN -> {
+                    BuildProgressTracker.stop();
+                    BuildProgressHud.reset();
                     PhaseLogger.resetTick();
                     RoleManager.reset();
                     if (KuudraConfig.isAutoMode()) {
@@ -92,9 +96,11 @@ public final class KuudraPhaseEvents {
 
                 case BOSS -> {
                     RendDamage.onKillPhaseStart();
+                    KuudraSplitTimer.onBossStart();
                 }
 
                 case END -> {
+                    HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();
                     AnnounceFresh.reset();

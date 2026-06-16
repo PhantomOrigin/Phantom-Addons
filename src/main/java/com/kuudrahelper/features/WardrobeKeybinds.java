@@ -79,10 +79,8 @@ public final class WardrobeKeybinds {
     public static boolean handleKey(AbstractContainerScreen<?> screen, int keyCode, Minecraft mc) {
         if (!KuudraConfig.isWardrobeEnabled()) return false;
 
-        // Cooldown guard — matches KIC's 200ms wall-clock cooldown
         if (System.currentTimeMillis() < nextAllowedAtMs) return false;
 
-        // Title must match "Wardrobe (X/Y)" — extracts page bounds for next/prev guards
         String title = strip(screen.getTitle().getString());
         Matcher wm = WARDROBE_PATTERN.matcher(title);
         if (!wm.find()) return false;
@@ -93,13 +91,11 @@ public final class WardrobeKeybinds {
         AbstractContainerMenu handler = screen.getMenu();
         int equippedSlot = findEquippedSlot(handler);
 
-        // Slot keys 1–9 → container slots 36–44
         int[] slotKeys = KuudraConfig.getWardrobeSlotKeys();
         for (int i = 0; i < 9; i++) {
             if (slotKeys[i] > 0 && keyCode == slotKeys[i]) {
                 int containerSlot = 36 + i;
                 if (containerSlot >= handler.slots.size()) return true;
-                // No-reequip guard: silently block re-clicking the already-equipped slot
                 if (containerSlot == equippedSlot) return true;
                 doClick(mc, handler, containerSlot, true);
                 return true;
@@ -111,20 +107,17 @@ public final class WardrobeKeybinds {
         int unequipKey = KuudraConfig.getWardrobeUnequipKey();
 
         if (nextKey > 0 && keyCode == nextKey) {
-            // Block next-page on last page
             if (currentPage >= totalPages) return true;
             clickByName(mc, handler, "next page");
             return true;
         }
         if (prevKey > 0 && keyCode == prevKey) {
-            // Block prev-page on first page
             if (currentPage <= 1) return true;
             clickByName(mc, handler, "previous page");
             return true;
         }
         if (unequipKey > 0 && keyCode == unequipKey) {
             if (equippedSlot == -1) return true;
-            // Unequip does not close the wardrobe (matches KIC)
             doClick(mc, handler, equippedSlot, false);
             return true;
         }

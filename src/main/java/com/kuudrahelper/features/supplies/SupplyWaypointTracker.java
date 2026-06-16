@@ -13,14 +13,12 @@ import java.util.regex.Pattern;
 
 public final class SupplyWaypointTracker {
 
-    private static final int PING_TICK            = 182; // 9.1s — supply location ping + no-pre detection
-    private static final int PING_TICK_ANNOUNCE   = 190; // 9.5s — no-pre announcement
+    private static final int PING_TICK            = 182;
+    private static final int PING_TICK_ANNOUNCE   = 190;
 
     private static final double LOAD_RANGE = 80.0;
 
     private static final AABB ARENA = new AABB(-135, 60, -130, -65, 100, -65);
-
-    // ── Supply spots (known pickup positions, one per crate) ─────────────────
 
     private static final String[]  SPOT_NAMES = {
             "Shop", "Triangle", "X", "X Cannon", "Equals", "Slash", "Square"
@@ -34,7 +32,6 @@ public final class SupplyWaypointTracker {
             new Vec3(-113.5, 77.0,  -68.5),   // Slash
             new Vec3(-143.0, 76.0,  -80.0),   // Square
     };
-    // Zone name sent in party ping — 3 possible values regardless of which spot the supply is at
     private static final String[] SPOT_ZONE = {
             "Shop",     // 0 Shop
             "Shop",     // 1 Triangle → same zone as Shop
@@ -48,8 +45,6 @@ public final class SupplyWaypointTracker {
     private static final Pattern PING_PATTERN = Pattern.compile(
             "\\[Phantom] ([\\w ]+) x: (-?\\d+\\.\\d+) y: (-?\\d+\\.\\d+) z: (-?\\d+\\.\\d+)");
 
-    // ── State ─────────────────────────────────────────────────────────────────
-
     private static int ticksSinceStart         = -1;
     private static boolean pingFired           = false;
     private static boolean pingAnnounceFired   = false;
@@ -60,8 +55,6 @@ public final class SupplyWaypointTracker {
     public static final Map<String, Vec3> pingBeacons = new LinkedHashMap<>();
 
     private SupplyWaypointTracker() {}
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public static void onSuppliesStart() {
         ticksSinceStart        = 0;
@@ -78,8 +71,6 @@ public final class SupplyWaypointTracker {
         detectedClusters.clear();
         pingBeacons.clear();
     }
-
-    // ── Tick ──────────────────────────────────────────────────────────────────
 
     public static void tick(Minecraft mc) {
         boolean needsTracking = KuudraConfig.isSupplyBeaconsEnabled()
@@ -107,8 +98,6 @@ public final class SupplyWaypointTracker {
         if (KuudraConfig.isSupplyBeaconsEnabled()) validatePingBeacons(mc);
     }
 
-    // ── Entity clustering ─────────────────────────────────────────────────────
-
     private static void updateClusters(Minecraft mc) {
         detectedClusters.clear();
         for (Entity entity : mc.level.entitiesForRendering()) {
@@ -124,8 +113,6 @@ public final class SupplyWaypointTracker {
         }
     }
 
-    // ── Pinging ───────────────────────────────────────────────────────────────
-
     private static void firePings(Minecraft mc) {
         if (mc.getConnection() == null) return;
 
@@ -133,8 +120,6 @@ public final class SupplyWaypointTracker {
         Vec3  playerSpotPos = SPOT_POS[playerSpotIdx];
         String zoneName     = SPOT_ZONE[playerSpotIdx];
 
-        // Ping only the single cluster closest to the player's own pre spot,
-        // labelled with that spot's zone name — avoids misidentifying e.g. Triangle as Shop.
         SupplyCluster best     = null;
         double        bestDist = Double.MAX_VALUE;
         for (SupplyCluster cluster : detectedClusters) {
@@ -150,8 +135,6 @@ public final class SupplyWaypointTracker {
         mc.getConnection().sendCommand("pc " + msg);
     }
 
-    // ── Chat parsing ──────────────────────────────────────────────────────────
-
     public static void onChat(String raw) {
         if (!KuudraConfig.isSupplyBeaconsEnabled()) return;
 
@@ -165,8 +148,6 @@ public final class SupplyWaypointTracker {
 
         pingBeacons.put(zoneName, new Vec3(x, y, z));
     }
-
-    // ── Beacon invalidation ───────────────────────────────────────────────────
 
     private static void validatePingBeacons(Minecraft mc) {
         Vec3 playerPos = mc.player.position();
@@ -184,8 +165,6 @@ public final class SupplyWaypointTracker {
             }
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static int closestSpotIndex(Vec3 pos) {
         int best = 0;

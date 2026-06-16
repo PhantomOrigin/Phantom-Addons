@@ -1,6 +1,8 @@
 package com.kuudrahelper.phase;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.minecraft.client.Minecraft;
 
 public final class KuudraPhaseTracker {
 
@@ -23,6 +25,14 @@ public final class KuudraPhaseTracker {
         ClientReceiveMessageEvents.ALLOW_GAME.register((text, overlay) -> {
             handle(text.getString());
             return true;
+        });
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null) return;
+            if (currentPhase != Phase.DPS && currentPhase != Phase.SKIP) return;
+            if (client.player.getY() < 10.0) {
+                setPhase(Phase.BOSS);
+            }
         });
     }
 
@@ -92,7 +102,6 @@ public final class KuudraPhaseTracker {
         currentPhase = Phase.NONE;
     }
 
-    /** Force a phase transition regardless of current state (for dev commands). */
     public static void forcePhase(Phase phase) {
         runActive = (phase != Phase.NONE && phase != Phase.END);
         currentPhase = phase;

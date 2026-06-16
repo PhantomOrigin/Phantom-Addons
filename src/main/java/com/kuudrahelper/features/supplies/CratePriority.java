@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 
 public final class CratePriority {
 
-    // Maps spot index (SupplyWaypointTracker.SPOT_NAMES order) to player-pre key
     private static final String[] SPOT_TO_PLAYER_PRE = {
             null,        // 0 Shop       — player carries this, not a pre position
             "Triangle",  // 1 Triangle
@@ -26,7 +25,6 @@ public final class CratePriority {
             null,        // 6 Square     — player carries this
     };
 
-    // PRIORITY[missingSpot][playerPre] -> destination to go to
     private static final Map<String, Map<String, String>> PRIORITY;
     static {
         PRIORITY = new HashMap<>();
@@ -64,12 +62,10 @@ public final class CratePriority {
         String missingSpot = m.group(1).trim();
         if (!VALID_SPOTS.contains(missingSpot)) return;
 
-        // No Pre notification
         if (KuudraConfig.isNoPreNotifyEnabled()) {
             NotificationHud.show("§fNo " + missingSpot + "!", 6000);
         }
 
-        // Crate priority direction
         if (!KuudraConfig.isCratePriorityEnabled()) return;
 
         int playerSpot = SupplyWaypointTracker.playerSpotIdx;
@@ -110,7 +106,7 @@ public final class CratePriority {
 
                     String text = "§eGo " + destination + "!";
                     int tw = mc.font.width(text);
-                    ctx.text(mc.font, text, -tw / 2, -mc.font.lineHeight / 2, 0xFFFFFF, true);
+                    ctx.text(mc.font, text, -tw / 2, -mc.font.lineHeight / 2, 0xFFFFFFFF, true);
 
                     matrices.popMatrix();
                 });

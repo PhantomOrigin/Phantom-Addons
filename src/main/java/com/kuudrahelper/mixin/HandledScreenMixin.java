@@ -1,19 +1,18 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.KuudraScreen;
 import com.kuudrahelper.features.ShopKeybinds;
 import com.kuudrahelper.features.SlotBinds;
 import com.kuudrahelper.features.WardrobeKeybinds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,7 +38,7 @@ public class HandledScreenMixin {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         int key = event.key();
 
-        if (SlotBinds.handleKeyPress(self, key, hoveredSlot)) { cir.setReturnValue(true); return; }
+        if (self instanceof InventoryScreen && SlotBinds.handleKeyPress(self, key, hoveredSlot)) { cir.setReturnValue(true); return; }
         if (WardrobeKeybinds.handleKey(self, key, mc))        { cir.setReturnValue(true); return; }
         if (ShopKeybinds.handleKey(self, key, mc))             { cir.setReturnValue(true); }
     }
@@ -57,47 +56,52 @@ public class HandledScreenMixin {
         if (ShopKeybinds.handleMouseButton(self, button, mc))      { cir.setReturnValue(true); }
     }
 
-    // Intercept shift-click on bound inventory slots and send SWAP instead
     @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$slotBindsClick(Slot slot, int slotId, int mouseButton,
                                               ContainerInput clickType, CallbackInfo ci) {
         if (clickType != ContainerInput.QUICK_MOVE) return;
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        if (SlotBinds.handleShiftClick(self, slot)) ci.cancel();
+        if (self instanceof InventoryScreen && SlotBinds.handleShiftClick(self, slot)) ci.cancel();
     }
 
-    // Clear pending bind when inventory is closed
     @Inject(method = "removed", at = @At("HEAD"))
     private void kuudrahelper$onRemoved(CallbackInfo ci) {
         SlotBinds.clearPending();
     }
 
-    // Draw lines between bound slot pairs when show-binds key is held
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void kuudrahelper$drawBindLines(GuiGraphicsExtractor ctx, int mx, int my, float delta,
                                              CallbackInfo ci) {
+        if (!((Object) this instanceof InventoryScreen)) return;
         if (!KuudraConfig.isSlotBindsEnabled()) return;
-
-        int showKey = KuudraConfig.getSlotBindShowKey();
-        if (showKey <= 0) return;
-
-        long handle = GLFW.glfwGetCurrentContext();
-        if (handle == 0) return;
-
-        boolean held = showKey >= KuudraScreen.MOUSE_OFFSET
-                ? GLFW.glfwGetMouseButton(handle, showKey - KuudraScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS
-                : GLFW.glfwGetKey(handle, showKey) == GLFW.GLFW_PRESS;
-        if (!held) return;
 
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         AbstractContainerMenu menu = self.getMenu();
         Map<Integer, Integer> bindings = KuudraConfig.getSlotBindings();
         if (bindings.isEmpty()) return;
 
+        int hoveredId = hoveredSlot != null ? hoveredSlot.index : -1;
+
+        // Find which binding involves the hovered slot (if any)
+        int hoveredInv = -1, hoveredHot = -1;
+        if (hoveredId >= 0) {
+            if (bindings.containsKey(hoveredId)) {
+                hoveredInv = hoveredId;
+                hoveredHot = 36 + bindings.get(hoveredId);
+            } else {
+                for (Map.Entry<Integer, Integer> e : bindings.entrySet()) {
+                    if (36 + e.getValue() == hoveredId) {
+                        hoveredInv = e.getKey();
+                        hoveredHot = hoveredId;
+                        break;
+                    }
+                }
+            }
+        }
+
         for (Map.Entry<Integer, Integer> entry : bindings.entrySet()) {
             int invSlotId   = entry.getKey();
-            int hotbarIndex = entry.getValue();
-            int hotSlotId   = 36 + hotbarIndex; // HOT_MIN + hotbarIndex
+            int hotSlotId   = 36 + entry.getValue();
 
             if (invSlotId >= menu.slots.size() || hotSlotId >= menu.slots.size()) continue;
             Slot invSlot = menu.slots.get(invSlotId);
@@ -108,17 +112,29 @@ public class HandledScreenMixin {
             int x2 = leftPos + hotSlot.x + 8;
             int y2 = topPos  + hotSlot.y + 8;
 
-            drawLine(ctx, x1, y1, x2, y2, 0xFF4488FF);
+            boolean hovered = invSlotId == hoveredInv;
+            int color = hovered ? 0xFF55BBFF : 0x884488FF;
+            drawLine(ctx, x1, y1, x2, y2, color);
+        }
+
+        // Tooltip label when hovering a bound slot
+        if (hoveredInv >= 0 && hoveredSlot != null) {
+            Minecraft mc = Minecraft.getInstance();
+            int hotbarNum = hoveredHot - 36 + 1;
+            String label = "§eBound ↔ Hotbar " + hotbarNum;
+            int lx = leftPos + hoveredSlot.x + 8 - mc.font.width(label) / 2;
+            int ly = topPos  + hoveredSlot.y - 12;
+            ctx.fill(lx - 2, ly - 1, lx + mc.font.width(label) + 2, ly + mc.font.lineHeight + 1, 0xBB000000);
+            ctx.text(mc.font, label, lx, ly, 0xFFFFFFFF, true);
         }
     }
 
-    // Bresenham line — fill() uses raw screen coords, not the pose matrix
     private static void drawLine(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color) {
         int dx = Math.abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
         int dy = -Math.abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
         int err = dx + dy;
         while (true) {
-            ctx.fill(x1 - 1, y1 - 1, x1 + 1, y1 + 1, color); // 2×2 dot per step
+            ctx.fill(x1 - 1, y1 - 1, x1 + 1, y1 + 1, color);
             if (x1 == x2 && y1 == y2) break;
             int e2 = 2 * err;
             if (e2 >= dy) { err += dy; x1 += sx; }

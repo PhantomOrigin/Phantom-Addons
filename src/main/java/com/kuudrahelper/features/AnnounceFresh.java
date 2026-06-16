@@ -23,13 +23,11 @@ public final class AnnounceFresh {
     private static final String FRESH_SERVER_MSG =
             "Your Fresh Tools Perk bonus doubles your building speed for the next 10 seconds!";
 
-    // Party > [RANK] PlayerName: FRESH! (88%)
     private static final Pattern FRESH_PARTY_PATTERN = Pattern.compile(
             "Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH! \\((\\d+)%\\)");
 
     private static final long FRESH_DURATION_MS = 10_000L;
 
-    // playerName -> endTimeMs
     private static final Map<String, Long> activeTimers = new ConcurrentHashMap<>();
 
     private static volatile boolean buildActive = false;
@@ -55,7 +53,7 @@ public final class AnnounceFresh {
             Minecraft mc = Minecraft.getInstance();
             if (mc.getConnection() == null) return;
             int progress = BuildProgressHud.getCurrentProgress();
-            String pctStr = progress >= 0 ? progress + "%" : "?%";
+            String pctStr = progress >= 0 ? progress + "%" : "0%";
             if (KuudraConfig.isFreshNotifyEnabled()) {
                 NotificationHud.show("§aFresh!", 3000);
             }
@@ -111,7 +109,6 @@ public final class AnnounceFresh {
 
             matrices.pushPose();
             matrices.translate(x, y, z);
-            // Undo world-space camera rotation to billboard the text
             matrices.mulPose(new Quaternionf().rotationY(-Mth.DEG_TO_RAD * (cameraYRot + 180.0f)));
             matrices.mulPose(new Quaternionf().rotationX(-Mth.DEG_TO_RAD * cameraXRot));
             matrices.scale(-0.025f, -0.025f, 0.025f);

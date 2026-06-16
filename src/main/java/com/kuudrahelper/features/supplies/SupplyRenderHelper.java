@@ -19,12 +19,10 @@ import java.util.List;
 
 public final class SupplyRenderHelper {
 
-    // Light blue (#00BFFF) for supply hitbox and rod radius
     private static final int LB_R = 0, LB_G = 191, LB_B = 255;
     private static final int OUTLINE_A = 200;
     private static final int FILL_A    = 13;  // ~5% opacity
 
-    // White for pearl hitbox
     private static final int PH_R = 255, PH_G = 255, PH_B = 255;
     private static final int PH_A = 160;
 
@@ -47,7 +45,6 @@ public final class SupplyRenderHelper {
         Vec3 camPos = camera.position();
         Matrix4f m  = matrices.last().pose();
 
-        // Filter: alive zombies within 2 blocks (horizontal) of any detected supply cluster center
         List<SupplyCluster> clusters = SupplyWaypointTracker.detectedClusters;
         List<Zombie> zombies = new ArrayList<>();
         for (Entity entity : mc.level.entitiesForRendering()) {
@@ -86,7 +83,6 @@ public final class SupplyRenderHelper {
             imm.endBatch();
         }
 
-        // ── Per-cluster: rod pull radius circle centred on zombie cluster ────────
         if (showRodRadius && !zombies.isEmpty()) {
             List<Vec3> centers = clusterCenters(zombies);
             VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
@@ -122,25 +118,20 @@ public final class SupplyRenderHelper {
         return centers;
     }
 
-    // ── Box helpers ───────────────────────────────────────────────────────────
-
     private static void addOutline(VertexConsumer vc, Matrix4f m,
                                    double x1, double y1, double z1,
                                    double x2, double y2, double z2,
                                    int r, int g, int b, int a) {
         float ax = (float)x1, ay = (float)y1, az = (float)z1;
         float bx = (float)x2, by = (float)y2, bz = (float)z2;
-        // Bottom ring
         cline(vc, m, ax, ay, az, bx, ay, az, r, g, b, a,  1, 0, 0);
         cline(vc, m, bx, ay, az, bx, ay, bz, r, g, b, a,  0, 0, 1);
         cline(vc, m, bx, ay, bz, ax, ay, bz, r, g, b, a, -1, 0, 0);
         cline(vc, m, ax, ay, bz, ax, ay, az, r, g, b, a,  0, 0,-1);
-        // Top ring
         cline(vc, m, ax, by, az, bx, by, az, r, g, b, a,  1, 0, 0);
         cline(vc, m, bx, by, az, bx, by, bz, r, g, b, a,  0, 0, 1);
         cline(vc, m, bx, by, bz, ax, by, bz, r, g, b, a, -1, 0, 0);
         cline(vc, m, ax, by, bz, ax, by, az, r, g, b, a,  0, 0,-1);
-        // Verticals
         cline(vc, m, ax, ay, az, ax, by, az, r, g, b, a, 0, 1, 0);
         cline(vc, m, bx, ay, az, bx, by, az, r, g, b, a, 0, 1, 0);
         cline(vc, m, bx, ay, bz, bx, by, bz, r, g, b, a, 0, 1, 0);

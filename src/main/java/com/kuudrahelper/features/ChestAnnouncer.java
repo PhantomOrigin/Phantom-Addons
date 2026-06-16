@@ -52,7 +52,7 @@ public final class ChestAnnouncer {
         int    tier = KuudraConfig.getHighestTierPlayed();
         double pb   = KuudraConfig.getTotalRunPb(tier);
 
-        if (pb >= 9999) return; // no PB recorded yet — stay silent
+        if (pb >= 9999) return;
 
         String cmd = "pc T" + tier + " Kuudra PB: " + KuudraConfig.formatTime(pb);
         mc.execute(() -> mc.getConnection().sendCommand(cmd));

@@ -9,38 +9,30 @@ import net.minecraft.network.chat.Component;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 9;
+    private static final int N = 8;
 
-    // Labels shown in tooltip on hover
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Pearl Title",
-        "Supply Progress", "Build Progress", "Notifications", "Crate Priority", "Kuudra HP"
+        "Build Progress", "Notifications", "Crate Priority", "Kuudra HP"
     };
 
-    // Approximate box size (px) at configScale = 1.0, before ps multiplier.
-    // Sized to contain the preview content below.
-    private static final int[] BASE_W = { 60, 130, 135, 130, 160, 155, 90, 110, 165 };
-    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  18,  22 };
+    private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165 };
+    private static final int[] BASE_H = { 30,  36,  95,  28,  28,   28,  18,  22 };
 
-    // Preview render scale for each element at ps = 1.0
-    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f };
+    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f };
 
-    // True if the element's stored position is its visual CENTER (false = top-left corner)
-    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true, true };
+    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true };
 
-    // Working copies committed to config on close
     private final float[] px = new float[N];
     private final float[] py = new float[N];
     private final float[] ps = new float[N];
 
-    // Drag state
     private int    draggingIdx = -1;
     private double dragStartMX, dragStartMY;
     private float  dragStartPx, dragStartPy;
 
     private final Screen parent;
 
-    // Split timer preview lines
     private static final String[] SPLIT_LINES = {
         "§b§lKuudra Splits:",
         "§bSupplies:§r 23.45s  §a[-1.2]",
@@ -76,25 +68,21 @@ public class HudEditorScreen extends Screen {
         py[3] = KuudraConfig.getPearlTitleHudY();
         ps[3] = KuudraConfig.getPearlTitleHudScale();
 
-        px[4] = KuudraConfig.getSupplyProgressHudX();
-        py[4] = KuudraConfig.getSupplyProgressHudY();
-        ps[4] = KuudraConfig.getSupplyProgressHudScale();
+        px[4] = KuudraConfig.getBuildProgressHudX();
+        py[4] = KuudraConfig.getBuildProgressHudY();
+        ps[4] = KuudraConfig.getBuildProgressHudScale();
 
-        px[5] = KuudraConfig.getBuildProgressHudX();
-        py[5] = KuudraConfig.getBuildProgressHudY();
-        ps[5] = KuudraConfig.getBuildProgressHudScale();
+        px[5] = KuudraConfig.getNotificationHudX();
+        py[5] = KuudraConfig.getNotificationHudY();
+        ps[5] = KuudraConfig.getNotificationHudScale();
 
-        px[6] = KuudraConfig.getNotificationHudX();
-        py[6] = KuudraConfig.getNotificationHudY();
-        ps[6] = KuudraConfig.getNotificationHudScale();
+        px[6] = KuudraConfig.getCratePriorityHudX();
+        py[6] = KuudraConfig.getCratePriorityHudY();
+        ps[6] = KuudraConfig.getCratePriorityHudScale();
 
-        px[7] = KuudraConfig.getCratePriorityHudX();
-        py[7] = KuudraConfig.getCratePriorityHudY();
-        ps[7] = KuudraConfig.getCratePriorityHudScale();
-
-        px[8] = KuudraConfig.getKuudraHpHudX();
-        py[8] = KuudraConfig.getKuudraHpHudY();
-        ps[8] = KuudraConfig.getKuudraHpHudScale();
+        px[7] = KuudraConfig.getKuudraHpHudX();
+        py[7] = KuudraConfig.getKuudraHpHudY();
+        ps[7] = KuudraConfig.getKuudraHpHudScale();
     }
 
     @Override
@@ -115,25 +103,21 @@ public class HudEditorScreen extends Screen {
         KuudraConfig.setPearlTitleHudY(py[3]);
         KuudraConfig.setPearlTitleHudScale(ps[3]);
 
-        KuudraConfig.setSupplyProgressHudX(px[4]);
-        KuudraConfig.setSupplyProgressHudY(py[4]);
-        KuudraConfig.setSupplyProgressHudScale(ps[4]);
+        KuudraConfig.setBuildProgressHudX(px[4]);
+        KuudraConfig.setBuildProgressHudY(py[4]);
+        KuudraConfig.setBuildProgressHudScale(ps[4]);
 
-        KuudraConfig.setBuildProgressHudX(px[5]);
-        KuudraConfig.setBuildProgressHudY(py[5]);
-        KuudraConfig.setBuildProgressHudScale(ps[5]);
+        KuudraConfig.setNotificationHudX(px[5]);
+        KuudraConfig.setNotificationHudY(py[5]);
+        KuudraConfig.setNotificationHudScale(ps[5]);
 
-        KuudraConfig.setNotificationHudX(px[6]);
-        KuudraConfig.setNotificationHudY(py[6]);
-        KuudraConfig.setNotificationHudScale(ps[6]);
+        KuudraConfig.setCratePriorityHudX(px[6]);
+        KuudraConfig.setCratePriorityHudY(py[6]);
+        KuudraConfig.setCratePriorityHudScale(ps[6]);
 
-        KuudraConfig.setCratePriorityHudX(px[7]);
-        KuudraConfig.setCratePriorityHudY(py[7]);
-        KuudraConfig.setCratePriorityHudScale(ps[7]);
-
-        KuudraConfig.setKuudraHpHudX(px[8]);
-        KuudraConfig.setKuudraHpHudY(py[8]);
-        KuudraConfig.setKuudraHpHudScale(ps[8]);
+        KuudraConfig.setKuudraHpHudX(px[7]);
+        KuudraConfig.setKuudraHpHudY(py[7]);
+        KuudraConfig.setKuudraHpHudScale(ps[7]);
 
         KuudraConfig.save();
         minecraft.setScreen(parent);
@@ -151,7 +135,6 @@ public class HudEditorScreen extends Screen {
         ctx.text(font, Component.literal("§bHUD Layout Editor"), 8, 8, 0xFFFFFFFF);
         ctx.text(font, Component.literal("§7Drag to reposition  •  Scroll to resize  •  ESC to save & exit"), 8, 18, 0xFFAAAAAA);
 
-        // Draw all boxes + previews
         int hoveredIdx = -1;
         for (int i = 0; i < N; i++) {
             int bx = boxX(i), by = boxY(i), bw = boxW(i), bh = boxH(i);
@@ -170,12 +153,10 @@ public class HudEditorScreen extends Screen {
 
             renderPreview(ctx, i, bx, by, bw, bh);
 
-            // Scale indicator in bottom-left corner
             String scaleStr = String.format("%.1f×", ps[i]);
             ctx.text(font, Component.literal("§7" + scaleStr), bx + 2, by + bh - font.lineHeight - 1, 0xFFFFFFFF);
         }
 
-        // Tooltip for hovered element
         if (hoveredIdx >= 0) {
             int i  = hoveredIdx;
             int bx = boxX(i), by = boxY(i), bw = boxW(i);
@@ -190,7 +171,6 @@ public class HudEditorScreen extends Screen {
             ctx.text(font, Component.literal(label), tx, ty, 0xFFFFFFFF);
         }
 
-        // Coordinate display for hovered or dragged element (quadrant coords, 0,0 = screen centre)
         int coordIdx = draggingIdx >= 0 ? draggingIdx : hoveredIdx;
         if (coordIdx >= 0) {
             float cx = (px[coordIdx] - 0.5f) * width;
@@ -203,7 +183,6 @@ public class HudEditorScreen extends Screen {
             ctx.text(font, Component.literal("§e" + coordStr), cx2, cy2, 0xFFFFFFFF);
         }
 
-        // Reset button
         int rx = width - 82, ry = height - 22;
         boolean rHov = mx >= rx && mx <= rx + 72 && my >= ry && my <= ry + 14;
         ctx.fill(rx, ry, rx + 72, ry + 14, rHov ? 0xC0444444 : 0x80333333);
@@ -220,19 +199,19 @@ public class HudEditorScreen extends Screen {
         float s = PREVIEW_SCALE[i] * ps[i];
 
         switch (i) {
-            case 0 -> { // Mount Timer: "182" centered
+            case 0 -> { // Mount Timer
                 m.translate(bx + bw / 2f, by + bh / 2f);
                 m.scale(s, s);
                 String txt = "182";
                 ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
             }
-            case 1 -> { // Kuudra Direction: "RIGHT!" centered
+            case 1 -> { // Kuudra Direction
                 m.translate(bx + bw / 2f, by + bh / 2f);
                 m.scale(s, s);
                 String txt = "RIGHT!";
                 ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
             }
-            case 2 -> { // Split Timer: lines from top-left
+            case 2 -> { // Split Timer
                 m.translate(bx + 2, by + 2);
                 m.scale(s, s);
                 int y = 0;
@@ -241,45 +220,39 @@ public class HudEditorScreen extends Screen {
                     y += 10;
                 }
             }
-            case 3 -> { // Pearl Title: bar centered
+            case 3 -> { // Pearl Title
                 m.translate(bx + bw / 2f, by + bh / 2f);
                 m.scale(s, s);
                 String txt = "§6[||||||||||||||||||||] §e75%";
                 ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
             }
-            case 4 -> { // Supply Progress: two lines centered
+            case 4 -> { // Build Progress
                 m.translate(bx + bw / 2f, by + bh / 2f - font.lineHeight / 2f);
                 m.scale(s, s);
-                String s4h = "§e§lSupplies Progress:";
-                String s4b = "Supplies Gathered: 3/6";
-                ctx.text(font, s4h, -font.width(s4h) / 2, 0, 0xFFFFFF, true);
-                ctx.text(font, s4b, -font.width(s4b) / 2, font.lineHeight + 2, 0xFFFFFF, true);
+                String h = "§e§lBuild Progress:";
+                String b = "Progress: 67%";
+                ctx.text(font, h, -font.width(h) / 2, 0, 0xFFFFFFFF, true);
+                ctx.text(font, b, -font.width(b) / 2, font.lineHeight + 2, 0xFFFFFFFF, true);
             }
-            case 5 -> { // Build Progress: two lines centered
+            case 5 -> { // Notifications (shows both countdown and notification example)
                 m.translate(bx + bw / 2f, by + bh / 2f - font.lineHeight / 2f);
                 m.scale(s, s);
-                String s5h = "§e§lBuild Progress:";
-                String s5b = "Progress: 67%";
-                ctx.text(font, s5h, -font.width(s5h) / 2, 0, 0xFFFFFF, true);
-                ctx.text(font, s5b, -font.width(s5b) / 2, font.lineHeight + 2, 0xFFFFFF, true);
+                String cd = "§eSupplies Spawn: §f6.43s";
+                String n  = "§cFAST DPS!";
+                ctx.text(font, cd, -font.width(cd) / 2, 0, 0xFFFFFFFF, true);
+                ctx.text(font, n,  -font.width(n)  / 2, font.lineHeight + 2, 0xFFFFFFFF, true);
             }
-            case 6 -> { // Notifications: example notification centered
+            case 6 -> { // Crate Priority
                 m.translate(bx + bw / 2f, by + bh / 2f);
                 m.scale(s, s);
-                String s6 = "§cFAST DPS!";
-                ctx.text(font, s6, -font.width(s6) / 2, -font.lineHeight / 2, 0xFFFFFF, true);
+                String txt = "§eGo Square!";
+                ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
             }
-            case 7 -> { // Crate Priority: example destination centered
+            case 7 -> { // Kuudra HP
                 m.translate(bx + bw / 2f, by + bh / 2f);
                 m.scale(s, s);
-                String s7 = "§fNo Square!";
-                ctx.text(font, s7, -font.width(s7) / 2, -font.lineHeight / 2, 0xFFFFFF, true);
-            }
-            case 8 -> { // Kuudra HP: bar + text preview
-                m.translate(bx + bw / 2f, by + bh / 2f);
-                m.scale(s, s);
-                String s8 = "§cKuudra §f75.0%";
-                ctx.text(font, s8, -font.width(s8) / 2, -font.lineHeight - 2, 0xFFFFFF, true);
+                String txt = "§cKuudra §f75.0%";
+                ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight - 2, 0xFFFFFFFF, true);
                 int barW = 160;
                 ctx.fill(-barW / 2, 0, barW / 2, 8, 0xAA000000);
                 ctx.fill(-barW / 2, 0, barW / 4, 8, 0xFF44AA44);
@@ -297,7 +270,6 @@ public class HudEditorScreen extends Screen {
 
         double mx = click.x(), my = click.y();
 
-        // Reset button
         int rx = width - 82, ry = height - 22;
         if (mx >= rx && mx <= rx + 72 && my >= ry && my <= ry + 14) {
             resetDefaults();
@@ -349,7 +321,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 256) { // ESC
+        if (event.key() == 256) {
             onClose();
             return true;
         }
@@ -364,7 +336,6 @@ public class HudEditorScreen extends Screen {
     private int boxW(int i) { return Math.max(10, (int)(BASE_W[i] * ps[i])); }
     private int boxH(int i) { return Math.max(10, (int)(BASE_H[i] * ps[i])); }
 
-    // Centered elements: anchor point = center of box. Top-left elements: anchor = top-left.
     private int boxX(int i) {
         int bw = boxW(i);
         return IS_CENTERED[i] ? (int)(px[i] * width)  - bw / 2 : (int)(px[i] * width);
@@ -379,11 +350,10 @@ public class HudEditorScreen extends Screen {
         px[1] = 0.5f;   py[1] = 0.25f; ps[1] = 1.0f;
         px[2] = 0.005f; py[2] = 0.01f; ps[2] = 1.0f;
         px[3] = 0.5f;   py[3] = 0.5f;  ps[3] = 1.0f;
-        px[4] = 0.5f;   py[4] = 0.35f; ps[4] = 1.0f;
-        px[5] = 0.5f;   py[5] = 0.45f; ps[5] = 1.0f;
-        px[6] = 0.5f;   py[6] = 0.15f; ps[6] = 1.5f;
-        px[7] = 0.5f;   py[7] = 0.6f;  ps[7] = 2.0f;
-        px[8] = 0.5f;   py[8] = 0.07f; ps[8] = 1.0f;
+        px[4] = 0.5f;   py[4] = 0.45f; ps[4] = 1.0f;
+        px[5] = 0.5f;   py[5] = 0.15f; ps[5] = 1.5f;
+        px[6] = 0.5f;   py[6] = 0.6f;  ps[6] = 2.0f;
+        px[7] = 0.5f;   py[7] = 0.07f; ps[7] = 1.0f;
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

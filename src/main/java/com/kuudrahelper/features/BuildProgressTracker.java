@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public final class BuildProgressTracker {
 
     private static final Pattern PERCENT  = Pattern.compile("(\\d{1,3})%");
-    private static final double  RADIUS_SQ = 100.0;
+    private static final double  RADIUS_SQ = 16.0;
 
     private static final Map<PearlLocation, Integer> progress =
             new EnumMap<>(PearlLocation.class);
@@ -63,9 +63,13 @@ public final class BuildProgressTracker {
                     if (name == null) continue;
 
                     String raw = name.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+                    if (raw.toLowerCase().contains("complete")) {
+                        bestPct = 100;
+                        break;
+                    }
                     Matcher m  = PERCENT.matcher(raw);
                     if (m.find()) {
-                        int pct = Math.min(100, Integer.parseInt(m.group(1)));
+                        int pct = Math.min(99, Integer.parseInt(m.group(1)));
                         if (pct > bestPct) bestPct = pct;
                     }
                 }

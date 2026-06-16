@@ -11,7 +11,6 @@ import java.util.regex.Pattern;
 
 public final class ManaDrainAnnouncer {
 
-    // Hypixel chat message sent when the Endstone Sword ability fires
     private static final Pattern EXTREME_FOCUS_PATTERN =
             Pattern.compile("Used Extreme Focus! \\((\\d+) Mana\\)");
 
@@ -46,7 +45,6 @@ public final class ManaDrainAnnouncer {
         return count;
     }
 
-    // Filter out NPCs: real players have a non-null PlayerInfo with ping >= 1
     private static boolean isRealPlayer(Minecraft mc, Player p) {
         PlayerInfo info = mc.getConnection().getPlayerInfo(p.getUUID());
         return info != null && info.getLatency() >= 1;

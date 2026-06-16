@@ -70,7 +70,7 @@ public final class KuudraSplitTimer {
 
             String text = msg.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
 
-            if (activeSplit == Split.SUPPLIES) {
+            if (activeSplit == Split.SUPPLIES && !com.kuudrahelper.KuudraConfig.isSupplyRecoveryMsgEnabled()) {
                 Matcher rm = RECOVERED.matcher(text);
                 if (rm.find()) {
                     String player = rm.group(1).trim();

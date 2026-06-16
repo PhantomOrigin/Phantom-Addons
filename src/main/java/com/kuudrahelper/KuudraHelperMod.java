@@ -127,6 +127,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             if (!overlay) AnnounceFresh.onChat(raw);
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) com.kuudrahelper.features.kuudra.ManaDrainAnnouncer.onChat(clean);
+            com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
         });
     }
 
@@ -166,19 +167,25 @@ public class KuudraHelperMod implements ClientModInitializer {
                     // Extract the raw prefix (rank + name with §-codes)
                     java.util.regex.Matcher rm = RANK_NAME_PATTERN.matcher(raw);
                     String rawPrefix = rm.find() ? rm.group(1) : playerName;
-                    // Strip trailing §r
                     rawPrefix = rawPrefix.replaceAll("§r$", "").stripTrailing();
 
-                    // Record in split timer (also calls SupplyTracker internally via GAME listener,
-                    // but that listener won't fire since we return false — call it manually)
                     SupplyTracker.onChat(raw);
                     double elapsed = KuudraSplitTimer.recordSupplyRecovery(playerName);
 
-                    String timeStr = elapsed >= 0
-                            ? String.format("%.2fs", elapsed)
-                            : "?.??s";
-                    String replacement = "§f[Phantom] " + rawPrefix + " §frecovered a supply in "
-                            + timeStr + "! (" + countStr + ")";
+                    String timeStr;
+                    String timeColor;
+                    if (elapsed >= 0) {
+                        timeStr   = String.format("%.2fs", elapsed);
+                        timeColor = elapsed < 19 ? "§f"
+                                  : elapsed < 24 ? "§b"
+                                  : elapsed < 28 ? "§a"
+                                  : "§c";
+                    } else {
+                        timeStr   = "?.??s";
+                        timeColor = "§7";
+                    }
+                    String replacement = "§7[Phantom] " + rawPrefix + " §7recovered a supply in "
+                            + timeColor + timeStr + "§7! (" + countStr + ")";
 
                     net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                     mc.execute(() -> {
@@ -261,6 +268,7 @@ public class KuudraHelperMod implements ClientModInitializer {
 
     private static void resetAll() {
         KuudraPhaseTracker.reset();
+        com.kuudrahelper.features.HideArmorStands.deactivate();
         AutoGFS.stop();
         Phase2BuildTracker.stop();
         PhaseLogger.end();
@@ -282,6 +290,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         AnnounceFresh.reset();
         PearlRefill.reset();
         RendDamage.reset();
+        com.kuudrahelper.features.kuudra.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
         NotificationHud.reset();
@@ -322,6 +331,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             EtherwarpPredictor.tick(client);
             PhaseLogger.tick(client);
             SupplyWaypointTracker.tick(client);
+            com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
 
             if (KuudraConfig.isAutoSprintEnabled() && client.player != null) {
                 client.player.setSprinting(true);

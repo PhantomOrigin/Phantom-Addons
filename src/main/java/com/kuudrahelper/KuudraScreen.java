@@ -215,8 +215,6 @@ public class KuudraScreen extends Screen {
 
     // ── KeyCapture ────────────────────────────────────────────────────────────
 
-    // Mouse buttons are stored as MOUSE_OFFSET + GLFW button index (0-based).
-    // GLFW keyboard codes max out at ~348, so 2000+ is safely distinct.
     public static final int MOUSE_OFFSET = 2000;
 
     private static class KeyCapture extends Feature {
@@ -526,14 +524,14 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSupplyRecoveryMsgEnabled, KuudraConfig::setSupplyRecoveryMsgEnabled));
         allFeatures.add(new Toggle("Supply Location Announce", Tab.SUPPLIES,
                 KuudraConfig::isSupplyLocationAnnounceEnabled, KuudraConfig::setSupplyLocationAnnounceEnabled));
-        allFeatures.add(new Toggle("Supply Progress Tracker", Tab.SUPPLIES,
-                KuudraConfig::isSupplyProgressHudEnabled, KuudraConfig::setSupplyProgressHudEnabled));
         allFeatures.add(new Toggle("Supply Hitbox", Tab.SUPPLIES,
                 KuudraConfig::isSupplyHitboxEnabled, KuudraConfig::setSupplyHitboxEnabled));
         allFeatures.add(new Toggle("Supply Rod Radius", Tab.SUPPLIES,
                 KuudraConfig::isSupplyRodRadiusEnabled, KuudraConfig::setSupplyRodRadiusEnabled));
         allFeatures.add(new Toggle("Supply Pearl Hitbox", Tab.SUPPLIES,
                 KuudraConfig::isSupplyPearlHitboxEnabled, KuudraConfig::setSupplyPearlHitboxEnabled));
+        allFeatures.add(new Toggle("Supply Giant Hitbox Alert", Tab.SUPPLIES,
+                KuudraConfig::isSupplyGiantHitboxEnabled, KuudraConfig::setSupplyGiantHitboxEnabled));
         allFeatures.add(new Toggle("Pearl Refill", Tab.MISC,
                 KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled));
 
@@ -610,12 +608,34 @@ public class KuudraScreen extends Screen {
         // ── MISC ──────────────────────────────────────────────────────────────
         allFeatures.add(new Toggle("Auto Requeue", Tab.MISC,
                 KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled));
+        allFeatures.add(new Toggle("Hide Falling Blocks", Tab.MISC,
+                KuudraConfig::isHideFallingBlocksEnabled, KuudraConfig::setHideFallingBlocksEnabled));
+        allFeatures.add(new Toggle("Hide Entity Fire", Tab.MISC,
+                KuudraConfig::isHideEntityFireEnabled, KuudraConfig::setHideEntityFireEnabled));
+        addRS(Tab.MISC, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale);
+        addRS(Tab.MISC, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getOtherPlayerScale, KuudraConfig::setOtherPlayerScale);
+        addRS(Tab.MISC, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
+                KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale);
         allFeatures.add(new Toggle("Auto Sprint", Tab.MISC,
                 KuudraConfig::isAutoSprintEnabled, KuudraConfig::setAutoSprintEnabled));
         allFeatures.add(new Toggle("Hollow Wand Announcer", Tab.MISC,
                 KuudraConfig::isHollowWandEnabled, KuudraConfig::setHollowWandEnabled));
         allFeatures.add(new Toggle("Hide Boss Bar", Tab.MISC,
                 KuudraConfig::isHideBossBarEnabled, KuudraConfig::setHideBossBarEnabled));
+        allFeatures.add(new Toggle("Hide Irrelevant Armor Stands", Tab.MISC,
+                KuudraConfig::isHideArmorStandsEnabled, KuudraConfig::setHideArmorStandsEnabled));
+        allFeatures.add(new Toggle("  Build Area", Tab.MISC,
+                KuudraConfig::isHideArmorStandsBuild, KuudraConfig::setHideArmorStandsBuild));
+        allFeatures.add(new Toggle("  Right Cannon", Tab.MISC,
+                KuudraConfig::isHideArmorStandsRightCannon, KuudraConfig::setHideArmorStandsRightCannon));
+        allFeatures.add(new Toggle("  Left Cannon", Tab.MISC,
+                KuudraConfig::isHideArmorStandsLeftCannon, KuudraConfig::setHideArmorStandsLeftCannon));
+        allFeatures.add(new Toggle("  Shop", Tab.MISC,
+                KuudraConfig::isHideArmorStandsShop, KuudraConfig::setHideArmorStandsShop));
+        allFeatures.add(new Toggle("  Others", Tab.MISC,
+                KuudraConfig::isHideArmorStandsOthers, KuudraConfig::setHideArmorStandsOthers));
         allFeatures.add(new Toggle("Slot Binds", Tab.MISC,
                 KuudraConfig::isSlotBindsEnabled, KuudraConfig::setSlotBindsEnabled));
         KeyCapture slotBindKey = new KeyCapture("  Bind Key", Tab.MISC,
@@ -626,6 +646,12 @@ public class KuudraScreen extends Screen {
         allFeatures.add(slotShowKey); captureFeatures.add(slotShowKey);
         allFeatures.add(new Toggle("Hide Selfie Cam", Tab.MISC,
                 KuudraConfig::isHideSelfieEnabled, KuudraConfig::setHideSelfieEnabled));
+        allFeatures.add(new Toggle("Prevent Placing Player Heads", Tab.MISC,
+                KuudraConfig::isPreventPlacingPlayerHeadsEnabled, KuudraConfig::setPreventPlacingPlayerHeadsEnabled));
+        allFeatures.add(new Toggle("  Except Garden", Tab.MISC,
+                KuudraConfig::isPreventPlacingPlayerHeadsExceptGarden, KuudraConfig::setPreventPlacingPlayerHeadsExceptGarden));
+        allFeatures.add(new Toggle("Prevent Placing Weapons", Tab.MISC,
+                KuudraConfig::isPreventPlacingWeaponsEnabled, KuudraConfig::setPreventPlacingWeaponsEnabled));
         allFeatures.add(new Toggle("Hide Elle Dialogue", Tab.MISC,
                 KuudraConfig::isHideElleDialogueEnabled, KuudraConfig::setHideElleDialogue));
         allFeatures.add(new Toggle("Etherwarp Lava Block", Tab.MISC,
@@ -643,6 +669,8 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSoloNotifyEnabled, KuudraConfig::setSoloNotifyEnabled));
         allFeatures.add(new Toggle("Kuudra HP HUD", Tab.BOSS,
                 KuudraConfig::isKuudraHpHudEnabled, KuudraConfig::setKuudraHpHudEnabled));
+        allFeatures.add(new Toggle("  Show Raw HP", Tab.BOSS,
+                KuudraConfig::isKuudraHpShowRaw, KuudraConfig::setKuudraHpShowRaw));
         allFeatures.add(new Toggle("Mana Drain Announcer", Tab.BOSS,
                 KuudraConfig::isManaDrainAnnouncerEnabled, KuudraConfig::setManaDrainAnnouncerEnabled));
         allFeatures.add(new Toggle("Shop Keybinds", Tab.MISC,
@@ -673,6 +701,7 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isKuudraHighlightEnabled, KuudraConfig::setKuudraHighlightEnabled));
         allFeatures.add(new Toggle("  Filled Highlight", Tab.BOSS,
                 KuudraConfig::isKuudraHighlightFilled, KuudraConfig::setKuudraHighlightFilled));
+
 
         // ── ITEMS / ABOUT ─────────────────────────────────────────────────────
         buildItemsTab();
@@ -846,8 +875,7 @@ public class KuudraScreen extends Screen {
             }
         };
     }
-
-    /** 9 sliders: pos X/Y/Z, rot X/Y/Z, scale, swing speed, proximity. */
+    
     private void addRangeSliders(Tab tab, String prefix, ItemTransformSettings s) {
         addRS(tab, prefix + " pos X",     -0.5f,  0.5f,  "%.3f",       () -> s.posX,       v -> { s.posX       = v; KuudraConfig.save(); });
         addRS(tab, prefix + " pos Y",     -0.5f,  0.5f,  "%.3f",       () -> s.posY,       v -> { s.posY       = v; KuudraConfig.save(); });

@@ -27,13 +27,11 @@ public final class AutoRequeue {
             String raw   = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
             String lower = raw.toLowerCase().replace(" ", " ").trim();
 
-            // New run started — reset so requeue fires again on the next end
             if (raw.equals(ELLE_FISHING)) {
                 reset();
                 return;
             }
 
-            // Hypixel confirmed we were requeued — prevent double-send
             if (lower.contains(REQUEUE_CONFIRM)) {
                 requeued = true;
                 return;

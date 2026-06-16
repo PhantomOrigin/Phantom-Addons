@@ -30,7 +30,6 @@ public final class PartyCommands {
     private static final long ANNOUNCE_COOLDOWN_MS = 5_000L;
     private static long lastAnnounceMs = 0L;
 
-    // All names seen in this party session (join messages + chat senders)
     private static final Set<String> partyMembers = new LinkedHashSet<>();
 
     private PartyCommands() {}
@@ -51,7 +50,6 @@ public final class PartyCommands {
     }
 
     private static void handle(String raw) {
-        // Track party roster changes
         Matcher join = PARTY_JOIN.matcher(raw);
         if (join.find()) { partyMembers.add(join.group(1)); return; }
 
@@ -60,33 +58,28 @@ public final class PartyCommands {
 
         if (PARTY_DISBAND.matcher(raw).find()) { partyMembers.clear(); return; }
 
-        // Only act on party chat messages
         Matcher m = PARTY_MSG.matcher(raw);
         if (!m.find()) return;
 
         String sender = m.group(1);
         String body   = m.group(2).trim();
 
-        // Always track the sender
         partyMembers.add(sender);
 
         if (!KuudraConfig.isPartyCmdsEnabled()) return;
 
         String lower = body.toLowerCase();
 
-        // !W / !Warp
         if (lower.equals("!w") || lower.equals("!warp")) {
             send("p warp");
             return;
         }
 
-        // !PT / !PTME — transfer to the sender
         if (lower.equals("!pt") || lower.equals("!ptme")) {
             send("p transfer " + sender);
             return;
         }
 
-        // !PT <name> — transfer to named player (partial match allowed)
         if (lower.startsWith("!pt ")) {
             String arg = body.substring(4).trim();
             String target = resolveOrSelf(arg, sender);
@@ -94,7 +87,6 @@ public final class PartyCommands {
             return;
         }
 
-        // !T1–!T5
         for (Map.Entry<String, String> e : TIERS.entrySet()) {
             if (lower.equals("!" + e.getKey())) {
                 send("joininstance " + e.getValue());
@@ -102,7 +94,6 @@ public final class PartyCommands {
             }
         }
 
-        // !K / !Kick <name>
         if (lower.startsWith("!k ") || lower.startsWith("!kick ")) {
             int sp = body.indexOf(' ');
             String arg = body.substring(sp + 1).trim();
@@ -111,7 +102,6 @@ public final class PartyCommands {
             return;
         }
 
-        // !chests — announce chest counts
         if (lower.equals("!chests")) {
             if (!canAnnounce()) return;
             int total   = ChestTracker.getTotal();
@@ -123,7 +113,17 @@ public final class PartyCommands {
             return;
         }
 
-        // !pb — announce personal best
+        if (lower.equals("!dt")) {
+            KuudraConfig.setAutoRequeueEnabled(false);
+            send("pc [Phantom] Auto Requeue: OFF");
+            return;
+        }
+        if (lower.equals("!undt")) {
+            KuudraConfig.setAutoRequeueEnabled(true);
+            send("pc [Phantom] Auto Requeue: ON");
+            return;
+        }
+
         if (lower.equals("!pb")) {
             if (!canAnnounce()) return;
             int    tier = KuudraConfig.getHighestTierPlayed();
@@ -133,7 +133,6 @@ public final class PartyCommands {
         }
     }
 
-    /** Partial-match name against party members; falls back to exact input if no members known. */
     private static String resolve(String input) {
         if (input.isEmpty()) return null;
         String lc = input.toLowerCase();
@@ -142,16 +141,13 @@ public final class PartyCommands {
             if (member.toLowerCase().startsWith(lc)) matches.add(member);
         }
         if (matches.size() == 1) return matches.get(0);
-        // Exact match fallback
         for (String member : partyMembers) {
             if (member.equalsIgnoreCase(input)) return member;
         }
-        // If party list is empty (no tracking yet), just use the raw input
         if (partyMembers.isEmpty()) return input;
         return null; // ambiguous
     }
 
-    /** Like resolve() but falls back to sender when arg is empty. */
     private static String resolveOrSelf(String arg, String sender) {
         if (arg.isEmpty()) return sender;
         return resolve(arg);

@@ -53,6 +53,7 @@ Beta Version 1.6.0 available for 26.1.2
 - Explosion Hider
 - Split Timer
 - Moveable Crate Pickup Progress Bar
+- Armor Stand Hider
 ### Other Features
 - M7 Dragons Auto GFS Poisons
 - Held Item Animation / Position / Scale Customiser

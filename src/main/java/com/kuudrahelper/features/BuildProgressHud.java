@@ -1,20 +1,15 @@
 package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.NotificationHud;
-import com.kuudrahelper.features.supplies.SupplyProgressHud;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public final class BuildProgressHud {
 
     private static final double BUILD_DELAY_S = 4.15;
-    private static final Pattern PROTECT_PATTERN = Pattern.compile("Protect Elle \\((\\d+)%\\)");
 
     private static volatile boolean active              = false;
     private static volatile long    phaseStartMs        = 0;
@@ -35,6 +30,7 @@ public final class BuildProgressHud {
         phaseStartMs         = 0;
         lastProgress         = -1;
         buildStartedNotified = false;
+        NotificationHud.clearCountdown();
     }
 
     public static int getCurrentProgress() {
@@ -42,6 +38,23 @@ public final class BuildProgressHud {
     }
 
     public static void register() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (!active) return;
+            long now     = System.currentTimeMillis();
+            double elapsed = (now - phaseStartMs) / 1000.0;
+
+            if (elapsed < BUILD_DELAY_S) {
+                double remaining = BUILD_DELAY_S - elapsed;
+                NotificationHud.setCountdown(String.format("§eBuild Starts: §f%.2fs", remaining));
+            } else {
+                NotificationHud.clearCountdown();
+                if (!buildStartedNotified && KuudraConfig.isBuildStartedNotifyEnabled()) {
+                    buildStartedNotified = true;
+                    NotificationHud.show("§eBuild Started!", 3000);
+                }
+            }
+        });
+
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("phantomaddons", "build_progress_hud"),
                 (ctx, tc) -> {
@@ -49,13 +62,7 @@ public final class BuildProgressHud {
 
                     long now = System.currentTimeMillis();
                     double elapsed = (now - phaseStartMs) / 1000.0;
-
-                    // Fire Build Started notification at 4.15s
-                    if (!buildStartedNotified && elapsed >= BUILD_DELAY_S
-                            && KuudraConfig.isBuildStartedNotifyEnabled()) {
-                        buildStartedNotified = true;
-                        NotificationHud.show("§eBuild Started!", 3000);
-                    }
+                    if (elapsed < BUILD_DELAY_S) return;
 
                     if (!KuudraConfig.isBuildProgressHudEnabled()) return;
 
@@ -74,34 +81,22 @@ public final class BuildProgressHud {
                     matrices.translate(cx, cy);
                     matrices.scale(scale, scale);
 
-                    // Line 1: header
+                    int total = 0, count = 0;
+                    for (com.kuudrahelper.features.pearls.PearlLocation loc
+                            : com.kuudrahelper.features.pearls.PearlLocation.values()) {
+                        int p = BuildProgressTracker.getProgress(loc);
+                        total += Math.max(0, p);
+                        count++;
+                    }
+                    if (count > 0) lastProgress = total / count;
+
                     String header = "§e§lBuild Progress:";
                     int hw = mc.font.width(header);
-                    ctx.text(mc.font, header, -hw / 2, 0, 0xFFFFFF, true);
+                    ctx.text(mc.font, header, -hw / 2, 0, 0xFFFFFFFF, true);
 
-                    // Line 2: countdown then percentage
-                    String line2;
-                    if (elapsed < BUILD_DELAY_S) {
-                        double remaining = BUILD_DELAY_S - elapsed;
-                        line2 = String.format("Build Starts: %.2fs", remaining);
-                    } else {
-                        String sbLine = SupplyProgressHud.readSidebarForSubstring(mc, "Protect Elle");
-                        if (sbLine != null) {
-                            Matcher m = PROTECT_PATTERN.matcher(sbLine);
-                            if (m.find()) {
-                                int pct = Integer.parseInt(m.group(1));
-                                lastProgress = pct;
-                                line2 = "Progress: " + pct + "%";
-                            } else {
-                                line2 = "Progress: ?%";
-                            }
-                        } else {
-                            line2 = "Progress: ?%";
-                        }
-                    }
-
+                    String line2 = lastProgress >= 0 ? "Progress: " + lastProgress + "%" : "Progress: 0%";
                     int lw = mc.font.width(line2);
-                    ctx.text(mc.font, line2, -lw / 2, mc.font.lineHeight + 2, 0xFFFFFF, true);
+                    ctx.text(mc.font, line2, -lw / 2, mc.font.lineHeight + 2, 0xFFFFFFFF, true);
 
                     matrices.popMatrix();
                 });

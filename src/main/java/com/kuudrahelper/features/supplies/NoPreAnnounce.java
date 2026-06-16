@@ -24,7 +24,6 @@ private static final String ELLE_PLATFORM = "[NPC] Elle: Head over to the main p
     private static final double X_SEC_RANGE   = 16.0;
     private static final double SLASH_SEC_RANGE = 20.0;
 
-    // Set on ELLE_PLATFORM; used on ELLE_NOT_AGAIN
     private static Vec3   prePos         = null;
     private static String preName        = null;
     private static Vec3   secondaryPos   = null;
