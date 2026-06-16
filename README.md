@@ -1,23 +1,27 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Beta Release for 26.1.2 available
+Beta Version 1.6.0 available for 26.1.2
 
-## Kuudra Features:
 ### Supplies Features
 - Supply Beacons
 - No Pre Announce
+- No Pre Notification
+- Crate Priority HUD
+- Custom Supply Recovery Message
 - Supply Location Announce
 - Supply Progress Tracker
 - Supply Hitbox
 - Supply Pull Radius
 - Supply Pearl Hitbox
-- Skyblock Menu Blocker
+- Block Skyblock Menu Clicks
 - Dynamic Pearl Waypoints
 - Supply Pearl Location Beacons
 ### Build Features
 - Build Progress Tracker
 - Announce Fresh
+- Fresh Notification
+- Build Started Notification
 - Build Beacons
 ### Stun / DPS
 - Auto GFS Poisons
@@ -27,23 +31,26 @@ Beta Release for 26.1.2 available
 - Stun Preview / Waypoint
 - Cannon Auto Close
 - Fast DPS Warning
+- Fast DPS Notification
 ### Boss
 - Kuudra Direction
 - Rend Damage Tracker
 - Kuudra Highlight
-- Solo Detector
+- Solo Announcer
+- Solo Notification
 - Kuudra Health Display
 - Mana Drain Announcer
+- Kuudra Highlight / ESP
 ### Kuudra General Features
 - Hide Elle Dialogue
 - Pearl Refill
+- Auto Requeue
 - Lava Teleport Blocker
 - Hollow Wand Announcer
 - Chest Tracker HUD
 - Shop Keybinds
 - Wardrobe Keybinds
 - Explosion Hider
-- Kuudra Chat Commands
 - Split Timer
 - Moveable Crate Pickup Progress Bar
 ### Other Features
@@ -52,6 +59,10 @@ Beta Release for 26.1.2 available
 - Lava Texture Customisation
 - Automatic Updates
 - No Selfie Cam
+- Auto Sprint
+- Slot Binds
+- Vanilla Boss Bar Hider
+- Party Commands
 
 ## KNOWN INCOMPATABILITIES:
 Phantom Addons is incompatible with KIC Elle dialogue hider. 
