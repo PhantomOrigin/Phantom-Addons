@@ -1,6 +1,8 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
+Beta Release for 26.1.2 available
+
 ## Kuudra Features:
 ### Supplies Features
 - Supply Beacons
