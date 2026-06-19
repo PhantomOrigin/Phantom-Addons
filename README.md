@@ -2,7 +2,8 @@
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
 Latest Version: 1.6.1  
-Supported Minecraft Versions: 26.1.2
+Supported Minecraft Versions: 26.1.2  
+Discord Link: https://discord.gg/tsjcwvuM
 
 ### Supplies Features
 - Supply Beacons
