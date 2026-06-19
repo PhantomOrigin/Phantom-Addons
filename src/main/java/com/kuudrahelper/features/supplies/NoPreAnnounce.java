@@ -17,55 +17,71 @@ public final class NoPreAnnounce {
     private static final Vec3 POS_TRIANGLE = new Vec3( -67.5,  77.0, -122.5);
     private static final Vec3 POS_SQUARE   = new Vec3(-143.0,  76.0,  -80.0);
 
-private static final String ELLE_PLATFORM = "[NPC] Elle: Head over to the main platform";
     private static final String ELLE_NOT_AGAIN = "[NPC] Elle: Not again!";
 
-    private static final double MAIN_RANGE    = 18.0;
-    private static final double X_SEC_RANGE   = 16.0;
+    private static final int    DETECT_TICK     = 170; // 8.5 seconds
+    private static final double MAIN_RANGE      = 18.0;
+    private static final double X_SEC_RANGE     = 16.0;
     private static final double SLASH_SEC_RANGE = 20.0;
 
-    private static Vec3   prePos         = null;
-    private static String preName        = null;
-    private static Vec3   secondaryPos   = null;
-    private static String secondaryName  = null;
-    private static double secondaryRange = MAIN_RANGE;
+    private static int     ticksSinceStart = -1;
+    private static boolean detected        = false;
+    private static Vec3    prePos          = null;
+    private static String  preName         = null;
+    private static Vec3    secondaryPos    = null;
+    private static String  secondaryName   = null;
+    private static double  secondaryRange  = MAIN_RANGE;
 
     private NoPreAnnounce() {}
 
     public static void onSuppliesStart() {
-        prePos        = null;
-        preName       = null;
-        secondaryPos  = null;
-        secondaryName = null;
-        secondaryRange = MAIN_RANGE;
+        ticksSinceStart = 0;
+        detected        = false;
+        prePos          = null;
+        preName         = null;
+        secondaryPos    = null;
+        secondaryName   = null;
+        secondaryRange  = MAIN_RANGE;
     }
 
     public static void reset() {
-        onSuppliesStart();
+        ticksSinceStart = -1;
+        detected        = false;
+        prePos          = null;
+        preName         = null;
+        secondaryPos    = null;
+        secondaryName   = null;
+        secondaryRange  = MAIN_RANGE;
+    }
+
+    public static void tick(Minecraft mc) {
+        if (!KuudraConfig.isNoPreAnnounceEnabled()) return;
+        if (ticksSinceStart < 0 || detected) return;
+        if (mc.player == null) return;
+
+        ticksSinceStart++;
+
+        if (ticksSinceStart == DETECT_TICK) {
+            detected = true;
+            Vec3 pos = mc.player.position();
+
+            if (pos.distanceTo(POS_TRIANGLE) < 15.0) {
+                set(POS_TRIANGLE, "Triangle", POS_SHOP,     "Shop",    MAIN_RANGE);
+            } else if (pos.distanceTo(POS_X) < 30.0) {
+                set(POS_X,        "X",        POS_X_CANNON, "X Cannon", X_SEC_RANGE);
+            } else if (pos.distanceTo(POS_EQUALS) < 15.0) {
+                set(POS_EQUALS,   "Equals",   null,         null,      MAIN_RANGE);
+            } else if (pos.distanceTo(POS_SLASH) < 10.0) {
+                set(POS_SLASH,    "Slash",    POS_SQUARE,   "Square",  SLASH_SEC_RANGE);
+            }
+            if (preName != null)
+                KuudraHelperMod.LOGGER.info("[NoPreAnnounce] Detected pre-spot at tick {}: {}", ticksSinceStart, preName);
+        }
     }
 
     public static void onChat(String raw) {
         if (!KuudraConfig.isNoPreAnnounceEnabled()) return;
         String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
-
-        if (clean.contains(ELLE_PLATFORM)) {
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player == null) return;
-            Vec3 pos = mc.player.position();
-
-            if (pos.distanceTo(POS_TRIANGLE) < 15.0) {
-                set(POS_TRIANGLE, "Triangle", POS_SHOP,    "Shop",     MAIN_RANGE);
-            } else if (pos.distanceTo(POS_X) < 30.0) {
-                set(POS_X,        "X",        POS_X_CANNON, "X Cannon", X_SEC_RANGE);
-            } else if (pos.distanceTo(POS_EQUALS) < 15.0) {
-                set(POS_EQUALS,   "Equals",   null,        null,       MAIN_RANGE);
-            } else if (pos.distanceTo(POS_SLASH) < 15.0) {
-                set(POS_SLASH,    "Slash",    POS_SQUARE,  "Square",   SLASH_SEC_RANGE);
-            }
-            if (preName != null)
-                KuudraHelperMod.LOGGER.info("[NoPreAnnounce] Pre-spot: {}", preName);
-            return;
-        }
 
         if (clean.contains(ELLE_NOT_AGAIN)) {
             if (prePos == null) return;

@@ -6,6 +6,7 @@ import com.kuudrahelper.features.PreventPlacingWeapons;
 import com.kuudrahelper.features.SlotBlocker;
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.features.PickoblockManager;
+import com.kuudrahelper.features.supplies.EtherwarpWaypointManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.player.Player;
@@ -36,6 +37,10 @@ public class UseItemMixin {
 
         ItemStack stack  = player.getItemInHand(hand);
         Minecraft client = Minecraft.getInstance();
+
+        if (KuudraConfig.isEtherwarpWaypointsEnabled() && stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
+            EtherwarpWaypointManager.onPearlThrow(client, player);
+        }
 
         if (EtherwarpPredictor.isEtherTransmissionItem(stack)) {
             EtherwarpPredictor.predictEtherwarpIntoPickobulus(client);

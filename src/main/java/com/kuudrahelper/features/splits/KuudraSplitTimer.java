@@ -158,7 +158,12 @@ public final class KuudraSplitTimer {
     }
 
     public static void onBossStart() {
-        endSplit(Split.SKIP);
+        int tier = KuudraTierDetector.getTier();
+        if (tier == 1 || tier == 2) {
+            endSplit(Split.BUILD);
+        } else {
+            endSplit(Split.SKIP);
+        }
         beginSplit(Split.BOSS);
         playerLastPositions.clear();
     }
@@ -181,10 +186,10 @@ public final class KuudraSplitTimer {
 
             if (KuudraConfig.updateTotalRunPb(tier, total)) {
                 double[] splitArr = new double[Split.values().length];
-
-                for (Split s : Split.values()) {
+                java.util.Arrays.fill(splitArr, 9999.0);
+                for (Split s : splitsForTier(tier)) {
                     PhaseResult r = results.get(s);
-                    splitArr[s.ordinal()] = (r != null) ? r.wallSec() : 0;
+                    if (r != null) splitArr[s.ordinal()] = r.wallSec();
                 }
 
                 KuudraConfig.PbRecord record = new KuudraConfig.PbRecord();
@@ -243,20 +248,7 @@ public final class KuudraSplitTimer {
             return;
         }
 
-        if (activeSplit == Split.SKIP) {
-            for (Player p : client.level.players()) {
-                Vec3 cur = p.position();
-                Vec3 last = playerLastPositions.get(p.getUUID());
-
-                if (last != null && cur.distanceTo(last) > 20.0 && cur.y < 60.0) {
-                    KuudraPhaseTracker.triggerBossPhase();
-                    playerLastPositions.clear();
-                    return;
-                }
-
-                playerLastPositions.put(p.getUUID(), cur);
-            }
-        } else {
+        if (activeSplit != Split.SKIP) {
             playerLastPositions.clear();
         }
     }
@@ -302,14 +294,11 @@ public final class KuudraSplitTimer {
         double[] pb = KuudraConfig.getSplitPb(tier);
         boolean improved = false;
 
-        Split[] ord = Split.values();
-
-        for (int i = 0; i < N; i++) {
-            PhaseResult r = results.get(ord[i]);
+        for (Split s : splitsForTier(tier)) {
+            PhaseResult r = results.get(s);
             if (r == null) continue;
-
-            if (r.wallSec() < pb[i]) {
-                pb[i] = r.wallSec();
+            if (r.wallSec() < pb[s.ordinal()]) {
+                pb[s.ordinal()] = r.wallSec();
                 improved = true;
             }
         }
@@ -326,18 +315,27 @@ public final class KuudraSplitTimer {
 
         send(mc, "§6§l--- T" + tier + " Run Complete ---");
 
-        Split[] display = {Split.SUPPLIES, Split.BUILD, Split.EATEN, Split.STUN, Split.DPS, Split.BOSS};
-        String[] labels = {"Supplies", "Build", "Eaten", "Stun", "DPS", "Boss"};
-
-        for (int i = 0; i < display.length; i++) {
-            PhaseResult r = results.get(display[i]);
+        for (Split s : splitsForTier(tier)) {
+            PhaseResult r = results.get(s);
             if (r != null)
-                send(mc, "§7  " + labels[i] + ": §a" + KuudraConfig.formatTime(r.wallSec()));
+                send(mc, "§7  " + splitLabel(s) + ": §a" + KuudraConfig.formatTime(r.wallSec()));
         }
 
         double total = (runEndMs - runStartMs) / 1000.0;
         send(mc, "§fTotal: §e" + KuudraConfig.formatTime(total));
         send(mc, "§6§l-----------------");
+    }
+
+    public static String splitLabel(Split s) {
+        return switch (s) {
+            case SUPPLIES -> "Supplies";
+            case BUILD    -> "Build";
+            case EATEN    -> "Eaten";
+            case STUN     -> "Stun";
+            case DPS      -> "DPS";
+            case SKIP     -> "Skip";
+            case BOSS     -> "Boss";
+        };
     }
 
     private static void send(Minecraft mc, String msg) {
@@ -355,7 +353,6 @@ public final class KuudraSplitTimer {
         return (System.currentTimeMillis() - phaseStartMs) / 1000.0;
     }
 
-    /** Records a supply recovery (used when the original chat message is suppressed). */
     public static double recordSupplyRecovery(String player) {
         if (activeSplit != Split.SUPPLIES || runStartMs <= 0) return -1;
         double elapsed = (System.currentTimeMillis() - runStartMs) / 1000.0;
@@ -380,14 +377,18 @@ public final class KuudraSplitTimer {
     public static long    getRunEndMs()   { return runEndMs; }
 
     public static double getPredicted() {
-        Split[]  ord    = Split.values();
-        double   total  = 0;
-        boolean  active = false;
-        for (int i = 0; i < N; i++) {
-            PhaseResult r = results.get(ord[i]);
+        int tier = KuudraTierDetector.getTier();
+        if (tier < 1 || tier > 5) tier = 5;
+        Split[] relevant = splitsForTier(tier);
+
+        double  total  = 0;
+        boolean active = false;
+        for (Split s : relevant) {
+            int i = s.ordinal();
+            PhaseResult r = results.get(s);
             if (r != null) {
                 total += r.wallSec();
-            } else if (ord[i] == activeSplit) {
+            } else if (s == activeSplit) {
                 total += getActiveSplitElapsed();
                 double rem = BEST_THEORETICAL[i] - getActiveSplitElapsed();
                 if (rem > 0) total += rem;
@@ -398,6 +399,14 @@ public final class KuudraSplitTimer {
         }
         if (!active && activeSplit == null) return getOverallElapsed();
         return total;
+    }
+
+    public static Split[] splitsForTier(int tier) {
+        if (tier == 1 || tier == 2)
+            return new Split[]{Split.SUPPLIES, Split.BUILD, Split.BOSS};
+        if (tier == 3 || tier == 4)
+            return new Split[]{Split.SUPPLIES, Split.BUILD, Split.EATEN, Split.STUN, Split.DPS};
+        return Split.values();
     }
 
     public static Double getPbDiff(Split s) {

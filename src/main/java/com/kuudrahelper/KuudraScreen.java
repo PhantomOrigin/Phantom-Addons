@@ -532,6 +532,10 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSupplyPearlHitboxEnabled, KuudraConfig::setSupplyPearlHitboxEnabled));
         allFeatures.add(new Toggle("Supply Giant Hitbox Alert", Tab.SUPPLIES,
                 KuudraConfig::isSupplyGiantHitboxEnabled, KuudraConfig::setSupplyGiantHitboxEnabled));
+        allFeatures.add(new Toggle("Lava Bobber Fix", Tab.SUPPLIES,
+                KuudraConfig::isLavaBobberFixEnabled, KuudraConfig::setLavaBobberFixEnabled));
+        allFeatures.add(new Toggle("Etherwarp Waypoints", Tab.SUPPLIES,
+                KuudraConfig::isEtherwarpWaypointsEnabled, KuudraConfig::setEtherwarpWaypointsEnabled));
         allFeatures.add(new Toggle("Pearl Refill", Tab.MISC,
                 KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled));
 
@@ -612,6 +616,10 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isHideFallingBlocksEnabled, KuudraConfig::setHideFallingBlocksEnabled));
         allFeatures.add(new Toggle("Hide Entity Fire", Tab.MISC,
                 KuudraConfig::isHideEntityFireEnabled, KuudraConfig::setHideEntityFireEnabled));
+        allFeatures.add(new Toggle("Hide Damage Title", Tab.MISC,
+                KuudraConfig::isHideDamageTitleEnabled, KuudraConfig::setHideDamageTitleEnabled));
+        allFeatures.add(new Toggle("Hide Dead Enemies", Tab.MISC,
+                KuudraConfig::isHideDeadEntitiesEnabled, KuudraConfig::setHideDeadEntitiesEnabled));
         addRS(Tab.MISC, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
                 KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale);
         addRS(Tab.MISC, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",

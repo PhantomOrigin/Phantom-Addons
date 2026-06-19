@@ -22,7 +22,6 @@ public final class KuudraHpHud {
     private static Slime   cachedKuudra  = null;
     private static float   smoothProgress = -1f;
     private static long    lastFrameMs    = -1L;
-    // Display values — written by tick, read by render
     private static volatile float   displayHp      = 0f;
     private static volatile float   displayMaxHp   = 0f;
     private static volatile float   lastProgress   = -1f;
@@ -45,14 +44,12 @@ public final class KuudraHpHud {
             if (client.level == null || client.player == null) { cachedKuudra = null; return; }
             if (!isActivePhase()) { return; }
 
-            // Validate cache: clear if dead
             if (cachedKuudra != null) {
                 if (cachedKuudra.isRemoved() || !cachedKuudra.isAlive()) {
                     cachedKuudra = null;
                 }
             }
 
-            // If cached entity's HP dropped to decoy-level, clear and rescan
             if (cachedKuudra != null) {
                 float hp = cachedKuudra.getHealth();
                 if (hp > 0 && hp < DECOY_MAX_HP) {
@@ -63,7 +60,6 @@ public final class KuudraHpHud {
                 }
             }
 
-            // Rescan: pick size-30 slime with highest current health (real Kuudra >> decoy ~1024)
             Slime best = null;
             for (Entity e : client.level.entitiesForRendering()) {
                 if (!(e instanceof Slime s) || s.getSize() != 30) continue;
@@ -116,7 +112,6 @@ public final class KuudraHpHud {
                     ctx.fill(-half - 1, -1,   -half,     BAR_H + 1, 0xFF000000);
                     ctx.fill( half,     -1,    half + 1,  BAR_H + 1, 0xFF000000);
 
-                    // 25% threshold marker: shows where Kuudra transitions to kill phase (240m display)
                     if (showKillMarker) {
                         int markerX = -half + Math.round(BAR_W * 0.25f); // 25k / 100k = 25%
                         ctx.fill(markerX, -1, markerX + 1, BAR_H + 1, 0xFFFFFFFF);
@@ -139,21 +134,19 @@ public final class KuudraHpHud {
         if (cachedKuudra == null) { lastProgress = -1f; return; }
 
         float hp = cachedKuudra.getHealth();
-        if (hp <= 0) return; // not yet synced — keep last known values
+        if (hp <= 0) return;
 
-        // KIC approach: HP-based mode only, no phase tracker
-        if (hp <= KUUDRA_MAX_HP) {
-            // Kill phase: raw HP is 0-25000, display multiplied by 9600
+        int tier = com.kuudrahelper.utils.KuudraTierDetector.getTier();
+        if (tier == 5 && hp <= KUUDRA_MAX_HP) {
             displayHp      = hp * DPS_MULTIPLIER;
             displayMaxHp   = KUUDRA_MAX_HP * DPS_MULTIPLIER;
             lastProgress   = Math.min(hp / KUUDRA_MAX_HP, 1f);
             showKillMarker = false;
         } else {
-            // Pre-kill: raw HP is 25000-100000
             displayHp      = hp;
             displayMaxHp   = KUUDRA_RAW_MAX;
             lastProgress   = Math.min(hp / KUUDRA_RAW_MAX, 1f);
-            showKillMarker = true;
+            showKillMarker = tier == 5;
         }
     }
 
@@ -167,7 +160,6 @@ public final class KuudraHpHud {
                 || p == KuudraPhaseTracker.Phase.END;
     }
 
-    /** Exact integer formatting with comma thousands separators, no abbreviations. */
     private static String formatExact(float hp) {
         return String.format("%,d", (long) hp);
     }

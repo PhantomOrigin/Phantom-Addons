@@ -161,6 +161,10 @@ public class KuudraConfig {
     private static boolean hideFallingBlocksEnabled  = false;
     private static boolean manaDrainAnnouncerEnabled = false;
     private static boolean hideEntityFireEnabled  = false;
+    private static boolean lavaBobberFixEnabled    = false;
+    private static boolean hideDamageTitleEnabled  = false;
+    private static boolean hideDeadEntitiesEnabled    = false;
+    private static boolean etherwarpWaypointsEnabled  = false;
     private static float   selfPlayerScale        = 100.0f;
     private static float   otherPlayerScale       = 100.0f;
     private static float   kuudraSizeScale        = 100.0f;
@@ -572,6 +576,14 @@ public class KuudraConfig {
     public static void setManaDrainAnnouncerEnabled(boolean v){ manaDrainAnnouncerEnabled = v; save(); }
     public static boolean isHideEntityFireEnabled()           { return hideEntityFireEnabled; }
     public static void setHideEntityFireEnabled(boolean v)    { hideEntityFireEnabled = v; save(); }
+    public static boolean isLavaBobberFixEnabled()             { return lavaBobberFixEnabled; }
+    public static void setLavaBobberFixEnabled(boolean v)      { lavaBobberFixEnabled = v; save(); }
+    public static boolean isHideDamageTitleEnabled()           { return hideDamageTitleEnabled; }
+    public static void setHideDamageTitleEnabled(boolean v)    { hideDamageTitleEnabled = v; save(); }
+    public static boolean isHideDeadEntitiesEnabled()          { return hideDeadEntitiesEnabled; }
+    public static void setHideDeadEntitiesEnabled(boolean v)   { hideDeadEntitiesEnabled = v; save(); }
+    public static boolean isEtherwarpWaypointsEnabled()        { return etherwarpWaypointsEnabled; }
+    public static void setEtherwarpWaypointsEnabled(boolean v) { etherwarpWaypointsEnabled = v; save(); }
     public static float getSelfPlayerScale()                  { return selfPlayerScale; }
     public static void setSelfPlayerScale(float v)            { selfPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
     public static float getOtherPlayerScale()                 { return otherPlayerScale; }
@@ -756,6 +768,10 @@ public class KuudraConfig {
             hideFallingBlocksEnabled  = d.hideFallingBlocksEnabled;
             manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
             hideEntityFireEnabled      = d.hideEntityFireEnabled;
+            lavaBobberFixEnabled       = d.lavaBobberFixEnabled;
+            hideDamageTitleEnabled     = d.hideDamageTitleEnabled;
+            hideDeadEntitiesEnabled    = d.hideDeadEntitiesEnabled;
+            etherwarpWaypointsEnabled  = d.etherwarpWaypointsEnabled;
             selfPlayerScale            = d.selfPlayerScale;
             otherPlayerScale           = d.otherPlayerScale;
             kuudraSizeScale            = d.kuudraSizeScale;
@@ -936,6 +952,10 @@ public class KuudraConfig {
         d.hideFallingBlocksEnabled  = hideFallingBlocksEnabled;
         d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
         d.hideEntityFireEnabled      = hideEntityFireEnabled;
+        d.lavaBobberFixEnabled       = lavaBobberFixEnabled;
+        d.hideDamageTitleEnabled     = hideDamageTitleEnabled;
+        d.hideDeadEntitiesEnabled    = hideDeadEntitiesEnabled;
+        d.etherwarpWaypointsEnabled  = etherwarpWaypointsEnabled;
         d.selfPlayerScale            = selfPlayerScale;
         d.otherPlayerScale           = otherPlayerScale;
         d.kuudraSizeScale            = kuudraSizeScale;
@@ -1132,6 +1152,10 @@ public class KuudraConfig {
         boolean hideFallingBlocksEnabled  = false;
         boolean manaDrainAnnouncerEnabled  = false;
         boolean hideEntityFireEnabled      = false;
+        boolean lavaBobberFixEnabled       = false;
+        boolean hideDamageTitleEnabled     = false;
+        boolean hideDeadEntitiesEnabled    = false;
+        boolean etherwarpWaypointsEnabled  = false;
         float   selfPlayerScale            = 100.0f;
         float   otherPlayerScale           = 100.0f;
         float   kuudraSizeScale            = 100.0f;

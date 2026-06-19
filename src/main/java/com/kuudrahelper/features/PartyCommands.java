@@ -68,41 +68,35 @@ public final class PartyCommands {
 
         if (!KuudraConfig.isPartyCmdsEnabled()) return;
 
-        String lower = body.toLowerCase();
+        String[] words = body.split("\\s+");
+        String cmd   = words[0].toLowerCase();
+        String word2 = words.length > 1 ? words[1] : "";
 
-        if (lower.equals("!w") || lower.equals("!warp")) {
+        if (cmd.equals("!w") || cmd.equals("!warp")) {
             send("p warp");
             return;
         }
 
-        if (lower.equals("!pt") || lower.equals("!ptme")) {
-            send("p transfer " + sender);
-            return;
-        }
-
-        if (lower.startsWith("!pt ")) {
-            String arg = body.substring(4).trim();
-            String target = resolveOrSelf(arg, sender);
+        if (cmd.equals("!pt") || cmd.equals("!ptme")) {
+            String target = resolveOrSelf(word2, sender);
             if (target != null) send("p transfer " + target);
             return;
         }
 
         for (Map.Entry<String, String> e : TIERS.entrySet()) {
-            if (lower.equals("!" + e.getKey())) {
+            if (cmd.equals("!" + e.getKey())) {
                 send("joininstance " + e.getValue());
                 return;
             }
         }
 
-        if (lower.startsWith("!k ") || lower.startsWith("!kick ")) {
-            int sp = body.indexOf(' ');
-            String arg = body.substring(sp + 1).trim();
-            String target = resolve(arg);
+        if (cmd.equals("!k") || cmd.equals("!kick")) {
+            String target = resolve(word2);
             if (target != null) send("p kick " + target);
             return;
         }
 
-        if (lower.equals("!chests")) {
+        if (cmd.equals("!chests")) {
             if (!canAnnounce()) return;
             int total   = ChestTracker.getTotal();
             int success = ChestTracker.getSuccess();
@@ -113,18 +107,18 @@ public final class PartyCommands {
             return;
         }
 
-        if (lower.equals("!dt")) {
+        if (cmd.equals("!dt")) {
             KuudraConfig.setAutoRequeueEnabled(false);
             send("pc [Phantom] Auto Requeue: OFF");
             return;
         }
-        if (lower.equals("!undt")) {
+        if (cmd.equals("!undt")) {
             KuudraConfig.setAutoRequeueEnabled(true);
             send("pc [Phantom] Auto Requeue: ON");
             return;
         }
 
-        if (lower.equals("!pb")) {
+        if (cmd.equals("!pb")) {
             if (!canAnnounce()) return;
             int    tier = KuudraConfig.getHighestTierPlayed();
             double pb   = KuudraConfig.getTotalRunPb(tier);
@@ -145,7 +139,7 @@ public final class PartyCommands {
             if (member.equalsIgnoreCase(input)) return member;
         }
         if (partyMembers.isEmpty()) return input;
-        return null; // ambiguous
+        return null;
     }
 
     private static String resolveOrSelf(String arg, String sender) {

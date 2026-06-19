@@ -3,6 +3,7 @@ package com.kuudrahelper.mixin;
 import com.kuudrahelper.features.AnnounceFresh;
 import com.kuudrahelper.features.BuildBeaconRenderer;
 import com.kuudrahelper.features.kuudra.KuudraHighlightRenderer;
+import com.kuudrahelper.features.supplies.EtherwarpWaypointRenderer;
 import com.kuudrahelper.features.supplies.SupplyBeaconRenderer;
 import com.kuudrahelper.features.supplies.SupplyGiantHitbox;
 import com.kuudrahelper.features.supplies.SupplyRenderHelper;
@@ -42,6 +43,7 @@ public abstract class WorldRendererMixin {
         BuildBeaconRenderer.render(matrices, camera, tickDelta);
         SupplyBeaconRenderer.render(matrices, camera, tickDelta);
         SupplyRenderHelper.render(matrices, camera, tickDelta);
+        EtherwarpWaypointRenderer.render(matrices, camera, tickDelta);
         AnnounceFresh.renderTimers(matrices, camera, tickDelta);
         SupplyGiantHitbox.render(matrices, camera, tickDelta);
     }

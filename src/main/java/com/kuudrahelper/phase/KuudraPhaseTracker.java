@@ -1,5 +1,6 @@
 package com.kuudrahelper.phase;
 
+import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -29,8 +30,11 @@ public final class KuudraPhaseTracker {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
-            if (currentPhase != Phase.DPS && currentPhase != Phase.SKIP) return;
-            if (client.player.getY() < 10.0) {
+            // T5 only: dropping below Y=10 in DPS/SKIP signals transition to kill phase
+            int tier = KuudraTierDetector.getTier();
+            if ((tier == 5 || tier == 0) &&
+                    (currentPhase == Phase.DPS || currentPhase == Phase.SKIP) &&
+                    client.player.getY() < 10.0) {
                 setPhase(Phase.BOSS);
             }
         });
@@ -61,7 +65,8 @@ public final class KuudraPhaseTracker {
         }
 
         if (msg.equals("[NPC] Elle: Phew! The Ballista is finally ready! It should be strong enough to tank Kuudra's blows now!")) {
-            setPhase(Phase.EATEN);
+            int tier = KuudraTierDetector.getTier();
+            setPhase((tier == 1 || tier == 2) ? Phase.BOSS : Phase.EATEN);
             return;
         }
 
@@ -83,12 +88,6 @@ public final class KuudraPhaseTracker {
         if (msg.contains("KUUDRA DOWN") || msg.contains("DEFEAT KUUDRA")) {
             setPhase(Phase.END);
             runActive = false;
-        }
-    }
-
-    public static void triggerBossPhase() {
-        if (currentPhase == Phase.SKIP) {
-            setPhase(Phase.BOSS);
         }
     }
 

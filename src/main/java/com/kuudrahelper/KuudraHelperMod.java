@@ -135,7 +135,6 @@ public class KuudraHelperMod implements ClientModInitializer {
         return KuudraPhaseTracker.getPhase() == KuudraPhaseTracker.Phase.SUPPLIES;
     }
 
-    // Elle messages that must not be suppressed — they drive NoPre detection
     private static boolean isNpreElleLine(String msg) {
         String lc = msg.toLowerCase();
         return lc.contains("head over to the main platform")
@@ -157,14 +156,12 @@ public class KuudraHelperMod implements ClientModInitializer {
             if (KuudraConfig.isHideElleDialogueEnabled()
                     && clean.toLowerCase().contains("[npc] elle:")) return false;
 
-            // Supply recovery message replacement
             if (KuudraConfig.isSupplyRecoveryMsgEnabled()) {
                 java.util.regex.Matcher m = SUPPLY_RECOVERY_PATTERN.matcher(clean);
                 if (m.find()) {
                     String playerName = m.group(1);
                     String countStr   = m.group(2);
 
-                    // Extract the raw prefix (rank + name with §-codes)
                     java.util.regex.Matcher rm = RANK_NAME_PATTERN.matcher(raw);
                     String rawPrefix = rm.find() ? rm.group(1) : playerName;
                     rawPrefix = rawPrefix.replaceAll("§r$", "").stripTrailing();
@@ -293,6 +290,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         com.kuudrahelper.features.kuudra.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
+        com.kuudrahelper.features.supplies.EtherwarpWaypointManager.reset();
         NotificationHud.reset();
         CratePriority.reset();
     }
@@ -331,6 +329,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             EtherwarpPredictor.tick(client);
             PhaseLogger.tick(client);
             SupplyWaypointTracker.tick(client);
+            com.kuudrahelper.features.supplies.NoPreAnnounce.tick(client);
             com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
 
             if (KuudraConfig.isAutoSprintEnabled() && client.player != null) {

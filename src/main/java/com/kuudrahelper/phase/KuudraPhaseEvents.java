@@ -5,6 +5,7 @@ import com.kuudrahelper.features.AnnounceFresh;
 import com.kuudrahelper.features.AutoGFS;
 import com.kuudrahelper.features.BuildProgressHud;
 import com.kuudrahelper.features.BuildProgressTracker;
+import com.kuudrahelper.features.supplies.EtherwarpWaypointManager;
 import com.kuudrahelper.features.supplies.NoPreAnnounce;
 import com.kuudrahelper.features.supplies.SupplyProgressHud;
 import com.kuudrahelper.features.supplies.SupplyWaypointTracker;
@@ -32,6 +33,7 @@ public final class KuudraPhaseEvents {
                     HideArmorStands.activate();
                     SupplyWaypointTracker.onSuppliesStart();
                     NoPreAnnounce.onSuppliesStart();
+                    EtherwarpWaypointManager.onSuppliesStart();
                     SupplyProgressHud.onSuppliesStart();
                     BuildProgressHud.reset();
                     AnnounceFresh.reset();
@@ -47,6 +49,7 @@ public final class KuudraPhaseEvents {
 
                 case BUILD -> {
                     SupplyWaypointTracker.reset();
+                    EtherwarpWaypointManager.reset();
                     SupplyProgressHud.reset();
                     BuildProgressTracker.start();
                     BuildProgressHud.onBuildStart();

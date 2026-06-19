@@ -17,6 +17,7 @@
     "BossHealthOverlayMixin",
     "ArmorStandRendererMixin",
     "FallingBlockMixin",
+    "FishingHookMixin",
     "EntityScaleMixin",
     "KuudraScaleMixin",
     "EntityFireMixin"

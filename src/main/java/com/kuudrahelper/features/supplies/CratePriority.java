@@ -16,13 +16,13 @@ import java.util.regex.Pattern;
 public final class CratePriority {
 
     private static final String[] SPOT_TO_PLAYER_PRE = {
-            null,        // 0 Shop       — player carries this, not a pre position
+            null,        // 0 Shop
             "Triangle",  // 1 Triangle
             "X",         // 2 X
-            null,        // 3 X Cannon   — player carries this
+            null,        // 3 X Cannon
             "Equals",    // 4 Equals
             "Slash",     // 5 Slash
-            null,        // 6 Square     — player carries this
+            null,        // 6 Square
     };
 
     private static final Map<String, Map<String, String>> PRIORITY;
@@ -53,6 +53,11 @@ public final class CratePriority {
     public static void reset() {
         destination = null;
         expiresAt = 0;
+    }
+
+    public static String getDestination() {
+        if (destination == null || System.currentTimeMillis() > expiresAt) return null;
+        return destination;
     }
 
     public static void onChat(String clean) {

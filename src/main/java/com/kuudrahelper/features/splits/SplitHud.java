@@ -4,6 +4,7 @@ import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.features.splits.KuudraSplitTimer.PhaseResult;
 import com.kuudrahelper.features.splits.KuudraSplitTimer.Split;
 import com.kuudrahelper.features.splits.KuudraSplitTimer.SupplyTime;
+import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.DeltaTracker;
@@ -52,10 +53,13 @@ public final class SplitHud {
 
         int x = 0, y = 0;
 
+        int tier = KuudraTierDetector.getTier();
+        if (tier < 1 || tier > 5) tier = 5;
+
         drawLine(ctx, mc, x, y, "§b§lKuudra Splits:");
         y += LINE_H;
 
-        for (Split s : Split.values()) {
+        for (Split s : KuudraSplitTimer.splitsForTier(tier)) {
             y = drawSplit(ctx, mc, x, y, s);
         }
 
@@ -79,7 +83,7 @@ public final class SplitHud {
         PhaseResult result = KuudraSplitTimer.getResult(s);
         boolean     active = s == KuudraSplitTimer.getActiveSplit();
 
-        String label = splitLabel(s);
+        String label = KuudraSplitTimer.splitLabel(s);
         StringBuilder sb = new StringBuilder();
         sb.append("§b").append(label).append(":§r ");
 
@@ -135,18 +139,6 @@ public final class SplitHud {
 
     private static void drawLine(GuiGraphicsExtractor ctx, Minecraft mc, int x, int y, String text) {
         ctx.text(mc.font, text, x, y, 0xFFFFFFFF, true);
-    }
-
-    private static String splitLabel(Split s) {
-        return switch (s) {
-            case SUPPLIES -> "Supplies";
-            case BUILD    -> "Build";
-            case EATEN    -> "Eaten";
-            case STUN     -> "Stun";
-            case DPS      -> "DPS";
-            case SKIP     -> "Skip";
-            case BOSS     -> "Boss";
-        };
     }
 
     private static String supplyTimeColor(double sec) {
