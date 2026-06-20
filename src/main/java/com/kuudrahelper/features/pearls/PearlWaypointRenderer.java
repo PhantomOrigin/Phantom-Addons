@@ -137,8 +137,12 @@ public final class PearlWaypointRenderer {
     }
 
     private static int resolveColor(boolean myTarget, boolean aimed, long throwIn) {
-        if (aimed) return (myTarget && throwIn <= 0L) ? -13369549 : -23296;
-        else       return myTarget ? -48060 : -1;
+        int rgb;
+        if (aimed) rgb = (myTarget && throwIn <= 0L) ? KuudraConfig.getWpColReady()
+                                                      : KuudraConfig.getWpColHovered();
+        else       rgb = myTarget ? KuudraConfig.getWpColCorrect()
+                                  : KuudraConfig.getWpColNormal();
+        return 0xFF000000 | rgb;
     }
 
     private static void applyBillboard(PoseStack matrices, Vec3 camPos, Vec3 wp) {
@@ -220,9 +224,10 @@ public final class PearlWaypointRenderer {
                                        Vec3 camPos, Vec3 pos,
                                        int alpha, boolean isTarget, float beamHeight) {
         float hw = 0.075f;
-        int r = isTarget ? 0   : 255;
-        int g = isTarget ? 200 : 255;
-        int b = isTarget ? 0   : 255;
+        int col = isTarget ? KuudraConfig.getBeaconColCorrect() : KuudraConfig.getBeaconColNormal();
+        int r = (col >> 16) & 0xFF;
+        int g = (col >>  8) & 0xFF;
+        int b =  col        & 0xFF;
         matrices.pushPose();
         matrices.translate(pos.x - camPos.x, pos.y - camPos.y, pos.z - camPos.z);
         Matrix4f mat = matrices.last().pose();

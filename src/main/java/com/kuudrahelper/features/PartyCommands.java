@@ -18,6 +18,8 @@ public final class PartyCommands {
             "(?:\\[[^\\]]+\\] )?(\\w+) (?:left|was removed from|has been removed from) the party\\.");
     private static final Pattern PARTY_DISBAND = Pattern.compile(
             "The party was disbanded");
+    private static final Pattern YOU_JOINED = Pattern.compile(
+            "You have joined (?:\\[[^\\]]+\\] )?\\w+'s? party!|You accepted (?:\\[[^\\]]+\\] )?\\w+'s? party invitation!");
 
     private static final Map<String, String> TIERS = Map.of(
             "t1", "KUUDRA_NORMAL",
@@ -50,13 +52,23 @@ public final class PartyCommands {
     }
 
     private static void handle(String raw) {
+        if (YOU_JOINED.matcher(raw).find()) {
+            partyMembers.clear();
+            com.kuudrahelper.features.splits.KuudraSplitTimer.resetPartySession();
+            return;
+        }
+
         Matcher join = PARTY_JOIN.matcher(raw);
         if (join.find()) { partyMembers.add(join.group(1)); return; }
 
         Matcher leave = PARTY_LEAVE.matcher(raw);
         if (leave.find()) { partyMembers.remove(leave.group(1)); return; }
 
-        if (PARTY_DISBAND.matcher(raw).find()) { partyMembers.clear(); return; }
+        if (PARTY_DISBAND.matcher(raw).find()) {
+            partyMembers.clear();
+            com.kuudrahelper.features.splits.KuudraSplitTimer.resetPartySession();
+            return;
+        }
 
         Matcher m = PARTY_MSG.matcher(raw);
         if (!m.find()) return;
@@ -124,7 +136,27 @@ public final class PartyCommands {
             double pb   = KuudraConfig.getTotalRunPb(tier);
             if (pb >= 9999) return;
             send("pc T" + tier + " Kuudra PB: " + KuudraConfig.formatTime(pb));
+            return;
         }
+
+        if (cmd.equals("!avg") || cmd.equals("!average")) {
+            if (!canAnnounce()) return;
+            int tier = com.kuudrahelper.features.splits.KuudraSplitTimer.getSessionHighestTier();
+            if (tier < 1) return;
+            double avg = com.kuudrahelper.features.splits.KuudraSplitTimer.getSessionAverage(tier);
+            if (avg < 0) return;
+            send("pc [Phantom] Party Average: " + formatAverage(avg));
+        }
+    }
+
+    private static String formatAverage(double seconds) {
+        if (seconds < 60.0) {
+            return String.format("%.2fs", seconds);
+        }
+        long rounded = Math.round(seconds);
+        long mins = rounded / 60;
+        long secs = rounded % 60;
+        return mins + ":" + String.format("%02d", secs);
     }
 
     private static String resolve(String input) {

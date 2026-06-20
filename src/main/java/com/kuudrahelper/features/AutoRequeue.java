@@ -19,13 +19,24 @@ public final class AutoRequeue {
         requeued = false;
     }
 
+    public static void trigger() {
+        if (!KuudraConfig.isAutoRequeueEnabled()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.getConnection() == null) return;
+        mc.execute(() -> mc.getConnection().sendCommand("instancerequeue"));
+    }
+
+    public static void onServerJoin() {
+        requeued = true;
+    }
+
     public static void register() {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
             if (!KuudraConfig.isAutoRequeueEnabled()) return;
 
             String raw   = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-            String lower = raw.toLowerCase().replace(" ", " ").trim();
+            String lower = raw.toLowerCase().trim();
 
             if (raw.equals(ELLE_FISHING)) {
                 reset();
@@ -39,11 +50,7 @@ public final class AutoRequeue {
 
             if (requeued) return;
 
-            boolean isEnd = lower.startsWith("kuudradown")
-                    || lower.startsWith("defeat")
-                    || raw.contains(REQUEUE_CLICK);
-
-            if (isEnd) {
+            if (raw.contains(REQUEUE_CLICK)) {
                 requeued = true;
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player == null || mc.getConnection() == null) return;

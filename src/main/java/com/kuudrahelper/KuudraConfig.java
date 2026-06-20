@@ -31,7 +31,8 @@ public class KuudraConfig {
     private static RoleMode roleMode          = RoleMode.AUTO;
     private static int      dpsValue          = 40;
     private static int      stunValue         = 9;
-    private static boolean  eatenTimerEnabled  = false;
+    private static boolean  eatenTimerEnabled              = false;
+    private static boolean  eatenTimerSubtractPingEnabled  = false;
     private static boolean  etherwarpLavaBlock = true;
     private static boolean  pickoblockEnabled  = false;
     private static boolean  hideElleDialogue   = false;
@@ -89,10 +90,22 @@ public class KuudraConfig {
     private static int            lowPing               = 0;
     private static float          waypointFillAlpha     = 0.25f;
     private static float          beaconAlpha           = 0.63f;
+    // Pearl waypoint marker colours (packed 0xRRGGBB)
+    private static int            wpColNormal           = 0xFFFFFF;
+    private static int            wpColCorrect          = 0xFF4444;
+    private static int            wpColHovered          = 0xFFAA00;
+    private static int            wpColReady            = 0x33FF33;
+    // Pearl beacon beam colours (packed 0xRRGGBB)
+    private static int            beaconColNormal       = 0xFFFFFF;
+    private static int            beaconColCorrect      = 0x00C800;
+    // Build phase beacon opacity
+    private static float          buildBeaconAlpha      = 0.63f;
     private static boolean        blockSlot9Enabled          = false;
     private static boolean        stunPreviewEnabled         = false;
     private static boolean        buildBeaconsEnabled        = false;
+    private static boolean        elleHighlightEnabled       = false;
     private static boolean        rendDamageEnabled          = false;
+    private static boolean        rendTrackerEnabled         = false;
     private static boolean        kuudraHighlightEnabled     = false;
     private static boolean        kuudraHighlightFilled      = false;
     private static boolean        etherwarpSlotBlockerEnabled = false;
@@ -156,7 +169,9 @@ public class KuudraConfig {
 
     private static boolean kuudraHpHudEnabled       = false;
     private static boolean kuudraHpShowRaw          = false;
+    private static boolean kuudraHpHideBar          = false;
     private static boolean hollowWandEnabled        = false;
+    private static boolean kickedNotificationEnabled = false;
     private static boolean hideBossBarEnabled       = false;
     private static boolean hideFallingBlocksEnabled  = false;
     private static boolean manaDrainAnnouncerEnabled = false;
@@ -238,7 +253,8 @@ public class KuudraConfig {
     public static boolean  isAutoMode()                  { return roleMode == RoleMode.AUTO; }
     public static int      getDpsValue()                 { return dpsValue; }
     public static int      getStunValue()                { return stunValue; }
-    public static boolean  isEatenTimerEnabled()         { return eatenTimerEnabled; }
+    public static boolean  isEatenTimerEnabled()              { return eatenTimerEnabled; }
+    public static boolean  isEatenTimerSubtractPingEnabled()  { return eatenTimerSubtractPingEnabled; }
     public static boolean  isPickoblockEnabled()         { return pickoblockEnabled; }
     public static boolean  isEtherwarpLavaBlockEnabled() { return etherwarpLavaBlock; }
     public static boolean  isHideElleDialogueEnabled()   { return hideElleDialogue; }
@@ -297,10 +313,19 @@ public class KuudraConfig {
     public static int            getLowPing()              { return lowPing; }
     public static float          getWaypointFillAlpha()    { return waypointFillAlpha; }
     public static float          getBeaconAlpha()          { return beaconAlpha; }
+    public static int            getWpColNormal()          { return wpColNormal; }
+    public static int            getWpColCorrect()         { return wpColCorrect; }
+    public static int            getWpColHovered()         { return wpColHovered; }
+    public static int            getWpColReady()           { return wpColReady; }
+    public static int            getBeaconColNormal()      { return beaconColNormal; }
+    public static int            getBeaconColCorrect()     { return beaconColCorrect; }
+    public static float          getBuildBeaconAlpha()     { return buildBeaconAlpha; }
     public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
     public static boolean        isStunPreviewEnabled()           { return stunPreviewEnabled; }
     public static boolean        isBuildBeaconsEnabled()         { return buildBeaconsEnabled; }
+    public static boolean        isElleHighlightEnabled()        { return elleHighlightEnabled; }
     public static boolean        isRendDamageEnabled()           { return rendDamageEnabled; }
+    public static boolean        isRendTrackerEnabled()          { return rendTrackerEnabled; }
     public static boolean        isKuudraHighlightEnabled()      { return kuudraHighlightEnabled; }
     public static boolean        isKuudraHighlightFilled()       { return kuudraHighlightFilled; }
     public static boolean        isEtherwarpSlotBlockerEnabled()  { return etherwarpSlotBlockerEnabled; }
@@ -409,7 +434,8 @@ public class KuudraConfig {
     public static void setRoleMode(RoleMode m)          { roleMode = m;           save(); }
     public static void setDpsValue(int v)               { dpsValue = v;           save(); }
     public static void setStunValue(int v)              { stunValue = v;          save(); }
-    public static void setEatenTimerEnabled(boolean v)  { eatenTimerEnabled = v;  save(); }
+    public static void setEatenTimerEnabled(boolean v)             { eatenTimerEnabled = v;             save(); }
+    public static void setEatenTimerSubtractPingEnabled(boolean v) { eatenTimerSubtractPingEnabled = v;  save(); }
     public static void setPickoblockEnabled(boolean v)  { pickoblockEnabled = v;  save(); }
     public static void setHideElleDialogue(boolean v)   { hideElleDialogue = v;   save(); }
     public static void setAutoGfsEnabled(boolean v)     { autoGfsEnabled = v;     save(); }
@@ -462,10 +488,19 @@ public class KuudraConfig {
     public static void setLowPing(int v)                     { lowPing = Math.max(0, v);     save(); }
     public static void setWaypointFillAlpha(float v)         { waypointFillAlpha = v;        save(); }
     public static void setBeaconAlpha(float v)               { beaconAlpha = v;              save(); }
+    public static void setWpColNormal(int v)                 { wpColNormal = v & 0xFFFFFF;      save(); }
+    public static void setWpColCorrect(int v)                { wpColCorrect = v & 0xFFFFFF;     save(); }
+    public static void setWpColHovered(int v)                { wpColHovered = v & 0xFFFFFF;     save(); }
+    public static void setWpColReady(int v)                  { wpColReady = v & 0xFFFFFF;       save(); }
+    public static void setBeaconColNormal(int v)             { beaconColNormal = v & 0xFFFFFF;  save(); }
+    public static void setBeaconColCorrect(int v)            { beaconColCorrect = v & 0xFFFFFF; save(); }
+    public static void setBuildBeaconAlpha(float v)          { buildBeaconAlpha = clamp01(v);   save(); }
     public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
     public static void setStunPreviewEnabled(boolean v)          { stunPreviewEnabled = v;            save(); }
     public static void setBuildBeaconsEnabled(boolean v)         { buildBeaconsEnabled = v;           save(); }
+    public static void setElleHighlightEnabled(boolean v)        { elleHighlightEnabled = v;          save(); }
     public static void setRendDamageEnabled(boolean v)           { rendDamageEnabled = v;             save(); }
+    public static void setRendTrackerEnabled(boolean v)          { rendTrackerEnabled = v;            save(); }
     public static void setKuudraHighlightEnabled(boolean v)     { kuudraHighlightEnabled = v;        save(); }
     public static void setKuudraHighlightFilled(boolean v)      { kuudraHighlightFilled = v;         save(); }
     public static void setEtherwarpSlotBlockerEnabled(boolean v) { etherwarpSlotBlockerEnabled = v; save(); }
@@ -566,8 +601,12 @@ public class KuudraConfig {
     public static void setKuudraHpHudEnabled(boolean v)     { kuudraHpHudEnabled = v; save(); }
     public static boolean isKuudraHpShowRaw()               { return kuudraHpShowRaw; }
     public static void setKuudraHpShowRaw(boolean v)        { kuudraHpShowRaw = v; save(); }
+    public static boolean isKuudraHpHideBar()               { return kuudraHpHideBar; }
+    public static void setKuudraHpHideBar(boolean v)        { kuudraHpHideBar = v; save(); }
     public static boolean isHollowWandEnabled()             { return hollowWandEnabled; }
     public static void setHollowWandEnabled(boolean v)      { hollowWandEnabled = v; save(); }
+    public static boolean isKickedNotificationEnabled()     { return kickedNotificationEnabled; }
+    public static void setKickedNotificationEnabled(boolean v) { kickedNotificationEnabled = v; save(); }
     public static boolean isHideBossBarEnabled()              { return hideBossBarEnabled; }
     public static boolean isHideFallingBlocksEnabled()        { return hideFallingBlocksEnabled; }
     public static void setHideBossBarEnabled(boolean v)       { hideBossBarEnabled = v; save(); }
@@ -644,8 +683,9 @@ public class KuudraConfig {
             roleMode           = safeEnum(RoleMode.class, d.roleMode, RoleMode.AUTO);
             dpsValue           = d.dpsValue;
             stunValue          = d.stunValue;
-            eatenTimerEnabled  = d.eatenTimerEnabled;
-            pickoblockEnabled  = d.pickoblockEnabled;
+            eatenTimerEnabled             = d.eatenTimerEnabled;
+            eatenTimerSubtractPingEnabled = d.eatenTimerSubtractPingEnabled;
+            pickoblockEnabled             = d.pickoblockEnabled;
             etherwarpLavaBlock = d.etherwarpLavaBlock;
             hideElleDialogue   = d.hideElleDialogue;
             autoGfsEnabled     = d.autoGfsEnabled;
@@ -698,10 +738,19 @@ public class KuudraConfig {
             lowPing               = Math.max(0, d.lowPing);
             waypointFillAlpha     = clamp01(d.waypointFillAlpha);
             beaconAlpha           = clamp01(d.beaconAlpha);
+            wpColNormal           = d.wpColNormal      & 0xFFFFFF;
+            wpColCorrect          = d.wpColCorrect     & 0xFFFFFF;
+            wpColHovered          = d.wpColHovered     & 0xFFFFFF;
+            wpColReady            = d.wpColReady       & 0xFFFFFF;
+            beaconColNormal       = d.beaconColNormal  & 0xFFFFFF;
+            beaconColCorrect      = d.beaconColCorrect & 0xFFFFFF;
+            buildBeaconAlpha      = clamp01(d.buildBeaconAlpha);
             blockSlot9Enabled          = d.blockSlot9Enabled;
             stunPreviewEnabled         = d.stunPreviewEnabled;
             buildBeaconsEnabled        = d.buildBeaconsEnabled;
+            elleHighlightEnabled       = d.elleHighlightEnabled;
             rendDamageEnabled          = d.rendDamageEnabled;
+            rendTrackerEnabled         = d.rendTrackerEnabled;
             kuudraHighlightEnabled     = d.kuudraHighlightEnabled;
             kuudraHighlightFilled      = d.kuudraHighlightFilled;
             etherwarpSlotBlockerEnabled = d.etherwarpSlotBlockerEnabled;
@@ -763,7 +812,9 @@ public class KuudraConfig {
             hideArmorStandsOthers      = d.hideArmorStandsOthers;
             kuudraHpHudEnabled       = d.kuudraHpHudEnabled;
             kuudraHpShowRaw          = d.kuudraHpShowRaw;
-            hollowWandEnabled        = d.hollowWandEnabled;
+            kuudraHpHideBar          = d.kuudraHpHideBar;
+            hollowWandEnabled            = d.hollowWandEnabled;
+            kickedNotificationEnabled    = d.kickedNotificationEnabled;
             hideBossBarEnabled         = d.hideBossBarEnabled;
             hideFallingBlocksEnabled  = d.hideFallingBlocksEnabled;
             manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
@@ -831,8 +882,9 @@ public class KuudraConfig {
         d.roleMode           = roleMode.name();
         d.dpsValue           = dpsValue;
         d.stunValue          = stunValue;
-        d.eatenTimerEnabled  = eatenTimerEnabled;
-        d.pickoblockEnabled  = pickoblockEnabled;
+        d.eatenTimerEnabled             = eatenTimerEnabled;
+        d.eatenTimerSubtractPingEnabled = eatenTimerSubtractPingEnabled;
+        d.pickoblockEnabled             = pickoblockEnabled;
         d.etherwarpLavaBlock = etherwarpLavaBlock;
         d.hideElleDialogue   = hideElleDialogue;
         d.autoGfsEnabled     = autoGfsEnabled;
@@ -883,10 +935,19 @@ public class KuudraConfig {
         d.lowPing               = lowPing;
         d.waypointFillAlpha     = waypointFillAlpha;
         d.beaconAlpha           = beaconAlpha;
+        d.wpColNormal           = wpColNormal;
+        d.wpColCorrect          = wpColCorrect;
+        d.wpColHovered          = wpColHovered;
+        d.wpColReady            = wpColReady;
+        d.beaconColNormal       = beaconColNormal;
+        d.beaconColCorrect      = beaconColCorrect;
+        d.buildBeaconAlpha      = buildBeaconAlpha;
         d.blockSlot9Enabled          = blockSlot9Enabled;
         d.stunPreviewEnabled         = stunPreviewEnabled;
         d.buildBeaconsEnabled        = buildBeaconsEnabled;
+        d.elleHighlightEnabled       = elleHighlightEnabled;
         d.rendDamageEnabled          = rendDamageEnabled;
+        d.rendTrackerEnabled         = rendTrackerEnabled;
         d.kuudraHighlightEnabled     = kuudraHighlightEnabled;
         d.kuudraHighlightFilled      = kuudraHighlightFilled;
         d.etherwarpSlotBlockerEnabled = etherwarpSlotBlockerEnabled;
@@ -947,7 +1008,9 @@ public class KuudraConfig {
         d.hideArmorStandsOthers      = hideArmorStandsOthers;
         d.kuudraHpHudEnabled       = kuudraHpHudEnabled;
         d.kuudraHpShowRaw          = kuudraHpShowRaw;
-        d.hollowWandEnabled        = hollowWandEnabled;
+        d.kuudraHpHideBar          = kuudraHpHideBar;
+        d.hollowWandEnabled             = hollowWandEnabled;
+        d.kickedNotificationEnabled     = kickedNotificationEnabled;
         d.hideBossBarEnabled         = hideBossBarEnabled;
         d.hideFallingBlocksEnabled  = hideFallingBlocksEnabled;
         d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
@@ -1014,8 +1077,10 @@ public class KuudraConfig {
     public static class PlayerTime {
         public String player = "";
         public double time   = 0;
+        public int    pct    = -1;  // build % at fresh time; -1 if unknown
         public PlayerTime() {}
         public PlayerTime(String player, double time) { this.player = player; this.time = time; }
+        public PlayerTime(String player, double time, int pct) { this.player = player; this.time = time; this.pct = pct; }
     }
 
     public static class PbRecord {
@@ -1033,8 +1098,9 @@ public class KuudraConfig {
         String  roleMode           = "AUTO";
         int     dpsValue           = 32;
         int     stunValue          = 9;
-        boolean eatenTimerEnabled  = false;
-        boolean pickoblockEnabled  = false;
+        boolean eatenTimerEnabled             = false;
+        boolean eatenTimerSubtractPingEnabled = false;
+        boolean pickoblockEnabled             = false;
         boolean etherwarpLavaBlock = true;
         boolean hideElleDialogue   = false;
         boolean autoGfsEnabled     = true;
@@ -1083,10 +1149,19 @@ public class KuudraConfig {
         int     lowPing               = 0;
         float   waypointFillAlpha     = 0.25f;
         float   beaconAlpha           = 0.63f;
+        int     wpColNormal           = 0xFFFFFF;
+        int     wpColCorrect          = 0xFF4444;
+        int     wpColHovered          = 0xFFAA00;
+        int     wpColReady            = 0x33FF33;
+        int     beaconColNormal       = 0xFFFFFF;
+        int     beaconColCorrect      = 0x00C800;
+        float   buildBeaconAlpha      = 0.63f;
         boolean blockSlot9Enabled          = false;
         boolean stunPreviewEnabled         = false;
         boolean buildBeaconsEnabled        = false;
+        boolean elleHighlightEnabled       = false;
         boolean rendDamageEnabled          = false;
+        boolean rendTrackerEnabled         = false;
         boolean kuudraHighlightEnabled     = false;
         boolean kuudraHighlightFilled      = false;
         boolean etherwarpSlotBlockerEnabled = false;
@@ -1147,7 +1222,9 @@ public class KuudraConfig {
         boolean hideArmorStandsOthers      = true;
         boolean kuudraHpHudEnabled       = false;
         boolean kuudraHpShowRaw          = false;
-        boolean hollowWandEnabled        = false;
+        boolean kuudraHpHideBar          = false;
+        boolean hollowWandEnabled           = false;
+        boolean kickedNotificationEnabled   = false;
         boolean hideBossBarEnabled         = false;
         boolean hideFallingBlocksEnabled  = false;
         boolean manaDrainAnnouncerEnabled  = false;

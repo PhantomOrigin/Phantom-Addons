@@ -101,20 +101,23 @@ public final class KuudraHpHud {
                     m.translate(cx, cy);
                     m.scale(scale, scale);
 
+                    boolean hideBar = KuudraConfig.isKuudraHpHideBar();
                     int half    = BAR_W / 2;
-                    int filledI = Math.round(BAR_W * smoothProgress);
 
-                    ctx.fill(-half, 0, half, BAR_H, 0xAA000000);
-                    if (filledI > 0)
-                        ctx.fill(-half, 0, -half + filledI, BAR_H, barColor(smoothProgress));
-                    ctx.fill(-half - 1, -1,    half + 1, 0,         0xFF000000);
-                    ctx.fill(-half - 1, BAR_H, half + 1, BAR_H + 1, 0xFF000000);
-                    ctx.fill(-half - 1, -1,   -half,     BAR_H + 1, 0xFF000000);
-                    ctx.fill( half,     -1,    half + 1,  BAR_H + 1, 0xFF000000);
+                    if (!hideBar) {
+                        int filledI = Math.round(BAR_W * smoothProgress);
+                        ctx.fill(-half, 0, half, BAR_H, 0xAA000000);
+                        if (filledI > 0)
+                            ctx.fill(-half, 0, -half + filledI, BAR_H, barColor(smoothProgress));
+                        ctx.fill(-half - 1, -1,    half + 1, 0,         0xFF000000);
+                        ctx.fill(-half - 1, BAR_H, half + 1, BAR_H + 1, 0xFF000000);
+                        ctx.fill(-half - 1, -1,   -half,     BAR_H + 1, 0xFF000000);
+                        ctx.fill( half,     -1,    half + 1,  BAR_H + 1, 0xFF000000);
 
-                    if (showKillMarker) {
-                        int markerX = -half + Math.round(BAR_W * 0.25f); // 25k / 100k = 25%
-                        ctx.fill(markerX, -1, markerX + 1, BAR_H + 1, 0xFFFFFFFF);
+                        if (showKillMarker) {
+                            int markerX = -half + Math.round(BAR_W * 0.25f); // 25k / 100k = 25%
+                            ctx.fill(markerX, -1, markerX + 1, BAR_H + 1, 0xFFFFFFFF);
+                        }
                     }
 
                     String label;
@@ -124,7 +127,8 @@ public final class KuudraHpHud {
                         label = String.format("§f%.1f%%", smoothProgress * 100f);
                     }
                     int tw = mc.font.width(label);
-                    ctx.text(mc.font, label, -tw / 2, -mc.font.lineHeight - 2, 0xFFFFFFFF, true);
+                    int labelY = hideBar ? -mc.font.lineHeight / 2 : -mc.font.lineHeight - 2;
+                    ctx.text(mc.font, label, -tw / 2, labelY, 0xFFFFFFFF, true);
 
                     m.popMatrix();
                 });

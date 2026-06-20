@@ -50,8 +50,12 @@ public final class KuudraSplitTimer {
     private static final List<KuudraConfig.PlayerTime> runSupplyTimes = new ArrayList<>();
     private static final List<KuudraConfig.PlayerTime> runFreshTimes = new ArrayList<>();
 
+    private static final Map<Integer, List<Double>> sessionRunTimes = new HashMap<>();
+
+    private static boolean pendingAnnounce = false;
+
     private static final Pattern FRESH_PAT =
-            Pattern.compile("Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH!");
+            Pattern.compile("Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH!(?: \\((\\d+)%\\))?");
     private static final Pattern RECOVERED =
             Pattern.compile("(\\S+)\\s+recovered (?:a supply|one of Elle's supplies)", Pattern.CASE_INSENSITIVE);
 
@@ -84,13 +88,21 @@ public final class KuudraSplitTimer {
                 Matcher fm = FRESH_PAT.matcher(text);
                 if (fm.find() && activeSplit == Split.BUILD && phaseStartMs >= 0) {
                     double elapsed = (System.currentTimeMillis() - phaseStartMs) / 1000.0;
-                    runFreshTimes.add(new KuudraConfig.PlayerTime(fm.group(1), elapsed));
+                    int pct = fm.group(2) != null
+                            ? Integer.parseInt(fm.group(2))
+                            : com.kuudrahelper.features.BuildProgressHud.getCurrentProgress();
+                    runFreshTimes.add(new KuudraConfig.PlayerTime(fm.group(1), elapsed, pct));
                 }
             }
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             globalTick++;
+
+            if (pendingAnnounce) {
+                pendingAnnounce = false;
+                printRunSummary();
+            }
 
             if (client.level == null || client.player == null) return;
 
@@ -99,6 +111,10 @@ public final class KuudraSplitTimer {
     }
 
     public static void reset() {
+        if (pendingAnnounce) {
+            pendingAnnounce = false;
+            printRunSummary();
+        }
         activeSplit = null;
         inEatenPhase = false;
         stunPlayer = null;
@@ -113,6 +129,24 @@ public final class KuudraSplitTimer {
         runSupplyTimes.clear();
         runFreshTimes.clear();
         playerLastPositions.clear();
+    }
+
+    public static void resetPartySession() {
+        sessionRunTimes.clear();
+    }
+
+    public static int getSessionHighestTier() {
+        int best = -1;
+        for (int tier : sessionRunTimes.keySet()) {
+            if (!sessionRunTimes.get(tier).isEmpty() && tier > best) best = tier;
+        }
+        return best;
+    }
+
+    public static double getSessionAverage(int tier) {
+        List<Double> times = sessionRunTimes.get(tier);
+        if (times == null || times.isEmpty()) return -1;
+        return times.stream().mapToDouble(Double::doubleValue).average().orElse(-1);
     }
 
     public static void onSuppliesStart() {
@@ -184,6 +218,8 @@ public final class KuudraSplitTimer {
             int tier = KuudraTierDetector.getTier();
             if (tier < 1 || tier > 5) tier = 5;
 
+            sessionRunTimes.computeIfAbsent(tier, k -> new ArrayList<>()).add(total);
+
             if (KuudraConfig.updateTotalRunPb(tier, total)) {
                 double[] splitArr = new double[Split.values().length];
                 java.util.Arrays.fill(splitArr, 9999.0);
@@ -207,7 +243,7 @@ public final class KuudraSplitTimer {
         }
 
         savePbIfBetter();
-        printRunSummary();
+        pendingAnnounce = true;
     }
 
     private static void tickPlayerDetection(Minecraft client) {

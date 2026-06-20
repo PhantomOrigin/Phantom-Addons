@@ -7,10 +7,13 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.client.input.MouseButtonEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -27,12 +30,17 @@ public class KuudraScreen extends Screen {
     private static final int ROW_H     = 26;
     private static final int ROW_GAP   = 3;
     private static final int PAD       = 12;
+    private static final int INDENT    = 12;
+    private static final int GROUP_PAD_B = 6;
 
     // ── Colours ───────────────────────────────────────────────────────────────
 
-    private static final int C_BG         = 0xFF0D0F14;
-    private static final int C_SIDEBAR    = 0xFF090B0F;
-    private static final int C_HEADER     = 0xFF111520;
+    private static final Identifier LOGO =
+            Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/logo.png");
+
+    private static final int C_BG         = 0xFF15151A;
+    private static final int C_SIDEBAR    = 0xFF101014;
+    private static final int C_HEADER     = 0xFF1B1B1F;
     private static final int C_BORDER     = 0xFF1E2233;
     private static final int C_ACCENT     = 0xFFFFAA00;
     private static final int C_TAB_ACTIVE = 0xFF1A1F2E;
@@ -44,19 +52,22 @@ public class KuudraScreen extends Screen {
     private static final int C_SLIDER_BG  = 0xFF1A1F2E;
     private static final int C_SLIDER_FG  = 0xFF2244AA;
     private static final int C_SLIDER_GR  = 0xFF4477DD;
+    private static final int C_GROUP_BG   = 0x14FFFFFF;
+    private static final int C_GROUP_BAR  = 0x55FFAA00;
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
 
     private enum Tab {
         ABOUT("About"), SUPPLIES("Supplies"), BUILD("Build"), STUN_DPS("Stun/DPS"),
-        BOSS("Boss"), LAVA_TWEAKS("Lava Tweaks"), MISC("Misc"), ITEMS("Items");
+        BOSS("Boss"), MISC("Misc"), CUSTOMISATION("Customisation");
         final String label;
         Tab(String l) { this.label = l; }
     }
 
     private Tab   currentTab = Tab.ABOUT;
     private float tabAnim    = 1f;
-    private static final float ANIM_SPEED = 9f;
+    private static final float ANIM_SPEED  = 9f;
+    private static final float GROUP_SPEED = 14f;
 
     // ── Feature base ──────────────────────────────────────────────────────────
 
@@ -360,6 +371,20 @@ public class KuudraScreen extends Screen {
         }
     }
 
+    // ── LavaPreview ───────────────────────────────────────────────────────────
+
+    private static class LavaPreview extends Feature {
+        LavaPreview() { super("Colour Preview", Tab.CUSTOMISATION); }
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            int previewArgb = com.kuudrahelper.features.lava.ColorPreviewHelper.computePreviewColor();
+            int sw = w - 16, swX = x + 8, swY = y + 4, sh = ROW_H - 8;
+            ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
+            ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
+            ctx.centeredText(s.font, Component.literal("Colour Preview"),
+                    swX + sw / 2, swY + (sh - s.font.lineHeight) / 2, 0xCCFFFFFF);
+        }
+    }
+
     // ── Button ────────────────────────────────────────────────────────────────
 
     private static class Button extends Feature {
@@ -391,7 +416,7 @@ public class KuudraScreen extends Screen {
     private class AddCategoryFeature extends Feature {
         boolean focused = false;
         String  draft   = "";
-        AddCategoryFeature() { super("Add category", Tab.ITEMS); }
+        AddCategoryFeature() { super("Add category", Tab.CUSTOMISATION); }
 
         @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
             ctx.text(s.font, Component.literal("Match:"),
@@ -401,7 +426,7 @@ public class KuudraScreen extends Screen {
             int fx = x + 60, fw = bx - fx - 4;
             ctx.fill(fx, fy, fx + fw, fy + fh, focused ? 0xFF1A2A44 : 0xFF0F1218);
             ctx.fill(fx, fy + fh - 1, fx + fw, fy + fh, focused ? C_ACCENT : C_BORDER);
-            String disp = draft.isEmpty() && !focused ? "\u00a77type to filter..." : draft;
+            String disp = draft.isEmpty() && !focused ? "§7type to filter..." : draft;
             ctx.text(s.font, Component.literal(disp),
                     fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
             boolean hov = mx >= bx && mx <= bx + bw && my >= fy && my <= fy + fh;
@@ -447,113 +472,380 @@ public class KuudraScreen extends Screen {
         }
     }
 
+    // ── VisualWordEntry ──────────────────────────────────────────────────────
+
+    private class VisualWordEntry extends Feature {
+        final int idx;
+        int     focus = 0;       // 0 none, 1 input, 2 replacement
+        String  draft = null;
+        VisualWordEntry(int idx) { super("Visual Word", Tab.CUSTOMISATION); this.idx = idx; }
+
+        private com.kuudrahelper.features.VisualWords.Rule rule() {
+            var rules = com.kuudrahelper.features.VisualWords.getRules();
+            return idx >= 0 && idx < rules.size() ? rules.get(idx) : null;
+        }
+
+        // geometry
+        private int removeX(int x, int w) { return x + w - 18; }
+        private int inputX(int x)         { return x + 6; }
+        private int fieldW(int x, int w)  { return (removeX(x, w) - inputX(x) - 14) / 2; }
+        private int arrowX(int x, int w)  { return inputX(x) + fieldW(x, w) + 2; }
+        private int replX(int x, int w)   { return arrowX(x, w) + 10; }
+
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            var r = rule();
+            if (r == null) return;
+            int fy = y + 4, fh = ROW_H - 8;
+            int fw = fieldW(x, w);
+
+            String inText  = focus == 1 ? draft : r.input;
+            String repText = focus == 2 ? draft : r.replacement;
+
+            drawField(ctx, s, inputX(x), fy, fw, fh, inText, focus == 1, "find");
+            ctx.centeredText(s.font, Component.literal("→"),
+                    arrowX(x, w) + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT_DIM);
+            drawField(ctx, s, replX(x, w), fy, fw, fh, repText, focus == 2, "replace");
+
+            int rx = removeX(x, w);
+            boolean hov = mx >= rx && mx <= rx + 14 && my >= fy && my <= fy + fh;
+            ctx.fill(rx, fy, rx + 14, fy + fh, hov ? 0xFF4A1515 : 0xFF2A0F0F);
+            ctx.centeredText(s.font, Component.literal("✕"),
+                    rx + 7, fy + (fh - s.font.lineHeight) / 2, 0xFFCC3333);
+        }
+
+        private void drawField(GuiGraphicsExtractor ctx, KuudraScreen s, int fx, int fy, int fw, int fh,
+                               String text, boolean foc, String hint) {
+            ctx.fill(fx, fy, fx + fw, fy + fh, foc ? 0xFF1A2A44 : 0xFF0F1218);
+            ctx.fill(fx, fy + fh - 1, fx + fw, fy + fh, foc ? C_ACCENT : C_BORDER);
+            String disp = (text == null || text.isEmpty()) && !foc ? "§7" + hint : (text == null ? "" : text);
+            ctx.text(s.font, Component.literal(disp),
+                    fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+        }
+
+        @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            var r = rule();
+            if (r == null) return false;
+            int fy = y + 4, fh = ROW_H - 8, fw = fieldW(x, w);
+            int rx = removeX(x, w);
+            if (mx >= rx && mx <= rx + 14 && my >= fy && my <= fy + fh) {
+                com.kuudrahelper.features.VisualWords.removeRule(idx);
+                buildFeatures();
+                return true;
+            }
+            if (my >= fy && my <= fy + fh) {
+                if (mx >= inputX(x) && mx <= inputX(x) + fw) { focusOn(1, r.input); return true; }
+                if (mx >= replX(x, w) && mx <= replX(x, w) + fw) { focusOn(2, r.replacement); return true; }
+            }
+            commit();
+            return false;
+        }
+
+        private void focusOn(int which, String current) { commit(); focus = which; draft = current == null ? "" : current; }
+
+        @Override void onKey(int key) {
+            if (focus == 0) return;
+            if (key == 256) { draft = null; focus = 0; }
+            else if (key == 257 || key == 335) { commit(); }
+            else if (key == 258) { // Tab → jump to the other field
+                var r = rule();
+                if (r != null) { int next = focus == 1 ? 2 : 1; commit(); focusOn(next, next == 1 ? r.input : r.replacement); }
+            }
+            else if (key == 259 && draft != null && !draft.isEmpty())
+                draft = draft.substring(0, draft.length() - 1);
+        }
+
+        @Override void onChar(char c) { if (focus != 0 && c >= 32) { if (draft == null) draft = ""; draft += c; } }
+        @Override boolean isCapturing() { return focus != 0; }
+        @Override void cancel() { commit(); }
+
+        private void commit() {
+            var r = rule();
+            if (r != null && draft != null && focus != 0) {
+                if (focus == 1) r.input = draft; else r.replacement = draft;
+                com.kuudrahelper.features.VisualWords.save();
+            }
+            draft = null; focus = 0;
+        }
+    }
+
+    // ── RgbInput ───────────────────────────────────────────────────────────────
+
+    /** One row: label + colour swatch + three editable R/G/B fields (packed 0xRRGGBB). */
+    private static class RgbInput extends Feature {
+        final Supplier<Integer> get; final Consumer<Integer> set;
+        int    focus = 0;   // 0 none, 1 R, 2 G, 3 B
+        String draft = null;
+        static final int FW = 30;
+        RgbInput(String n, Tab t, Supplier<Integer> get, Consumer<Integer> set) {
+            super(n, t); this.get = get; this.set = set;
+        }
+
+        private int comp(int idx) {
+            int c = get.get() & 0xFFFFFF;
+            return idx == 0 ? (c >> 16) & 0xFF : idx == 1 ? (c >> 8) & 0xFF : c & 0xFF;
+        }
+        private int fx(int x, int w, int idx) {
+            int b = x + w - 8 - FW;
+            int g = b - 4 - FW;
+            int r = g - 4 - FW;
+            return idx == 0 ? r : idx == 1 ? g : b;
+        }
+
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            ctx.text(s.font, Component.literal(name),
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+            int swX = fx(x, w, 0) - 16, swY = y + (ROW_H - 12) / 2;
+            ctx.fill(swX, swY, swX + 12, swY + 12, 0xFF000000 | (get.get() & 0xFFFFFF));
+            for (int i = 0; i < 3; i++) {
+                int fxv = fx(x, w, i), fy = y + 3, fh = ROW_H - 6;
+                boolean foc = focus == i + 1;
+                ctx.fill(fxv, fy, fxv + FW, fy + fh, foc ? 0xFF1A2A44 : 0xFF0F1218);
+                ctx.fill(fxv, fy + fh - 1, fxv + FW, fy + fh, foc ? C_ACCENT : C_BORDER);
+                String disp = foc ? (draft == null ? "" : draft) : String.valueOf(comp(i));
+                ctx.centeredText(s.font, Component.literal(disp),
+                        fxv + FW / 2, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            }
+        }
+
+        @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            int fy = y + 3, fh = ROW_H - 6;
+            for (int i = 0; i < 3; i++) {
+                int fxv = fx(x, w, i);
+                if (mx >= fxv && mx <= fxv + FW && my >= fy && my <= fy + fh) {
+                    commit(); focus = i + 1; draft = String.valueOf(comp(i)); return true;
+                }
+            }
+            commit();
+            return false;
+        }
+
+        @Override void onKey(int key) {
+            if (focus == 0) return;
+            if (key == 256) { draft = null; focus = 0; }
+            else if (key == 257 || key == 335) { commit(); }
+            else if (key == 258) { int next = focus % 3 + 1; commit(); focus = next; draft = String.valueOf(comp(next - 1)); }
+            else if (key == 259 && draft != null && !draft.isEmpty())
+                draft = draft.substring(0, draft.length() - 1);
+        }
+
+        @Override void onChar(char c) {
+            if (focus != 0 && Character.isDigit(c) && (draft == null || draft.length() < 3)) {
+                if (draft == null) draft = ""; draft += c;
+            }
+        }
+        @Override boolean isCapturing() { return focus != 0; }
+        @Override void cancel() { commit(); }
+
+        private void commit() {
+            if (focus != 0 && draft != null && !draft.isEmpty()) {
+                try {
+                    int v = Mth.clamp(Integer.parseInt(draft), 0, 255);
+                    int c = get.get() & 0xFFFFFF;
+                    int shift = (focus - 1) == 0 ? 16 : (focus - 1) == 1 ? 8 : 0;
+                    c = (c & ~(0xFF << shift)) | (v << shift);
+                    set.accept(c);
+                } catch (NumberFormatException ignored) {}
+            }
+            draft = null; focus = 0;
+        }
+    }
+
+    // ── Tree model ──────────────────────────────────────────────────────────────
+
+    private abstract static class Node {
+        final Tab tab;
+        Node(Tab t) { this.tab = t; }
+    }
+
+    private static class Leaf extends Node {
+        final Feature f;
+        Leaf(Feature f) { super(f.tab); this.f = f; }
+    }
+
+    private static class Group extends Node {
+        final String name;
+        final String key;
+        final Supplier<Boolean> get;  // nullable: header-only group (no master toggle)
+        final Consumer<Boolean> set;  // nullable
+        final List<Node> children = new ArrayList<>();
+        Group(String name, Tab tab, String key, Supplier<Boolean> get, Consumer<Boolean> set) {
+            super(tab); this.name = name; this.key = key; this.get = get; this.set = set;
+        }
+        Group add(Node n) { children.add(n); return this; }
+    }
+
+    /** A laid-out, possibly partially-revealed on-screen row. */
+    private static class RenderRow {
+        Node node; int x, y, w, h, contentH, depth;
+    }
+
+    // Expand / animation state persists across rebuilds and screen re-opens.
+    private static final Map<String, Boolean> EXPANDED = new HashMap<>();
+    private static final Map<String, Float>   ANIM     = new HashMap<>();
+
     // ── Feature lists ─────────────────────────────────────────────────────────
 
-    private final List<Feature>            allFeatures     = new ArrayList<>();
+    private final List<Node>               roots           = new ArrayList<>();
+    private final List<Feature>            allLeaves       = new ArrayList<>();
+    private final List<Group>              allGroups       = new ArrayList<>();
     private final List<IntInput>           intInputs       = new ArrayList<>();
     private final List<KeyCapture>         captureFeatures = new ArrayList<>();
     private final List<Slider>             allSliders      = new ArrayList<>();
     private final List<AddCategoryFeature> categoryInputs  = new ArrayList<>();
+    private final List<VisualWordEntry>    vwInputs        = new ArrayList<>();
+    private final List<RgbInput>           rgbInputs       = new ArrayList<>();
+
+    // ── Build helpers ───────────────────────────────────────────────────────────
+
+    private Leaf leaf(Feature f) {
+        if (f instanceof IntInput ii)          intInputs.add(ii);
+        if (f instanceof KeyCapture kc)        captureFeatures.add(kc);
+        if (f instanceof Slider sl)            allSliders.add(sl);
+        if (f instanceof AddCategoryFeature a) categoryInputs.add(a);
+        if (f instanceof VisualWordEntry v)    vwInputs.add(v);
+        if (f instanceof RgbInput rgb)         rgbInputs.add(rgb);
+        allLeaves.add(f);
+        return new Leaf(f);
+    }
+
+    private Group group(String name, Tab tab, String parentKey,
+                        Supplier<Boolean> get, Consumer<Boolean> set) {
+        String key = (parentKey == null ? tab.name() : parentKey) + "/" + name;
+        Group g = new Group(name, tab, key, get, set);
+        allGroups.add(g);
+        return g;
+    }
 
     private void buildFeatures() {
-        allFeatures.clear();
+        roots.clear();
+        allLeaves.clear();
+        allGroups.clear();
         intInputs.clear();
         captureFeatures.clear();
         allSliders.clear();
         categoryInputs.clear();
+        vwInputs.clear();
+        rgbInputs.clear();
 
-        // ── AUTO GFS ──────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("Auto GFS", Tab.STUN_DPS,
-                KuudraConfig::isAutoGfsEnabled, KuudraConfig::setAutoGfsEnabled));
-        allFeatures.add(new Cycle("Role Mode", Tab.STUN_DPS,
+        buildAboutTab();
+        buildSuppliesTab();
+        buildBuildTab();
+        buildStunDpsTab();
+        buildBossTab();
+        buildMiscTab();
+        buildCustomisationTab();
+    }
+
+    // ── Stun / DPS tab ──────────────────────────────────────────────────────────
+
+    private void buildStunDpsTab() {
+        Tab T = Tab.STUN_DPS;
+
+        Group gfs = group("Auto GFS", T, null,
+                KuudraConfig::isAutoGfsEnabled, KuudraConfig::setAutoGfsEnabled);
+        gfs.add(leaf(new Cycle("Role Mode", T,
                 () -> KuudraConfig.getRoleMode().name(),
                 () -> KuudraConfig.setRoleMode(switch (KuudraConfig.getRoleMode()) {
                     case DPS  -> KuudraConfig.RoleMode.STUN;
                     case STUN -> KuudraConfig.RoleMode.AUTO;
                     case AUTO -> KuudraConfig.RoleMode.DPS;
-                })));
-        IntInput dps  = new IntInput("DPS Amount",  Tab.STUN_DPS, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue);
-        IntInput stun = new IntInput("Stun Amount", Tab.STUN_DPS, KuudraConfig::getStunValue, KuudraConfig::setStunValue);
-        allFeatures.add(dps);  intInputs.add(dps);
-        allFeatures.add(stun); intInputs.add(stun);
+                }))));
+        gfs.add(leaf(new IntInput("DPS Amount",  T, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue)));
+        gfs.add(leaf(new IntInput("Stun Amount", T, KuudraConfig::getStunValue, KuudraConfig::setStunValue)));
+        roots.add(gfs);
 
-        // ── STUN ──────────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("Pickobulus Blocker", Tab.STUN_DPS,
-                KuudraConfig::isPickoblockEnabled, KuudraConfig::setPickoblockEnabled));
-        allFeatures.add(new Toggle("Eaten Timer", Tab.STUN_DPS,
-                KuudraConfig::isEatenTimerEnabled, KuudraConfig::setEatenTimerEnabled));
-        allFeatures.add(new Toggle("Cannon Auto Close", Tab.STUN_DPS,
-                KuudraConfig::isCannonAutoCloseEnabled, KuudraConfig::setCannonAutoCloseEnabled));
-        allFeatures.add(new Toggle("Build Progress Tracker", Tab.BUILD,
-                KuudraConfig::isBuildProgressHudEnabled, KuudraConfig::setBuildProgressHudEnabled));
-        allFeatures.add(new Toggle("Announce Fresh", Tab.BUILD,
-                KuudraConfig::isAnnounceFreshEnabled, KuudraConfig::setAnnounceFreshEnabled));
-        allFeatures.add(new Toggle("Fresh Notification", Tab.BUILD,
-                KuudraConfig::isFreshNotifyEnabled, KuudraConfig::setFreshNotifyEnabled));
-        allFeatures.add(new Toggle("Build Started Notification", Tab.BUILD,
-                KuudraConfig::isBuildStartedNotifyEnabled, KuudraConfig::setBuildStartedNotifyEnabled));
-        allFeatures.add(new Toggle("Stun Preview", Tab.STUN_DPS,
-                KuudraConfig::isStunPreviewEnabled, KuudraConfig::setStunPreviewEnabled));
-        allFeatures.add(new Toggle("Build Beacons", Tab.BUILD,
-                KuudraConfig::isBuildBeaconsEnabled, KuudraConfig::setBuildBeaconsEnabled));
+        roots.add(leaf(new Toggle("Pickobulus Blocker", T,
+                KuudraConfig::isPickoblockEnabled, KuudraConfig::setPickoblockEnabled)));
 
-        // ── LAVA ──────────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("Replace with Water", Tab.LAVA_TWEAKS,
-                KuudraConfig::isLavaAsWater, KuudraConfig::setLavaAsWater));
-        Slider opacity = new Slider("Opacity", Tab.LAVA_TWEAKS,
-                KuudraConfig::getLavaOpacity, KuudraConfig::setLavaOpacity, "%");
-        allFeatures.add(opacity); allSliders.add(opacity);
-        allFeatures.add(new Toggle("Colour Override", Tab.LAVA_TWEAKS,
-                KuudraConfig::isLavaColorOverride, KuudraConfig::setLavaColorOverride));
-        ColorSlider cr = new ColorSlider("Red",   Tab.LAVA_TWEAKS, 16, 0xFF4444);
-        ColorSlider cg = new ColorSlider("Green", Tab.LAVA_TWEAKS,  8, 0x44FF88);
-        ColorSlider cb = new ColorSlider("Blue",  Tab.LAVA_TWEAKS,  0, 0x4488FF);
-        allFeatures.add(cr); allSliders.add(cr);
-        allFeatures.add(cg); allSliders.add(cg);
-        allFeatures.add(cb); allSliders.add(cb);
+        Group eaten = group("Eaten Timer", T, null,
+                KuudraConfig::isEatenTimerEnabled, KuudraConfig::setEatenTimerEnabled);
+        eaten.add(leaf(new Toggle("Subtract Ping", T,
+                KuudraConfig::isEatenTimerSubtractPingEnabled, KuudraConfig::setEatenTimerSubtractPingEnabled)));
+        roots.add(eaten);
 
-        allFeatures.add(new Toggle("Supply Beacons", Tab.SUPPLIES,
-                KuudraConfig::isSupplyBeaconsEnabled, KuudraConfig::setSupplyBeaconsEnabled));
-        allFeatures.add(new Toggle("No Pre Announce", Tab.SUPPLIES,
-                KuudraConfig::isNoPreAnnounceEnabled, KuudraConfig::setNoPreAnnounceEnabled));
-        allFeatures.add(new Toggle("No Pre Notification", Tab.SUPPLIES,
-                KuudraConfig::isNoPreNotifyEnabled, KuudraConfig::setNoPreNotifyEnabled));
-        allFeatures.add(new Toggle("Crate Priority", Tab.SUPPLIES,
-                KuudraConfig::isCratePriorityEnabled, KuudraConfig::setCratePriorityEnabled));
-        allFeatures.add(new Toggle("Supply Recovery Message", Tab.SUPPLIES,
-                KuudraConfig::isSupplyRecoveryMsgEnabled, KuudraConfig::setSupplyRecoveryMsgEnabled));
-        allFeatures.add(new Toggle("Supply Location Announce", Tab.SUPPLIES,
-                KuudraConfig::isSupplyLocationAnnounceEnabled, KuudraConfig::setSupplyLocationAnnounceEnabled));
-        allFeatures.add(new Toggle("Supply Hitbox", Tab.SUPPLIES,
-                KuudraConfig::isSupplyHitboxEnabled, KuudraConfig::setSupplyHitboxEnabled));
-        allFeatures.add(new Toggle("Supply Rod Radius", Tab.SUPPLIES,
-                KuudraConfig::isSupplyRodRadiusEnabled, KuudraConfig::setSupplyRodRadiusEnabled));
-        allFeatures.add(new Toggle("Supply Pearl Hitbox", Tab.SUPPLIES,
-                KuudraConfig::isSupplyPearlHitboxEnabled, KuudraConfig::setSupplyPearlHitboxEnabled));
-        allFeatures.add(new Toggle("Supply Giant Hitbox Alert", Tab.SUPPLIES,
-                KuudraConfig::isSupplyGiantHitboxEnabled, KuudraConfig::setSupplyGiantHitboxEnabled));
-        allFeatures.add(new Toggle("Lava Bobber Fix", Tab.SUPPLIES,
-                KuudraConfig::isLavaBobberFixEnabled, KuudraConfig::setLavaBobberFixEnabled));
-        allFeatures.add(new Toggle("Etherwarp Waypoints", Tab.SUPPLIES,
-                KuudraConfig::isEtherwarpWaypointsEnabled, KuudraConfig::setEtherwarpWaypointsEnabled));
-        allFeatures.add(new Toggle("Pearl Refill", Tab.MISC,
-                KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled));
+        roots.add(leaf(new Toggle("Cannon Auto Close", T,
+                KuudraConfig::isCannonAutoCloseEnabled, KuudraConfig::setCannonAutoCloseEnabled)));
+        roots.add(leaf(new Toggle("Stun Preview", T,
+                KuudraConfig::isStunPreviewEnabled, KuudraConfig::setStunPreviewEnabled)));
 
-        // ── PEARLS ────────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("Block Slot 9", Tab.SUPPLIES,
-                KuudraConfig::isBlockSlot9Enabled, KuudraConfig::setBlockSlot9Enabled));
-        allFeatures.add(new Toggle("Dynamic Waypoints", Tab.SUPPLIES,
-                KuudraConfig::isPearlWaypointsEnabled, KuudraConfig::setPearlWaypointsEnabled));
-        allFeatures.add(new Toggle("Show All Waypoints", Tab.SUPPLIES,
-                KuudraConfig::isShowAllWaypoints, KuudraConfig::setShowAllWaypoints));
-        allFeatures.add(new Toggle("Flat Pearls", Tab.SUPPLIES,
-                KuudraConfig::isPearlFlatEnabled, KuudraConfig::setPearlFlatEnabled));
-        allFeatures.add(new Toggle("Sky Pearls", Tab.SUPPLIES,
-                KuudraConfig::isPearlSkyEnabled, KuudraConfig::setPearlSkyEnabled));
-        allFeatures.add(new Toggle("Double Pearls", Tab.SUPPLIES,
-                KuudraConfig::isPearlDoubleEnabled, KuudraConfig::setPearlDoubleEnabled));
+        Group fastDps = group("Fast DPS Warning", T, null,
+                KuudraConfig::isFastDpsWarningEnabled, KuudraConfig::setFastDpsWarningEnabled);
+        fastDps.add(leaf(new Toggle("Fast DPS Notification", T,
+                KuudraConfig::isFastDpsNotifyEnabled, KuudraConfig::setFastDpsNotifyEnabled)));
+        roots.add(fastDps);
+    }
 
-        Slider doublePearlDelay = new Slider("Double Pearl Delay", Tab.SUPPLIES,
+    // ── Build tab ───────────────────────────────────────────────────────────────
+
+    private void buildBuildTab() {
+        Tab T = Tab.BUILD;
+        roots.add(leaf(new Toggle("Build Progress Tracker", T,
+                KuudraConfig::isBuildProgressHudEnabled, KuudraConfig::setBuildProgressHudEnabled)));
+
+        Group announce = group("Announce Fresh", T, null,
+                KuudraConfig::isAnnounceFreshEnabled, KuudraConfig::setAnnounceFreshEnabled);
+        announce.add(leaf(new Toggle("Fresh Notification", T,
+                KuudraConfig::isFreshNotifyEnabled, KuudraConfig::setFreshNotifyEnabled)));
+        roots.add(announce);
+
+        roots.add(leaf(new Toggle("Build Started Notification", T,
+                KuudraConfig::isBuildStartedNotifyEnabled, KuudraConfig::setBuildStartedNotifyEnabled)));
+        Group buildBeacons = group("Build Beacons", T, null,
+                KuudraConfig::isBuildBeaconsEnabled, KuudraConfig::setBuildBeaconsEnabled);
+        buildBeacons.add(leaf(new Slider("Opacity", T,
+                KuudraConfig::getBuildBeaconAlpha, KuudraConfig::setBuildBeaconAlpha, "%")));
+        roots.add(buildBeacons);
+
+        roots.add(leaf(new Toggle("Elle Highlight", T,
+                KuudraConfig::isElleHighlightEnabled, KuudraConfig::setElleHighlightEnabled)));
+    }
+
+    // ── Supplies tab ──────────────────────────────────────────────────────────
+
+    private void buildSuppliesTab() {
+        Tab T = Tab.SUPPLIES;
+        roots.add(leaf(new Toggle("Supply Beacons", T,
+                KuudraConfig::isSupplyBeaconsEnabled, KuudraConfig::setSupplyBeaconsEnabled)));
+
+        Group noPre = group("No Pre Announce", T, null,
+                KuudraConfig::isNoPreAnnounceEnabled, KuudraConfig::setNoPreAnnounceEnabled);
+        noPre.add(leaf(new Toggle("No Pre Notification", T,
+                KuudraConfig::isNoPreNotifyEnabled, KuudraConfig::setNoPreNotifyEnabled)));
+        roots.add(noPre);
+
+        roots.add(leaf(new Toggle("Crate Priority", T,
+                KuudraConfig::isCratePriorityEnabled, KuudraConfig::setCratePriorityEnabled)));
+        roots.add(leaf(new Toggle("Supply Recovery Message", T,
+                KuudraConfig::isSupplyRecoveryMsgEnabled, KuudraConfig::setSupplyRecoveryMsgEnabled)));
+        roots.add(leaf(new Toggle("Supply Location Announce", T,
+                KuudraConfig::isSupplyLocationAnnounceEnabled, KuudraConfig::setSupplyLocationAnnounceEnabled)));
+        roots.add(leaf(new Toggle("Supply Hitbox", T,
+                KuudraConfig::isSupplyHitboxEnabled, KuudraConfig::setSupplyHitboxEnabled)));
+        roots.add(leaf(new Toggle("Supply Rod Radius", T,
+                KuudraConfig::isSupplyRodRadiusEnabled, KuudraConfig::setSupplyRodRadiusEnabled)));
+        roots.add(leaf(new Toggle("Supply Pearl Hitbox", T,
+                KuudraConfig::isSupplyPearlHitboxEnabled, KuudraConfig::setSupplyPearlHitboxEnabled)));
+        roots.add(leaf(new Toggle("Supply Giant Hitbox Alert", T,
+                KuudraConfig::isSupplyGiantHitboxEnabled, KuudraConfig::setSupplyGiantHitboxEnabled)));
+        roots.add(leaf(new Toggle("Lava Bobber Fix", T,
+                KuudraConfig::isLavaBobberFixEnabled, KuudraConfig::setLavaBobberFixEnabled)));
+        roots.add(leaf(new Toggle("Etherwarp Waypoints", T,
+                KuudraConfig::isEtherwarpWaypointsEnabled, KuudraConfig::setEtherwarpWaypointsEnabled)));
+        roots.add(leaf(new Toggle("Block Slot 9", T,
+                KuudraConfig::isBlockSlot9Enabled, KuudraConfig::setBlockSlot9Enabled)));
+
+        // Pearl waypoints — everything related lives under this dropdown
+        Group wp = group("Dynamic Waypoints", T, null,
+                KuudraConfig::isPearlWaypointsEnabled, KuudraConfig::setPearlWaypointsEnabled);
+        wp.add(leaf(new Toggle("Show All Waypoints", T,
+                KuudraConfig::isShowAllWaypoints, KuudraConfig::setShowAllWaypoints)));
+        wp.add(leaf(new Toggle("Flat Pearls", T,
+                KuudraConfig::isPearlFlatEnabled, KuudraConfig::setPearlFlatEnabled)));
+        wp.add(leaf(new Toggle("Sky Pearls", T,
+                KuudraConfig::isPearlSkyEnabled, KuudraConfig::setPearlSkyEnabled)));
+        wp.add(leaf(new Toggle("Double Pearls", T,
+                KuudraConfig::isPearlDoubleEnabled, KuudraConfig::setPearlDoubleEnabled)));
+        wp.add(leaf(new Slider("Double Pearl Delay", T,
                 () -> (KuudraConfig.getDoublePearlDelayS() - 0.05f) / 0.5f,
                 v  ->  KuudraConfig.setDoublePearlDelayS(v * 0.5f + 0.05f), "") {
             @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
@@ -565,33 +857,44 @@ public class KuudraScreen extends Screen {
                         y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
                 drawTrack(ctx, x, y, w, get.get(), C_SLIDER_FG);
             }
-        };
-        allFeatures.add(doublePearlDelay); allSliders.add(doublePearlDelay);
-
-        allFeatures.add(new Cycle("Waypoint Type", Tab.SUPPLIES,
+        }));
+        wp.add(leaf(new Cycle("Waypoint Type", T,
                 () -> KuudraConfig.getWaypointType().name().charAt(0)
                         + KuudraConfig.getWaypointType().name().substring(1).toLowerCase(),
                 () -> KuudraConfig.setWaypointType(
                         KuudraConfig.getWaypointType() == KuudraConfig.WaypointType.CIRCLE
                                 ? KuudraConfig.WaypointType.SQUARE
-                                : KuudraConfig.WaypointType.CIRCLE)));
-        allFeatures.add(new Toggle("Waypoint Fill", Tab.SUPPLIES,
-                KuudraConfig::isWaypointFillEnabled, KuudraConfig::setWaypointFillEnabled));
-        allFeatures.add(new Cycle("Update Frequency", Tab.SUPPLIES,
+                                : KuudraConfig.WaypointType.CIRCLE))));
+        wp.add(leaf(new Toggle("Waypoint Fill", T,
+                KuudraConfig::isWaypointFillEnabled, KuudraConfig::setWaypointFillEnabled)));
+        wp.add(leaf(new Cycle("Update Frequency", T,
                 () -> KuudraConfig.isPearlTickUpdate() ? "Per Tick" : "Per Frame",
-                () -> KuudraConfig.setPearlTickUpdate(!KuudraConfig.isPearlTickUpdate())));
-        allFeatures.add(new Toggle("Drop Locations", Tab.SUPPLIES,
-                KuudraConfig::isDropLocationsEnabled, KuudraConfig::setDropLocationsEnabled));
-        allFeatures.add(new Toggle("Pearl Timer", Tab.SUPPLIES,
-                KuudraConfig::isPearlTimerEnabled, KuudraConfig::setPearlTimerEnabled));
+                () -> KuudraConfig.setPearlTickUpdate(!KuudraConfig.isPearlTickUpdate()))));
+        wp.add(leaf(new Toggle("Drop Locations", T,
+                KuudraConfig::isDropLocationsEnabled, KuudraConfig::setDropLocationsEnabled)));
+        wp.add(leaf(new Toggle("Pearl Timer", T,
+                KuudraConfig::isPearlTimerEnabled, KuudraConfig::setPearlTimerEnabled)));
+        wp.add(leaf(new Slider("Timer Height",   T, KuudraConfig::getPearlTimerHeight, KuudraConfig::setPearlTimerHeight, "")));
+        wp.add(leaf(new Slider("Timer Size",     T, KuudraConfig::getPearlTimerSize,   KuudraConfig::setPearlTimerSize,   "")));
+        wp.add(leaf(new Slider("Waypoint Size",  T, KuudraConfig::getPearlCircleSize,  KuudraConfig::setPearlCircleSize,  "")));
+        wp.add(leaf(new Slider("Fill Opacity",   T, KuudraConfig::getWaypointFillAlpha,KuudraConfig::setWaypointFillAlpha,"%")));
+        wp.add(leaf(new Slider("Beacon Opacity", T, KuudraConfig::getBeaconAlpha,      KuudraConfig::setBeaconAlpha,      "%")));
 
-        Slider timerHeight = new Slider("Timer Height",   Tab.SUPPLIES, KuudraConfig::getPearlTimerHeight, KuudraConfig::setPearlTimerHeight, ""); allFeatures.add(timerHeight); allSliders.add(timerHeight);
-        Slider timerSize   = new Slider("Timer Size",     Tab.SUPPLIES, KuudraConfig::getPearlTimerSize,   KuudraConfig::setPearlTimerSize,   ""); allFeatures.add(timerSize);   allSliders.add(timerSize);
-        Slider wpSize      = new Slider("Waypoint Size",  Tab.SUPPLIES, KuudraConfig::getPearlCircleSize,  KuudraConfig::setPearlCircleSize,  ""); allFeatures.add(wpSize);      allSliders.add(wpSize);
-        Slider fillOp      = new Slider("Fill Opacity",   Tab.SUPPLIES, KuudraConfig::getWaypointFillAlpha,KuudraConfig::setWaypointFillAlpha,"%"); allFeatures.add(fillOp);      allSliders.add(fillOp);
-        Slider beamOp      = new Slider("Beacon Opacity", Tab.SUPPLIES, KuudraConfig::getBeaconAlpha,       KuudraConfig::setBeaconAlpha,      "%"); allFeatures.add(beamOp);      allSliders.add(beamOp);
+        Group wpCol = group("Waypoint Colours", T, wp.key, null, null);
+        wpCol.add(leaf(new RgbInput("Normal target",  T, KuudraConfig::getWpColNormal,  KuudraConfig::setWpColNormal)));
+        wpCol.add(leaf(new RgbInput("Correct target", T, KuudraConfig::getWpColCorrect, KuudraConfig::setWpColCorrect)));
+        wpCol.add(leaf(new RgbInput("Hovered target", T, KuudraConfig::getWpColHovered, KuudraConfig::setWpColHovered)));
+        wpCol.add(leaf(new RgbInput("Ready target",   T, KuudraConfig::getWpColReady,   KuudraConfig::setWpColReady)));
+        wp.add(wpCol);
 
-        allFeatures.add(new Cycle("Kuudra Talisman", Tab.SUPPLIES,
+        Group bcnCol = group("Beacon Colours", T, wp.key, null, null);
+        bcnCol.add(leaf(new RgbInput("Normal target",  T, KuudraConfig::getBeaconColNormal,  KuudraConfig::setBeaconColNormal)));
+        bcnCol.add(leaf(new RgbInput("Correct target", T, KuudraConfig::getBeaconColCorrect, KuudraConfig::setBeaconColCorrect)));
+        wp.add(bcnCol);
+
+        roots.add(wp);
+
+        roots.add(leaf(new Cycle("Kuudra Talisman", T,
                 () -> switch (KuudraConfig.getKuudraTalisman()) {
                     case NONE   -> "None";   case KIDNEY -> "Kidney";
                     case LUNG   -> "Lung";   case HEART  -> "Heart"; },
@@ -599,151 +902,250 @@ public class KuudraScreen extends Screen {
                     case NONE   -> KuudraConfig.KuudraTalisman.KIDNEY;
                     case KIDNEY -> KuudraConfig.KuudraTalisman.LUNG;
                     case LUNG   -> KuudraConfig.KuudraTalisman.HEART;
-                    case HEART  -> KuudraConfig.KuudraTalisman.NONE; })));
+                    case HEART  -> KuudraConfig.KuudraTalisman.NONE; }))));
+    }
 
-        // ── DUNGEONS ──────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("M7 Auto GFS Toxic",    Tab.MISC, KuudraConfig::isAutoGfsToxicEnabled,    KuudraConfig::setAutoGfsToxic));
-        allFeatures.add(new Toggle("M7 Auto GFS Twilight", Tab.MISC, KuudraConfig::isAutoGfsTwilightEnabled, KuudraConfig::setAutoGfsTwilight));
-        IntInput toxic    = new IntInput("Toxic Amount",    Tab.MISC, KuudraConfig::getToxicAmount,    KuudraConfig::setToxicAmount);
-        IntInput twilight = new IntInput("Twilight Amount", Tab.MISC, KuudraConfig::getTwilightAmount, KuudraConfig::setTwilightAmount);
-        allFeatures.add(toxic);    intInputs.add(toxic);
-        allFeatures.add(twilight); intInputs.add(twilight);
+    // ── Boss tab ────────────────────────────────────────────────────────────────
 
-        // ── MISC ──────────────────────────────────────────────────────────────
-        allFeatures.add(new Toggle("Auto Requeue", Tab.MISC,
-                KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled));
-        allFeatures.add(new Toggle("Hide Falling Blocks", Tab.MISC,
-                KuudraConfig::isHideFallingBlocksEnabled, KuudraConfig::setHideFallingBlocksEnabled));
-        allFeatures.add(new Toggle("Hide Entity Fire", Tab.MISC,
-                KuudraConfig::isHideEntityFireEnabled, KuudraConfig::setHideEntityFireEnabled));
-        allFeatures.add(new Toggle("Hide Damage Title", Tab.MISC,
-                KuudraConfig::isHideDamageTitleEnabled, KuudraConfig::setHideDamageTitleEnabled));
-        allFeatures.add(new Toggle("Hide Dead Enemies", Tab.MISC,
-                KuudraConfig::isHideDeadEntitiesEnabled, KuudraConfig::setHideDeadEntitiesEnabled));
-        addRS(Tab.MISC, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
-                KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale);
-        addRS(Tab.MISC, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",
-                KuudraConfig::getOtherPlayerScale, KuudraConfig::setOtherPlayerScale);
-        addRS(Tab.MISC, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
-                KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale);
-        allFeatures.add(new Toggle("Auto Sprint", Tab.MISC,
-                KuudraConfig::isAutoSprintEnabled, KuudraConfig::setAutoSprintEnabled));
-        allFeatures.add(new Toggle("Hollow Wand Announcer", Tab.MISC,
-                KuudraConfig::isHollowWandEnabled, KuudraConfig::setHollowWandEnabled));
-        allFeatures.add(new Toggle("Hide Boss Bar", Tab.MISC,
-                KuudraConfig::isHideBossBarEnabled, KuudraConfig::setHideBossBarEnabled));
-        allFeatures.add(new Toggle("Hide Irrelevant Armor Stands", Tab.MISC,
-                KuudraConfig::isHideArmorStandsEnabled, KuudraConfig::setHideArmorStandsEnabled));
-        allFeatures.add(new Toggle("  Build Area", Tab.MISC,
-                KuudraConfig::isHideArmorStandsBuild, KuudraConfig::setHideArmorStandsBuild));
-        allFeatures.add(new Toggle("  Right Cannon", Tab.MISC,
-                KuudraConfig::isHideArmorStandsRightCannon, KuudraConfig::setHideArmorStandsRightCannon));
-        allFeatures.add(new Toggle("  Left Cannon", Tab.MISC,
-                KuudraConfig::isHideArmorStandsLeftCannon, KuudraConfig::setHideArmorStandsLeftCannon));
-        allFeatures.add(new Toggle("  Shop", Tab.MISC,
-                KuudraConfig::isHideArmorStandsShop, KuudraConfig::setHideArmorStandsShop));
-        allFeatures.add(new Toggle("  Others", Tab.MISC,
-                KuudraConfig::isHideArmorStandsOthers, KuudraConfig::setHideArmorStandsOthers));
-        allFeatures.add(new Toggle("Slot Binds", Tab.MISC,
-                KuudraConfig::isSlotBindsEnabled, KuudraConfig::setSlotBindsEnabled));
-        KeyCapture slotBindKey = new KeyCapture("  Bind Key", Tab.MISC,
-                KuudraConfig::getSlotBindSetKey, KuudraConfig::setSlotBindSetKey);
-        allFeatures.add(slotBindKey); captureFeatures.add(slotBindKey);
-        KeyCapture slotShowKey = new KeyCapture("  Show Binds Key", Tab.MISC,
-                KuudraConfig::getSlotBindShowKey, KuudraConfig::setSlotBindShowKey);
-        allFeatures.add(slotShowKey); captureFeatures.add(slotShowKey);
-        allFeatures.add(new Toggle("Hide Selfie Cam", Tab.MISC,
-                KuudraConfig::isHideSelfieEnabled, KuudraConfig::setHideSelfieEnabled));
-        allFeatures.add(new Toggle("Prevent Placing Player Heads", Tab.MISC,
-                KuudraConfig::isPreventPlacingPlayerHeadsEnabled, KuudraConfig::setPreventPlacingPlayerHeadsEnabled));
-        allFeatures.add(new Toggle("  Except Garden", Tab.MISC,
-                KuudraConfig::isPreventPlacingPlayerHeadsExceptGarden, KuudraConfig::setPreventPlacingPlayerHeadsExceptGarden));
-        allFeatures.add(new Toggle("Prevent Placing Weapons", Tab.MISC,
-                KuudraConfig::isPreventPlacingWeaponsEnabled, KuudraConfig::setPreventPlacingWeaponsEnabled));
-        allFeatures.add(new Toggle("Hide Elle Dialogue", Tab.MISC,
-                KuudraConfig::isHideElleDialogueEnabled, KuudraConfig::setHideElleDialogue));
-        allFeatures.add(new Toggle("Etherwarp Lava Block", Tab.MISC,
+    private void buildBossTab() {
+        Tab T = Tab.BOSS;
+
+        Group solo = group("Solo Detector", T, null,
+                KuudraConfig::isSoloDetectorEnabled, KuudraConfig::setSoloDetectorEnabled);
+        solo.add(leaf(new Toggle("Solo Notification", T,
+                KuudraConfig::isSoloNotifyEnabled, KuudraConfig::setSoloNotifyEnabled)));
+        roots.add(solo);
+
+        Group hp = group("Kuudra HP HUD", T, null,
+                KuudraConfig::isKuudraHpHudEnabled, KuudraConfig::setKuudraHpHudEnabled);
+        hp.add(leaf(new Toggle("Show Raw HP", T,
+                KuudraConfig::isKuudraHpShowRaw, KuudraConfig::setKuudraHpShowRaw)));
+        hp.add(leaf(new Toggle("Hide Health Bar", T,
+                KuudraConfig::isKuudraHpHideBar, KuudraConfig::setKuudraHpHideBar)));
+        roots.add(hp);
+
+        roots.add(leaf(new Toggle("Mana Drain Announcer", T,
+                KuudraConfig::isManaDrainAnnouncerEnabled, KuudraConfig::setManaDrainAnnouncerEnabled)));
+        roots.add(leaf(new Toggle("Kuudra Direction", T,
+                KuudraConfig::isKuudraDirectionEnabled, KuudraConfig::setKuudraDirectionEnabled)));
+        roots.add(leaf(new Toggle("Rend Damage", T,
+                KuudraConfig::isRendDamageEnabled, KuudraConfig::setRendDamageEnabled)));
+        roots.add(leaf(new Toggle("Rend Tracker", T,
+                KuudraConfig::isRendTrackerEnabled, KuudraConfig::setRendTrackerEnabled)));
+
+        Group hl = group("Kuudra Highlight", T, null,
+                KuudraConfig::isKuudraHighlightEnabled, KuudraConfig::setKuudraHighlightEnabled);
+        hl.add(leaf(new Toggle("Filled Highlight", T,
+                KuudraConfig::isKuudraHighlightFilled, KuudraConfig::setKuudraHighlightFilled)));
+        roots.add(hl);
+    }
+
+    // ── Misc tab ────────────────────────────────────────────────────────────────
+
+    private void buildMiscTab() {
+        Tab T = Tab.MISC;
+
+        roots.add(leaf(new Toggle("Pearl Refill", T,
+                KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled)));
+        roots.add(leaf(new Toggle("Kicked Notification", T,
+                KuudraConfig::isKickedNotificationEnabled, KuudraConfig::setKickedNotificationEnabled)));
+        roots.add(leaf(new Toggle("Auto Requeue", T,
+                KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled)));
+        roots.add(leaf(new Toggle("Hide Falling Blocks", T,
+                KuudraConfig::isHideFallingBlocksEnabled, KuudraConfig::setHideFallingBlocksEnabled)));
+        roots.add(leaf(new Toggle("Hide Entity Fire", T,
+                KuudraConfig::isHideEntityFireEnabled, KuudraConfig::setHideEntityFireEnabled)));
+        roots.add(leaf(new Toggle("Hide Damage Title", T,
+                KuudraConfig::isHideDamageTitleEnabled, KuudraConfig::setHideDamageTitleEnabled)));
+        roots.add(leaf(new Toggle("Hide Dead Enemies", T,
+                KuudraConfig::isHideDeadEntitiesEnabled, KuudraConfig::setHideDeadEntitiesEnabled)));
+        roots.add(leaf(rs(T, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale)));
+        roots.add(leaf(rs(T, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getOtherPlayerScale, KuudraConfig::setOtherPlayerScale)));
+        roots.add(leaf(rs(T, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
+                KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale)));
+        roots.add(leaf(new Toggle("Auto Sprint", T,
+                KuudraConfig::isAutoSprintEnabled, KuudraConfig::setAutoSprintEnabled)));
+        roots.add(leaf(new Toggle("Hollow Wand Announcer", T,
+                KuudraConfig::isHollowWandEnabled, KuudraConfig::setHollowWandEnabled)));
+        roots.add(leaf(new Toggle("Hide Boss Bar", T,
+                KuudraConfig::isHideBossBarEnabled, KuudraConfig::setHideBossBarEnabled)));
+
+        Group as = group("Hide Irrelevant Armor Stands", T, null,
+                KuudraConfig::isHideArmorStandsEnabled, KuudraConfig::setHideArmorStandsEnabled);
+        as.add(leaf(new Toggle("Build Area", T,
+                KuudraConfig::isHideArmorStandsBuild, KuudraConfig::setHideArmorStandsBuild)));
+        as.add(leaf(new Toggle("Right Cannon", T,
+                KuudraConfig::isHideArmorStandsRightCannon, KuudraConfig::setHideArmorStandsRightCannon)));
+        as.add(leaf(new Toggle("Left Cannon", T,
+                KuudraConfig::isHideArmorStandsLeftCannon, KuudraConfig::setHideArmorStandsLeftCannon)));
+        as.add(leaf(new Toggle("Shop", T,
+                KuudraConfig::isHideArmorStandsShop, KuudraConfig::setHideArmorStandsShop)));
+        as.add(leaf(new Toggle("Others", T,
+                KuudraConfig::isHideArmorStandsOthers, KuudraConfig::setHideArmorStandsOthers)));
+        roots.add(as);
+
+        Group slot = group("Slot Binds", T, null,
+                KuudraConfig::isSlotBindsEnabled, KuudraConfig::setSlotBindsEnabled);
+        slot.add(leaf(new KeyCapture("Bind Key", T,
+                KuudraConfig::getSlotBindSetKey, KuudraConfig::setSlotBindSetKey)));
+        slot.add(leaf(new KeyCapture("Show Binds Key", T,
+                KuudraConfig::getSlotBindShowKey, KuudraConfig::setSlotBindShowKey)));
+        roots.add(slot);
+
+        roots.add(leaf(new Toggle("Hide Selfie Cam", T,
+                KuudraConfig::isHideSelfieEnabled, KuudraConfig::setHideSelfieEnabled)));
+
+        Group heads = group("Prevent Placing Player Heads", T, null,
+                KuudraConfig::isPreventPlacingPlayerHeadsEnabled, KuudraConfig::setPreventPlacingPlayerHeadsEnabled);
+        heads.add(leaf(new Toggle("Except Garden", T,
+                KuudraConfig::isPreventPlacingPlayerHeadsExceptGarden, KuudraConfig::setPreventPlacingPlayerHeadsExceptGarden)));
+        roots.add(heads);
+
+        roots.add(leaf(new Toggle("Prevent Placing Weapons", T,
+                KuudraConfig::isPreventPlacingWeaponsEnabled, KuudraConfig::setPreventPlacingWeaponsEnabled)));
+        roots.add(leaf(new Toggle("Hide Elle Dialogue", T,
+                KuudraConfig::isHideElleDialogueEnabled, KuudraConfig::setHideElleDialogue)));
+        roots.add(leaf(new Toggle("Etherwarp Lava Block", T,
                 KuudraConfig::isEtherwarpLavaBlockEnabled,
-                v -> { if (v != KuudraConfig.isEtherwarpLavaBlockEnabled()) KuudraConfig.toggleEtherwarpLavaBlock(); }));
-        allFeatures.add(new Toggle("Fast DPS Warning", Tab.STUN_DPS,
-                KuudraConfig::isFastDpsWarningEnabled, KuudraConfig::setFastDpsWarningEnabled));
-        allFeatures.add(new Toggle("Fast DPS Notification", Tab.STUN_DPS,
-                KuudraConfig::isFastDpsNotifyEnabled, KuudraConfig::setFastDpsNotifyEnabled));
-        allFeatures.add(new Toggle("Chest Tracker HUD", Tab.MISC,
-                KuudraConfig::isChestTrackerVisible, KuudraConfig::setChestTrackerVisible));
-        allFeatures.add(new Toggle("Solo Detector", Tab.BOSS,
-                KuudraConfig::isSoloDetectorEnabled, KuudraConfig::setSoloDetectorEnabled));
-        allFeatures.add(new Toggle("Solo Notification", Tab.BOSS,
-                KuudraConfig::isSoloNotifyEnabled, KuudraConfig::setSoloNotifyEnabled));
-        allFeatures.add(new Toggle("Kuudra HP HUD", Tab.BOSS,
-                KuudraConfig::isKuudraHpHudEnabled, KuudraConfig::setKuudraHpHudEnabled));
-        allFeatures.add(new Toggle("  Show Raw HP", Tab.BOSS,
-                KuudraConfig::isKuudraHpShowRaw, KuudraConfig::setKuudraHpShowRaw));
-        allFeatures.add(new Toggle("Mana Drain Announcer", Tab.BOSS,
-                KuudraConfig::isManaDrainAnnouncerEnabled, KuudraConfig::setManaDrainAnnouncerEnabled));
-        allFeatures.add(new Toggle("Shop Keybinds", Tab.MISC,
-                KuudraConfig::isShopKeybindsEnabled, KuudraConfig::setShopKeybindsEnabled));
-        KeyCapture mainKey   = new KeyCapture("  Main Key",   Tab.MISC, KuudraConfig::getShopMainKey,   KuudraConfig::setShopMainKey);
-        KeyCapture cannonKey = new KeyCapture("  Cannon Key", Tab.MISC, KuudraConfig::getShopCannonKey, KuudraConfig::setShopCannonKey);
-        allFeatures.add(mainKey);   captureFeatures.add(mainKey);
-        allFeatures.add(cannonKey); captureFeatures.add(cannonKey);
-        allFeatures.add(new Toggle("Wardrobe Keybinds", Tab.MISC,
-                KuudraConfig::isWardrobeEnabled, KuudraConfig::setWardrobeEnabled));
-        addWardrobeKeys();
-        allFeatures.add(new Toggle("Exploison Hider", Tab.MISC,
-                KuudraConfig::isExplosionFilterEnabled, KuudraConfig::setExplosionFilterEnabled));
-        Slider expRadius = new Slider("  Hide Radius", Tab.MISC,
-                KuudraConfig::getExplosionHideRadiusRaw, KuudraConfig::setExplosionHideRadius, "");
-        allFeatures.add(expRadius); allSliders.add(expRadius);
-        allFeatures.add(new Toggle("Party Commands", Tab.MISC,
-                KuudraConfig::isPartyCmdsEnabled, KuudraConfig::setPartyCmdsEnabled));
-        allFeatures.add(new Toggle("Split Timer", Tab.MISC,
-                KuudraConfig::isSplitTimerEnabled, KuudraConfig::setSplitTimerEnabled));
-        allFeatures.add(new Toggle("  Supply Times", Tab.MISC,
-                KuudraConfig::isSupplyTimesEnabled, KuudraConfig::setSupplyTimesEnabled));
-        allFeatures.add(new Toggle("Kuudra Direction", Tab.BOSS,
-                KuudraConfig::isKuudraDirectionEnabled, KuudraConfig::setKuudraDirectionEnabled));
-        allFeatures.add(new Toggle("Rend Damage", Tab.BOSS,
-                KuudraConfig::isRendDamageEnabled, KuudraConfig::setRendDamageEnabled));
-        allFeatures.add(new Toggle("Kuudra Highlight", Tab.BOSS,
-                KuudraConfig::isKuudraHighlightEnabled, KuudraConfig::setKuudraHighlightEnabled));
-        allFeatures.add(new Toggle("  Filled Highlight", Tab.BOSS,
-                KuudraConfig::isKuudraHighlightFilled, KuudraConfig::setKuudraHighlightFilled));
+                v -> { if (v != KuudraConfig.isEtherwarpLavaBlockEnabled()) KuudraConfig.toggleEtherwarpLavaBlock(); })));
+        roots.add(leaf(new Toggle("Chest Tracker HUD", T,
+                KuudraConfig::isChestTrackerVisible, KuudraConfig::setChestTrackerVisible)));
 
+        Group shop = group("Shop Keybinds", T, null,
+                KuudraConfig::isShopKeybindsEnabled, KuudraConfig::setShopKeybindsEnabled);
+        shop.add(leaf(new KeyCapture("Main Key",   T, KuudraConfig::getShopMainKey,   KuudraConfig::setShopMainKey)));
+        shop.add(leaf(new KeyCapture("Cannon Key", T, KuudraConfig::getShopCannonKey, KuudraConfig::setShopCannonKey)));
+        roots.add(shop);
 
-        // ── ITEMS / ABOUT ─────────────────────────────────────────────────────
-        buildItemsTab();
-        buildAboutTab();
+        Group wardrobe = group("Wardrobe Keybinds", T, null,
+                KuudraConfig::isWardrobeEnabled, KuudraConfig::setWardrobeEnabled);
+        String[] slotLabels = {"Slot 1","Slot 2","Slot 3","Slot 4","Slot 5",
+                               "Slot 6","Slot 7","Slot 8","Slot 9"};
+        for (int i = 0; i < 9; i++) {
+            final int idx = i;
+            wardrobe.add(leaf(new KeyCapture(slotLabels[i], T,
+                    () -> KuudraConfig.getWardrobeSlotKeys()[idx],
+                    v  -> KuudraConfig.setWardrobeSlotKey(idx, v))));
+        }
+        wardrobe.add(leaf(new KeyCapture("Open Wardrobe",  T, KuudraConfig::getWardrobeOpenKey,     KuudraConfig::setWardrobeOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Open Equipment", T, KuudraConfig::getEquipmentOpenKey,    KuudraConfig::setEquipmentOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Open Pets",      T, KuudraConfig::getPetsOpenKey,         KuudraConfig::setPetsOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Next Page",      T, KuudraConfig::getWardrobeNextPageKey, KuudraConfig::setWardrobeNextPageKey)));
+        wardrobe.add(leaf(new KeyCapture("Prev Page",      T, KuudraConfig::getWardrobePrevPageKey, KuudraConfig::setWardrobePrevPageKey)));
+        wardrobe.add(leaf(new KeyCapture("Unequip",        T, KuudraConfig::getWardrobeUnequipKey,  KuudraConfig::setWardrobeUnequipKey)));
+        roots.add(wardrobe);
+
+        Group explosion = group("Exploison Hider", T, null,
+                KuudraConfig::isExplosionFilterEnabled, KuudraConfig::setExplosionFilterEnabled);
+        explosion.add(leaf(new Slider("Hide Radius", T,
+                KuudraConfig::getExplosionHideRadiusRaw, KuudraConfig::setExplosionHideRadius, "")));
+        roots.add(explosion);
+
+        roots.add(leaf(new Toggle("Party Commands", T,
+                KuudraConfig::isPartyCmdsEnabled, KuudraConfig::setPartyCmdsEnabled)));
+
+        Group split = group("Split Timer", T, null,
+                KuudraConfig::isSplitTimerEnabled, KuudraConfig::setSplitTimerEnabled);
+        split.add(leaf(new Toggle("Supply Times", T,
+                KuudraConfig::isSupplyTimesEnabled, KuudraConfig::setSupplyTimesEnabled)));
+        roots.add(split);
+
+        Group m7toxic = group("M7 Auto GFS Toxic", T, null,
+                KuudraConfig::isAutoGfsToxicEnabled, KuudraConfig::setAutoGfsToxic);
+        m7toxic.add(leaf(new IntInput("Toxic Amount", T, KuudraConfig::getToxicAmount, KuudraConfig::setToxicAmount)));
+        roots.add(m7toxic);
+
+        Group m7twi = group("M7 Auto GFS Twilight", T, null,
+                KuudraConfig::isAutoGfsTwilightEnabled, KuudraConfig::setAutoGfsTwilight);
+        m7twi.add(leaf(new IntInput("Twilight Amount", T, KuudraConfig::getTwilightAmount, KuudraConfig::setTwilightAmount)));
+        roots.add(m7twi);
+    }
+
+    // ── Customisation tab (Items + Lava combined) ─────────────────────────────
+
+    private void buildCustomisationTab() {
+        Tab T = Tab.CUSTOMISATION;
+
+        // Item customisation — master dropdown, each type a nested dropdown
+        Group ic = group("Item Customisation", T, null,
+                KuudraConfig::isItemCustomizationEnabled, KuudraConfig::setItemCustomizationEnabled);
+
+        for (ItemCustomization.ItemCategory cat : ItemCustomization.ItemCategory.values()) {
+            ItemTransformSettings st = ItemCustomization.getBuiltinSettings(cat);
+            String label = cat == ItemCustomization.ItemCategory.GLOBAL ? "Global" : cat.displayName();
+            Group typeGroup = group(label, T, ic.key,
+                    () -> st.enabled, v -> { st.enabled = v; KuudraConfig.save(); });
+            addRangeSliders(typeGroup, T, st);
+            ic.add(typeGroup);
+        }
+
+        Group custom = group("Custom Categories", T, ic.key, null, null);
+        custom.add(leaf(new AddCategoryFeature()));
+        List<ItemCustomization.CustomCategory> cats = ItemCustomization.getCustomCategories();
+        for (int i = 0; i < cats.size(); i++) {
+            final int idx = i;
+            final ItemCustomization.CustomCategory cc = cats.get(i);
+            Group ccGroup = group("\"" + cc.matchString + "\"", T, custom.key, null, null);
+            ccGroup.add(leaf(new Feature("Remove", T) {
+                @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+                    ctx.text(s.font, Component.literal("§7match: §f\"" + cc.matchString + "\""),
+                            x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+                    int bw = 58, bh = ROW_H - 6, bx = x + w - bw - 8, by = y + 3;
+                    boolean hov = mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+                    ctx.fill(bx, by, bx + bw, by + bh, hov ? 0xFF4A1515 : 0xFF2A0F0F);
+                    ctx.fill(bx, by, bx + bw, by + 1, 0xFFCC3333);
+                    ctx.centeredText(s.font, Component.literal("Remove"),
+                            bx + bw / 2, by + (bh - s.font.lineHeight) / 2, 0xFFCC3333);
+                }
+                @Override boolean onDown(double mx, double my, int x, int y, int w) {
+                    int bw = 58, bh = ROW_H - 6, bx = x + w - bw - 8, by = y + 3;
+                    if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+                        ItemCustomization.removeCustomCategory(idx);
+                        KuudraConfig.save();
+                        buildFeatures();
+                        return true;
+                    }
+                    return false;
+                }
+            }));
+            addRangeSliders(ccGroup, T, cc.settings);
+            custom.add(ccGroup);
+        }
+        ic.add(custom);
+        roots.add(ic);
+
+        // Lava tweaks — header-only dropdown (no single master toggle)
+        Group lava = group("Lava Tweaks", T, null, null, null);
+        lava.add(leaf(new Toggle("Replace with Water", T,
+                KuudraConfig::isLavaAsWater, KuudraConfig::setLavaAsWater)));
+        lava.add(leaf(new Slider("Opacity", T,
+                KuudraConfig::getLavaOpacity, KuudraConfig::setLavaOpacity, "%")));
+        lava.add(leaf(new Toggle("Colour Override", T,
+                KuudraConfig::isLavaColorOverride, KuudraConfig::setLavaColorOverride)));
+        lava.add(leaf(new ColorSlider("Red",   T, 16, 0xFF4444)));
+        lava.add(leaf(new ColorSlider("Green", T,  8, 0x44FF88)));
+        lava.add(leaf(new ColorSlider("Blue",  T,  0, 0x4488FF)));
+        lava.add(leaf(new LavaPreview()));
+        roots.add(lava);
+
+        // Visual Words — find & replace for any on-screen text
+        Group vw = group("Visual Words", T, null,
+                com.kuudrahelper.features.VisualWords::isEnabled,
+                com.kuudrahelper.features.VisualWords::setEnabled);
+        vw.add(leaf(new Button("Add Word", T, "+ Add",
+                () -> { com.kuudrahelper.features.VisualWords.addRule(); buildFeatures(); })));
+        int vwCount = com.kuudrahelper.features.VisualWords.getRules().size();
+        for (int i = 0; i < vwCount; i++) vw.add(leaf(new VisualWordEntry(i)));
+        roots.add(vw);
     }
 
     // ── About tab ─────────────────────────────────────────────────────────────
 
-    private void addWardrobeKeys() {
-        String[] slotLabels = {"  Slot 1","  Slot 2","  Slot 3","  Slot 4","  Slot 5",
-                               "  Slot 6","  Slot 7","  Slot 8","  Slot 9"};
-        for (int i = 0; i < 9; i++) {
-            final int idx = i;
-            KeyCapture kc = new KeyCapture(slotLabels[i], Tab.MISC,
-                    () -> KuudraConfig.getWardrobeSlotKeys()[idx],
-                    v  -> KuudraConfig.setWardrobeSlotKey(idx, v));
-            allFeatures.add(kc); captureFeatures.add(kc);
-        }
-        KeyCapture openWardrobe  = new KeyCapture("  Open Wardrobe",  Tab.MISC, KuudraConfig::getWardrobeOpenKey,     KuudraConfig::setWardrobeOpenKey);
-        KeyCapture openEquipment = new KeyCapture("  Open Equipment", Tab.MISC, KuudraConfig::getEquipmentOpenKey,    KuudraConfig::setEquipmentOpenKey);
-        KeyCapture openPets      = new KeyCapture("  Open Pets",      Tab.MISC, KuudraConfig::getPetsOpenKey,         KuudraConfig::setPetsOpenKey);
-        KeyCapture nextPage      = new KeyCapture("  Next Page",      Tab.MISC, KuudraConfig::getWardrobeNextPageKey, KuudraConfig::setWardrobeNextPageKey);
-        KeyCapture prevPage      = new KeyCapture("  Prev Page",      Tab.MISC, KuudraConfig::getWardrobePrevPageKey, KuudraConfig::setWardrobePrevPageKey);
-        KeyCapture unequip       = new KeyCapture("  Unequip",        Tab.MISC, KuudraConfig::getWardrobeUnequipKey,  KuudraConfig::setWardrobeUnequipKey);
-        allFeatures.add(openWardrobe);  captureFeatures.add(openWardrobe);
-        allFeatures.add(openEquipment); captureFeatures.add(openEquipment);
-        allFeatures.add(openPets);      captureFeatures.add(openPets);
-        allFeatures.add(nextPage);      captureFeatures.add(nextPage);
-        allFeatures.add(prevPage);      captureFeatures.add(prevPage);
-        allFeatures.add(unequip);       captureFeatures.add(unequip);
-    }
-
     private void buildAboutTab() {
-        allFeatures.add(new Feature("Current Version", Tab.ABOUT) {
+        Tab T = Tab.ABOUT;
+        roots.add(leaf(new Feature("Current Version", T) {
             @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
                 ctx.text(s.font, Component.literal("Current Version"),
                         x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
@@ -752,9 +1154,9 @@ public class KuudraScreen extends Screen {
                         x + w - s.font.width(ver) - 8,
                         y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
             }
-        });
+        }));
 
-        allFeatures.add(new Feature("Latest Version", Tab.ABOUT) {
+        roots.add(leaf(new Feature("Latest Version", T) {
             @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
                 ctx.text(s.font, Component.literal("Latest Version"),
                         x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
@@ -773,9 +1175,9 @@ public class KuudraScreen extends Screen {
                         x + w - s.font.width(display) - 8,
                         y + (ROW_H - s.font.lineHeight) / 2, colour);
             }
-        });
+        }));
 
-        allFeatures.add(new Feature("Status", Tab.ABOUT) {
+        roots.add(leaf(new Feature("Status", T) {
             @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
                 ctx.text(s.font, Component.literal("Status"),
                         x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
@@ -799,108 +1201,37 @@ public class KuudraScreen extends Screen {
                         x + w - s.font.width(status) - 8,
                         y + (ROW_H - s.font.lineHeight) / 2, colour);
             }
-        });
+        }));
 
-        IntInput ping = new IntInput("Ping (ms)", Tab.ABOUT,
-                KuudraConfig::getLowPing, KuudraConfig::setLowPing);
-        allFeatures.add(ping); intInputs.add(ping);
-
-        allFeatures.add(new Toggle("Auto Updates", Tab.ABOUT,
-                KuudraConfig::isAutoUpdatesEnabled, KuudraConfig::setAutoUpdatesEnabled));
-
-        allFeatures.add(new Button("HUD Layout", Tab.ABOUT,
+        roots.add(leaf(new IntInput("Ping (ms)", T,
+                KuudraConfig::getLowPing, KuudraConfig::setLowPing)));
+        roots.add(leaf(new Toggle("Auto Updates", T,
+                KuudraConfig::isAutoUpdatesEnabled, KuudraConfig::setAutoUpdatesEnabled)));
+        roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
-                () -> Minecraft.getInstance().setScreen(new HudEditorScreen(KuudraScreen.this))));
-
-        allFeatures.add(new Button("Updates", Tab.ABOUT,
+                () -> Minecraft.getInstance().setScreen(new HudEditorScreen(KuudraScreen.this)))));
+        roots.add(leaf(new Button("Updates", T,
                 UpdateChecker.isDownloaded() ? "Restart to Install" : "Download Now",
-                UpdateChecker::downloadManually));
+                UpdateChecker::downloadManually)));
     }
 
-    // ── Items tab ─────────────────────────────────────────────────────────────
+    // ── Range slider helpers ────────────────────────────────────────────────────
 
-    private void buildItemsTab() {
-        allFeatures.add(new Toggle("Item Customisation", Tab.ITEMS,
-                KuudraConfig::isItemCustomizationEnabled,
-                KuudraConfig::setItemCustomizationEnabled));
-
-        allFeatures.add(labelRow("\u00a7e\u00a7lBuilt-in Types", Tab.ITEMS));
-
-        for (ItemCustomization.ItemCategory cat : ItemCustomization.ItemCategory.values()) {
-            ItemTransformSettings s = ItemCustomization.getBuiltinSettings(cat);
-            String prefix = cat == ItemCustomization.ItemCategory.GLOBAL ? "Global" : cat.displayName();
-
-            allFeatures.add(new Toggle(prefix + " enabled", Tab.ITEMS,
-                    () -> s.enabled, v -> { s.enabled = v; KuudraConfig.save(); }));
-
-            addRangeSliders(Tab.ITEMS, "  " + prefix, s);
-        }
-
-        allFeatures.add(labelRow("\u00a7a\u00a7lCustom Categories", Tab.ITEMS));
-
-        AddCategoryFeature acf = new AddCategoryFeature();
-        allFeatures.add(acf);
-        categoryInputs.add(acf);
-
-        List<ItemCustomization.CustomCategory> cats = ItemCustomization.getCustomCategories();
-        for (int i = 0; i < cats.size(); i++) {
-            final int idx = i;
-            final ItemCustomization.CustomCategory cc = cats.get(i);
-
-            allFeatures.add(new Feature("  \"" + cc.matchString + "\"", Tab.ITEMS) {
-                @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-                    ctx.text(s.font,
-                            Component.literal("\u00a7f  \"" + cc.matchString + "\""),
-                            x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
-                    int bw = 58, bh = ROW_H - 6, bx = x + w - bw - 18, by = y + 3;
-                    boolean hov = mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
-                    ctx.fill(bx, by, bx + bw, by + bh, hov ? 0xFF4A1515 : 0xFF2A0F0F);
-                    ctx.fill(bx, by, bx + bw, by + 1, 0xFFCC3333);
-                    ctx.centeredText(s.font, Component.literal("Remove"),
-                            bx + bw / 2, by + (bh - s.font.lineHeight) / 2, 0xFFCC3333);
-                }
-                @Override boolean onDown(double mx, double my, int x, int y, int w) {
-                    int bw = 58, bh = ROW_H - 6, bx = x + w - bw - 18, by = y + 3;
-                    if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
-                        ItemCustomization.removeCustomCategory(idx);
-                        KuudraConfig.save();
-                        buildFeatures();
-                        return true;
-                    }
-                    return false;
-                }
-            });
-
-            addRangeSliders(Tab.ITEMS, "    " + cc.matchString, cc.settings);
-        }
+    private void addRangeSliders(Group g, Tab tab, ItemTransformSettings s) {
+        g.add(leaf(rs(tab, "pos X",     -0.5f,  0.5f,  "%.3f",       () -> s.posX,       v -> { s.posX       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "pos Y",     -0.5f,  0.5f,  "%.3f",       () -> s.posY,       v -> { s.posY       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "pos Z",     -0.5f,  0.5f,  "%.3f",       () -> s.posZ,       v -> { s.posZ       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "rot X",     -180f,  180f,  "%.0f°", () -> s.rotX,       v -> { s.rotX       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "rot Y",     -180f,  180f,  "%.0f°", () -> s.rotY,       v -> { s.rotY       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "rot Z",     -180f,  180f,  "%.0f°", () -> s.rotZ,       v -> { s.rotZ       = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "scale",     0.25f,  3.0f,  "%.2f×", () -> s.scale,      v -> { s.scale      = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "swing spd", 0.25f,  3.0f,  "%.2f×", () -> s.swingSpeed, v -> { s.swingSpeed = v; KuudraConfig.save(); })));
+        g.add(leaf(rs(tab, "proximity", -1.0f,  1.0f,  "%.3f",       () -> s.proximity,  v -> { s.proximity  = v; KuudraConfig.save(); })));
     }
 
-    private static Feature labelRow(String text, Tab tab) {
-        return new Feature(text, tab) {
-            @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-                ctx.text(s.font, Component.literal(text),
-                        x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
-            }
-        };
-    }
-    
-    private void addRangeSliders(Tab tab, String prefix, ItemTransformSettings s) {
-        addRS(tab, prefix + " pos X",     -0.5f,  0.5f,  "%.3f",       () -> s.posX,       v -> { s.posX       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " pos Y",     -0.5f,  0.5f,  "%.3f",       () -> s.posY,       v -> { s.posY       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " pos Z",     -0.5f,  0.5f,  "%.3f",       () -> s.posZ,       v -> { s.posZ       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " rot X",     -180f,  180f,  "%.0f\u00b0", () -> s.rotX,       v -> { s.rotX       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " rot Y",     -180f,  180f,  "%.0f\u00b0", () -> s.rotY,       v -> { s.rotY       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " rot Z",     -180f,  180f,  "%.0f\u00b0", () -> s.rotZ,       v -> { s.rotZ       = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " scale",     0.25f,  3.0f,  "%.2f\u00d7", () -> s.scale,      v -> { s.scale      = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " swing spd", 0.25f,  3.0f,  "%.2f\u00d7", () -> s.swingSpeed, v -> { s.swingSpeed = v; KuudraConfig.save(); });
-        addRS(tab, prefix + " proximity", -1.0f,  1.0f,  "%.3f",       () -> s.proximity,  v -> { s.proximity  = v; KuudraConfig.save(); });
-    }
-
-    private void addRS(Tab tab, String name, float min, float max, String fmt,
-                       Supplier<Float> get, Consumer<Float> set) {
-        RangeSlider rs = new RangeSlider(name, tab, min, max, fmt, get, set);
-        allFeatures.add(rs);
-        allSliders.add(rs);
+    private RangeSlider rs(Tab tab, String name, float min, float max, String fmt,
+                           Supplier<Float> get, Consumer<Float> set) {
+        return new RangeSlider(name, tab, min, max, fmt, get, set);
     }
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -910,6 +1241,10 @@ public class KuudraScreen extends Screen {
     private int             scroll      = 0;
     private Feature         dragFeature = null;
     private int             dragX, dragY, dragW;
+
+    // scrollbar drag
+    private boolean draggingScroll = false;
+    private int     sbThumbY, sbThumbH, sbTrackTop, sbTrackH, sbMaxScroll;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -942,11 +1277,89 @@ public class KuudraScreen extends Screen {
         addRenderableWidget(searchField);
     }
 
+    // ── Anim state ──────────────────────────────────────────────────────────────
+
+    private boolean isExpanded(Group g) { return EXPANDED.getOrDefault(g.key, false); }
+    private float   animOf(Group g)      { return ANIM.getOrDefault(g.key, 0f); }
+
+    private void stepAnims(float delta) {
+        for (Group g : allGroups) {
+            float cur = ANIM.getOrDefault(g.key, 0f);
+            float tgt = isExpanded(g) ? 1f : 0f;
+            if (cur == tgt) continue;
+            float step = delta * GROUP_SPEED * 0.05f; // delta is ~ticks; tune
+            if (cur < tgt) cur = Math.min(tgt, cur + step);
+            else           cur = Math.max(tgt, cur - step);
+            ANIM.put(g.key, cur);
+        }
+    }
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+
+    /** Build the visible row list with animated heights. */
+    private List<RenderRow> layoutRows() {
+        List<RenderRow> out = new ArrayList<>();
+        int baseX = cx() + PAD;
+        int baseW = cw() - PAD * 2;
+        int[] y = { cy() + PAD - scroll };
+
+        if (!query.isEmpty()) {
+            for (Node n : roots) collectMatches(n, baseX, baseW, y, out);
+            return out;
+        }
+
+        for (Node n : roots) {
+            if (n.tab != currentTab) continue;
+            layoutNode(n, 0, baseX, baseW, 1f, y, out);
+        }
+        return out;
+    }
+
+    /** Search mode: flatten the whole tree (ignoring expansion) and keep name matches. */
+    private void collectMatches(Node n, int baseX, int baseW, int[] y, List<RenderRow> out) {
+        String nm = (n instanceof Group g) ? g.name : ((Leaf) n).f.name;
+        if (nm.toLowerCase().contains(query)) {
+            RenderRow r = new RenderRow();
+            r.node = n; r.depth = 0; r.contentH = ROW_H; r.h = ROW_H;
+            r.x = baseX; r.w = baseW; r.y = y[0];
+            out.add(r);
+            y[0] += ROW_H + ROW_GAP;
+        }
+        if (n instanceof Group g) {
+            for (Node c : g.children) collectMatches(c, baseX, baseW, y, out);
+        }
+    }
+
+    private void layoutNode(Node n, int depth, int baseX, int baseW,
+                            float ancestorAnim, int[] y, List<RenderRow> out) {
+        int naturalH = ROW_H;
+        int slotH = Math.round(naturalH * ancestorAnim);
+        int gap   = Math.round(ROW_GAP * ancestorAnim);
+
+        RenderRow r = new RenderRow();
+        r.node = n; r.depth = depth; r.contentH = naturalH; r.h = slotH;
+        r.x = baseX + depth * INDENT;
+        r.w = baseW - depth * INDENT;
+        r.y = y[0];
+        out.add(r);
+        y[0] += slotH + gap;
+
+        if (n instanceof Group g) {
+            float childAnim = ancestorAnim * animOf(g);
+            if (childAnim > 0.002f) {
+                y[0] += Math.round(GROUP_PAD_B * childAnim); // top margin inside the block
+                for (Node c : g.children)
+                    layoutNode(c, depth + 1, baseX, baseW, childAnim, y, out);
+                // bottom margin (matches top) + one ROW_GAP of external space before the next item
+                y[0] += Math.round((GROUP_PAD_B + ROW_GAP) * childAnim);
+            }
+        }
+    }
+
     // ── Input ─────────────────────────────────────────────────────────────────
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
-        // If a KeyCapture is waiting for input, bind this mouse button to it
         for (KeyCapture kc : captureFeatures) {
             if (kc.capturing) { kc.onMouseButton(click.button()); return true; }
         }
@@ -956,6 +1369,21 @@ public class KuudraScreen extends Screen {
 
         double mx = click.x(), my = click.y();
 
+        // Scrollbar thumb grab
+        if (sbMaxScroll > 0) {
+            int sbX = cx() + cw() - 5;
+            if (mx >= sbX - 1 && mx <= sbX + 4 && my >= sbTrackTop && my <= sbTrackTop + sbTrackH) {
+                if (my >= sbThumbY && my <= sbThumbY + sbThumbH) {
+                    draggingScroll = true;
+                } else {
+                    // jump: centre thumb on click
+                    setScrollFromThumb(my - sbThumbH / 2.0);
+                    draggingScroll = true;
+                }
+                return true;
+            }
+        }
+
         Tab[] tabs = Tab.values();
         int tabH = 28, startY = py() + HEADER_H + 6;
         for (int i = 0; i < tabs.length; i++) {
@@ -964,6 +1392,8 @@ public class KuudraScreen extends Screen {
                 if (tabs[i] != currentTab) {
                     intInputs.forEach(Feature::cancel);
                     categoryInputs.forEach(Feature::cancel);
+                    vwInputs.forEach(Feature::cancel);
+                    rgbInputs.forEach(Feature::cancel);
                     currentTab = tabs[i];
                     tabAnim = 0f;
                     scroll = 0;
@@ -974,27 +1404,65 @@ public class KuudraScreen extends Screen {
 
         intInputs.forEach(Feature::cancel);
         categoryInputs.forEach(f -> { if (f.focused) f.focused = false; });
+        vwInputs.forEach(Feature::cancel);
+        rgbInputs.forEach(Feature::cancel);
 
-        Feature hit = featureAt(mx, my);
-        if (hit != null) {
-            int[] row = rowOf(hit);
-            if (hit.onDown(mx, my, row[0], row[1], row[2])) {
-                dragFeature = hit;
-                dragX = row[0]; dragY = row[1]; dragW = row[2];
-                return true;
+        // content rows
+        if (mx >= cx() && mx <= cx() + cw() && my >= cy() && my <= cy() + ch()) {
+            for (RenderRow r : layoutRows()) {
+                if (r.h < r.contentH - 1) continue; // skip rows mid-animation
+                if (my < r.y || my > r.y + r.contentH) continue;
+                if (mx < r.x || mx > r.x + r.w) continue;
+
+                if (r.node instanceof Group g) {
+                    if (groupHeaderDown(g, mx, my, r.x, r.y, r.w)) return true;
+                    return true;
+                } else if (r.node instanceof Leaf lf) {
+                    if (lf.f.onDown(mx, my, r.x, r.y, r.w)) {
+                        dragFeature = lf.f;
+                        dragX = r.x; dragY = r.y; dragW = r.w;
+                        return true;
+                    }
+                    return false;
+                }
             }
         }
         return false;
     }
 
+    private boolean groupHeaderDown(Group g, double mx, double my, int x, int y, int w) {
+        // master toggle area (right side) — only when group has one
+        if (g.get != null && g.set != null) {
+            int pw = 34, pxa = x + w - pw - 8, pya = y + (ROW_H - 12) / 2;
+            if (mx >= pxa && mx <= pxa + pw && my >= pya && my <= pya + 12) {
+                g.set.accept(!g.get.get());
+                return true;
+            }
+        }
+        // anywhere else toggles expansion
+        EXPANDED.put(g.key, !isExpanded(g));
+        return true;
+    }
+
+    private void setScrollFromThumb(double thumbTop) {
+        if (sbTrackH - sbThumbH <= 0) { scroll = 0; return; }
+        double frac = (thumbTop - sbTrackTop) / (sbTrackH - sbThumbH);
+        scroll = Mth.clamp((int) Math.round(frac * sbMaxScroll), 0, sbMaxScroll);
+    }
+
     @Override
     public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
+        if (draggingScroll) {
+            setScrollFromThumb(click.y() - sbThumbH / 2.0);
+            return true;
+        }
         if (dragFeature != null) { dragFeature.onDrag(click.x(), click.y(), dragX, dragY, dragW); return true; }
         return super.mouseDragged(click, dx, dy);
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent click) {
+        draggingScroll = false;
         if (dragFeature != null) { dragFeature.onUp(); dragFeature = null; }
         return super.mouseReleased(click);
     }
@@ -1014,11 +1482,15 @@ public class KuudraScreen extends Screen {
         for (KeyCapture kc : captureFeatures) {
             if (kc.capturing) { kc.onKey(key); return true; }
         }
-
         for (AddCategoryFeature af : categoryInputs) {
             if (af.focused) { af.onKey(key); return true; }
         }
-
+        for (VisualWordEntry ve : vwInputs) {
+            if (ve.isCapturing()) { ve.onKey(key); return true; }
+        }
+        for (RgbInput ri : rgbInputs) {
+            if (ri.isCapturing()) { ri.onKey(key); return true; }
+        }
         intInputs.forEach(f -> f.onKey(key));
 
         if (key == 256) {
@@ -1033,6 +1505,12 @@ public class KuudraScreen extends Screen {
         if (searchField != null && searchField.isFocused()) return super.charTyped(input);
         for (AddCategoryFeature af : categoryInputs) {
             if (af.focused) { af.onChar((char) input.codepoint()); return true; }
+        }
+        for (VisualWordEntry ve : vwInputs) {
+            if (ve.isCapturing()) { ve.onChar((char) input.codepoint()); return true; }
+        }
+        for (RgbInput ri : rgbInputs) {
+            if (ri.isCapturing()) { ri.onChar((char) input.codepoint()); return true; }
         }
         intInputs.forEach(f -> f.onChar((char) input.codepoint()));
         return false;
@@ -1049,6 +1527,7 @@ public class KuudraScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         extractBackground(ctx, mx, my, delta);
         if (tabAnim < 1f) tabAnim = Math.min(1f, tabAnim + delta * ANIM_SPEED);
+        stepAnims(delta);
 
         int px = px(), py = py();
         ctx.fill(px - 1, py - 1, px + PANEL_W + 1, py + PANEL_H + 1, C_BORDER);
@@ -1056,8 +1535,11 @@ public class KuudraScreen extends Screen {
 
         ctx.fill(px, py, px + PANEL_W, py + HEADER_H, C_HEADER);
         ctx.fill(px, py + HEADER_H - 1, px + PANEL_W, py + HEADER_H, C_ACCENT);
-        ctx.text(font, Component.literal("\u2726 PhantomAddons"),
-                px + 10, py + (HEADER_H - font.lineHeight) / 2, C_ACCENT);
+        int logoS = HEADER_H - 8, logoX = px + 6, logoY = py + 4;
+        // floats are (minU, maxU, minV, maxV) — full texture = 0,1,0,1
+        ctx.blit(LOGO, logoX, logoY, logoX + logoS, logoY + logoS, 0f, 1f, 0f, 1f);
+        ctx.text(font, Component.literal("PhantomAddons"),
+                logoX + logoS + 6, py + (HEADER_H - font.lineHeight) / 2, C_ACCENT);
 
         int sfX = px + PANEL_W - 148, sfY = py + (HEADER_H - 16) / 2;
         ctx.fill(sfX - 3, sfY - 1, sfX + 141, sfY + 15, 0xFF090B0E);
@@ -1092,83 +1574,117 @@ public class KuudraScreen extends Screen {
 
     private void renderContent(GuiGraphicsExtractor ctx, int mx, int my) {
         int cx = cx(), cy = cy(), cw = cw(), ch = ch();
-        List<Feature> visible = visibleFeatures();
+        List<RenderRow> rows = layoutRows();
 
-        if (visible.isEmpty()) {
+        if (rows.isEmpty()) {
             ctx.centeredText(font,
                     Component.literal(query.isEmpty() ? "No features" : "No results"),
                     cx + cw / 2, cy + ch / 2, C_TEXT_DIM);
+            sbMaxScroll = 0;
             return;
         }
 
-        int totalH    = visible.size() * (ROW_H + ROW_GAP) - ROW_GAP;
+        int totalH = 0;
+        for (RenderRow r : rows) totalH = Math.max(totalH, (r.y + scroll) + r.h);
+        totalH -= (cy + PAD);
         int maxScroll = Math.max(0, totalH - ch + PAD * 2);
-        scroll = Mth.clamp(scroll, 0, maxScroll);
+        if (scroll > maxScroll) { scroll = maxScroll; rows = layoutRows(); }
+        if (scroll < 0)         { scroll = 0;         rows = layoutRows(); }
 
         float ease   = tabAnim * tabAnim * (3f - 2f * tabAnim);
         int   slideX = (int)((1f - ease) * 16);
 
-        int previewH = (currentTab == Tab.LAVA_TWEAKS && query.isEmpty()) ? 22 : 0;
-        ctx.enableScissor(cx, cy, cx + cw, cy + ch - previewH);
+        ctx.enableScissor(cx, cy, cx + cw, cy + ch);
 
-        int y = cy + PAD - scroll;
-        for (Feature f : visible) {
-            if (y + ROW_H > cy && y < cy + ch - previewH) {
-                ctx.fill(cx + PAD, y, cx + cw - PAD, y + ROW_H, 0x0AFFFFFF);
-                f.render(ctx, this, cx + PAD + slideX, y, cw - PAD * 2 - slideX, mx, my);
+        // Group block backgrounds (drawn under the rows so the group reads as one block)
+        for (int i = 0; i < rows.size(); i++) {
+            RenderRow r = rows.get(i);
+            if (!(r.node instanceof Group g)) continue;
+            if (animOf(g) <= 0.002f) continue;
+            int blockTop = r.y;
+            int blockBot = r.y + r.h;
+            for (int j = i + 1; j < rows.size(); j++) {
+                if (rows.get(j).depth <= r.depth) break;
+                blockBot = rows.get(j).y + rows.get(j).h;
             }
-            y += ROW_H + ROW_GAP;
+            int bx = r.x, bRight = cx + cw - PAD;
+            int bb = blockBot + Math.round((GROUP_PAD_B + ROW_GAP) * animOf(g));
+            ctx.fill(bx, blockTop, bRight, bb, C_GROUP_BG);
+            ctx.fill(bx, blockTop, bx + 2, bb, C_GROUP_BAR);   // left bar (amber)
+            ctx.fill(bx, bb - 1, bRight, bb, 0x22FFFFFF);      // subtle bottom border
+        }
+
+        for (RenderRow r : rows) {
+            if (r.h <= 0) continue;
+            int top = Math.max(cy, r.y);
+            int bot = Math.min(cy + ch, r.y + r.h);
+            if (bot <= top) continue;
+
+            ctx.enableScissor(cx, top, cx + cw, bot);
+
+            int rx = r.x + slideX;
+            int rw = r.w - slideX;
+
+            if (r.node instanceof Group g) {
+                renderGroupHeader(ctx, g, rx, r.y, rw, mx, my);
+            } else if (r.node instanceof Leaf lf) {
+                // subtle row hover stripe
+                ctx.fill(rx, r.y, cx + cw - PAD, r.y + r.contentH, 0x0AFFFFFF);
+                lf.f.render(ctx, this, rx, r.y, rw, mx, my);
+            }
+
+            ctx.disableScissor();
         }
         ctx.disableScissor();
 
+        // tab fade-in
+        if (tabAnim < 1f) {
+            int a = (int)((1f - ease) * 200) << 24;
+            ctx.fill(cx, cy, cx + cw, cy + ch, (C_BG & 0xFFFFFF) | a);
+        }
+
+        // scrollbar
+        sbMaxScroll = maxScroll;
         if (maxScroll > 0) {
-            int sbX = cx + cw - 5, sbH = ch - PAD * 2;
-            int thumbH = Math.max(18, sbH * sbH / (totalH + PAD * 2));
-            int thumbY = cy + PAD + (int)((float)scroll / maxScroll * (sbH - thumbH));
-            ctx.fill(sbX, cy + PAD, sbX + 3, cy + PAD + sbH, 0x1AFFFFFF);
-            ctx.fill(sbX, thumbY, sbX + 3, thumbY + thumbH, 0x77AABBDD);
-        }
-
-        if (currentTab == Tab.LAVA_TWEAKS && query.isEmpty()) {
-            int sw = cw - PAD * 2, swY = cy + ch - 22, swX = cx + PAD;
-            int previewArgb = com.kuudrahelper.features.lava.ColorPreviewHelper.computePreviewColor();
-            ctx.fill(swX, swY, swX + sw, swY + 14, previewArgb);
-            ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
-            ctx.centeredText(font, Component.literal("Colour Preview"),
-                    swX + sw / 2, swY + (14 - font.lineHeight) / 2, 0xCCFFFFFF);
+            int sbX = cx + cw - 5;
+            sbTrackTop = cy + PAD;
+            sbTrackH   = ch - PAD * 2;
+            sbThumbH   = Math.max(18, (int)((long) sbTrackH * sbTrackH / (totalH + PAD * 2)));
+            sbThumbY   = sbTrackTop + (int)((float) scroll / maxScroll * (sbTrackH - sbThumbH));
+            boolean hov = mx >= sbX - 1 && mx <= sbX + 4 && my >= sbTrackTop && my <= sbTrackTop + sbTrackH;
+            ctx.fill(sbX, sbTrackTop, sbX + 3, sbTrackTop + sbTrackH, 0x1AFFFFFF);
+            ctx.fill(sbX, sbThumbY, sbX + 3, sbThumbY + sbThumbH,
+                    (draggingScroll || hov) ? 0xCCFFAA00 : 0x77AABBDD);
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private void renderGroupHeader(GuiGraphicsExtractor ctx, Group g,
+                                   int x, int y, int w, int mx, int my) {
+        boolean expanded = isExpanded(g);
+        float a = animOf(g);
+        boolean hov = mx >= x && mx <= x + w && my >= y && my <= y + ROW_H;
 
-    private List<Feature> visibleFeatures() {
-        List<Feature> out = new ArrayList<>();
-        for (Feature f : allFeatures)
-            if (query.isEmpty() ? f.tab == currentTab : f.name.toLowerCase().contains(query))
-                out.add(f);
-        return out;
-    }
+        ctx.fill(x, y, x + w, y + ROW_H, hov ? 0x14FFFFFF : 0x0CFFFFFF);
+        ctx.fill(x, y, x + w, y + 1, 0x22FFFFFF);
 
-    private Feature featureAt(double mx, double my) {
-        int cx = cx(), cy = cy(), cw = cw(), ch = ch();
-        if (mx < cx || mx > cx + cw || my < cy || my > cy + ch) return null;
-        int y = cy + PAD - scroll;
-        for (Feature f : visibleFeatures()) {
-            if (mx >= cx + PAD && mx <= cx + cw - PAD && my >= y && my <= y + ROW_H) return f;
-            y += ROW_H + ROW_GAP;
+        // arrow
+        String arrow = a > 0.5f ? "▾" : "▸";
+        ctx.text(font, Component.literal(arrow),
+                x + 6, y + (ROW_H - font.lineHeight) / 2, expanded ? C_ACCENT : C_TEXT_DIM);
+
+        ctx.text(font, Component.literal(g.name),
+                x + 18, y + (ROW_H - font.lineHeight) / 2,
+                expanded ? C_ACCENT : C_TEXT);
+
+        if (g.get != null && g.set != null) {
+            boolean on = g.get.get();
+            int pw = 34, ph = 12, px = x + w - pw - 8, py = y + (ROW_H - ph) / 2;
+            ctx.fill(px, py, px + pw, py + ph, on ? C_ON : C_OFF);
+            int kx = on ? px + pw - 12 : px + 1;
+            ctx.fill(kx, py + 1, kx + 10, py + ph - 1, 0xFFFFFFFF);
         }
-        return null;
     }
 
-    private int[] rowOf(Feature target) {
-        int y = cy() + PAD - scroll;
-        for (Feature f : visibleFeatures()) {
-            if (f == target) return new int[]{cx() + PAD, y, cw() - PAD * 2};
-            y += ROW_H + ROW_GAP;
-        }
-        return new int[]{cx() + PAD, cy() + PAD, cw() - PAD * 2};
-    }
-
-    @Override public void removed()        { KuudraConfig.save(); }
+    @Override public void removed()          { KuudraConfig.save(); }
     @Override public boolean isPauseScreen() { return false; }
 }

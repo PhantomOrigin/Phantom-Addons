@@ -127,9 +127,10 @@ public final class SplitHud {
         if (s == Split.BUILD && KuudraConfig.isSupplyTimesEnabled()) {
             List<KuudraConfig.PlayerTime> freshes = KuudraSplitTimer.getFreshTimes();
             for (KuudraConfig.PlayerTime ft : freshes) {
+                String pctSuffix = ft.pct >= 0 ? " §7(" + ft.pct + "%)" : "";
                 drawLine(ctx, mc, x + INDENT, y,
                         "§7- §f" + ft.player + ": "
-                                + freshTimeColor(ft.time) + fmt(ft.time) + "§r");
+                                + freshTimeColor(ft.time) + fmt(ft.time) + "§r" + pctSuffix);
                 y += LINE_H;
             }
         }

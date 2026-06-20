@@ -24,7 +24,7 @@ public final class AnnounceFresh {
             "Your Fresh Tools Perk bonus doubles your building speed for the next 10 seconds!";
 
     private static final Pattern FRESH_PARTY_PATTERN = Pattern.compile(
-            "Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH! \\((\\d+)%\\)");
+            "Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH!(?: \\((\\d+)%\\))?");
 
     private static final long FRESH_DURATION_MS = 10_000L;
 

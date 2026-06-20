@@ -42,6 +42,14 @@ public class UseItemMixin {
             EtherwarpWaypointManager.onPearlThrow(client, player);
         }
 
+        // Rend Tracker: detect bonemerang throw
+        if (hand == net.minecraft.world.InteractionHand.MAIN_HAND) {
+            String itemName = stack.getHoverName().getString().toLowerCase();
+            if (itemName.contains("bonemerang")) {
+                com.kuudrahelper.features.kuudra.RendTracker.onBonemerangThrow();
+            }
+        }
+
         if (EtherwarpPredictor.isEtherTransmissionItem(stack)) {
             EtherwarpPredictor.predictEtherwarpIntoPickobulus(client);
             boolean hasInstantTransmission = EtherwarpPredictor.isInstantTransmissionItem(stack);

@@ -50,7 +50,7 @@ public final class BuildBeaconRenderer {
 
                 VertexConsumer vc = imm.getBuffer(RenderTypes.debugQuads());
                 addBeam(vc, m, bx, by, bz, r, g, b,
-                        (int)(KuudraConfig.getBeaconAlpha() * 255));
+                        (int)(KuudraConfig.getBuildBeaconAlpha() * 255));
                 imm.endBatch();
 
                 if (pass == 1) GL11.glDepthFunc(515);

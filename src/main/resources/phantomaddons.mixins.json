@@ -6,6 +6,7 @@
   "client": [
     "UseItemMixin",
     "TitleMixin",
+    "FontDrawMixin",
     "WorldRendererMixin",
     "ClientWorldExplosionMixin",
     "HeldItemRendererMixin",

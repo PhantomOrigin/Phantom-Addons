@@ -4,15 +4,25 @@ import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.features.items.ItemCustomization;
 import com.kuudrahelper.features.items.ItemTransformSettings;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public class LivingEntitySwingMixin {
+
+    @Inject(method = "swing(Lnet/minecraft/world/InteractionHand;)V", at = @At("HEAD"))
+    private void kuudrahelper$onSwing(InteractionHand hand, CallbackInfo ci) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player != (Object) this) return;
+        if (hand != InteractionHand.MAIN_HAND) return;
+        com.kuudrahelper.features.kuudra.RendTracker.onLeftClick(mc.player.getMainHandItem());
+    }
 
     @Inject(method = "getCurrentSwingDuration", at = @At("RETURN"), cancellable = true)
     private void kuudrahelper$modifySwingDuration(CallbackInfoReturnable<Integer> cir) {

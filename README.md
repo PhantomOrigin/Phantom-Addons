@@ -1,9 +1,9 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.1  
+Latest Version: 1.6.2  
 Supported Minecraft Versions: 26.1.2  
-Discord Link: https://discord.gg/tsjcwvuM
+Discord Invite: https://discord.gg/tsjcwvuM  
 
 ### Supplies Features
 - Supply Beacons
@@ -26,6 +26,7 @@ Discord Link: https://discord.gg/tsjcwvuM
 - Fresh Notification
 - Build Started Notification
 - Build Beacons
+- Elle Highlight
 ### Stun / DPS
 - Auto GFS Poisons
 - Role Detection
@@ -44,6 +45,7 @@ Discord Link: https://discord.gg/tsjcwvuM
 - Kuudra Health Display
 - Mana Drain Announcer
 - Kuudra Highlight / ESP
+- Rend / Backbone Tracker
 ### Kuudra General Features
 - Hide Elle Dialogue
 - Pearl Refill
@@ -66,9 +68,11 @@ Discord Link: https://discord.gg/tsjcwvuM
 - Auto Sprint
 - Slot Binds
 - Vanilla Boss Bar Hider
-- Party Commands
+- Party Commands (!chests, !avg, !dt, !undt, !pt, !kick, !t5, etc...)
 - Hide Falling Blocks
 - Prevent Placing Weapons
 - Prevent Placing Skulls
 - Player Scale Features
 - Mob Fire Hider
+- Visual Words
+- Skyblock Kicked Cooldown and Announcer

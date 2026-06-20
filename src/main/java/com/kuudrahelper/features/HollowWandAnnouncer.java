@@ -21,10 +21,10 @@ public final class HollowWandAnnouncer {
         if (!clean.contains("Casting Spell:")) return;
 
         String abbrev;
-        if      (clean.contains(ICHOR_MSG))  abbrev = "Ichor";
-        else if (clean.contains(SPIRIT_MSG)) abbrev = "Spirit";
-        else if (clean.contains(RUSH_MSG))   abbrev = "Rush";
-        else if (clean.contains(WIND_MSG))   abbrev = "Wind";
+        if      (clean.contains(ICHOR_MSG))  abbrev = "Ichor Pool";
+        else if (clean.contains(SPIRIT_MSG)) abbrev = "Spirit Spark";
+        else if (clean.contains(RUSH_MSG))   abbrev = "Hollowed Rush";
+        else if (clean.contains(WIND_MSG))   abbrev = "Raging Wind";
         else return;
 
         long now = System.currentTimeMillis();

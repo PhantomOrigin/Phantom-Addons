@@ -103,6 +103,8 @@ public final class KuudraPhaseEvents {
                 }
 
                 case END -> {
+                    com.kuudrahelper.features.AutoRequeue.trigger();
+                    com.kuudrahelper.features.kuudra.RendTracker.reset();
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();

@@ -66,6 +66,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         rootLogger.addAppender(appender);
 
         KuudraConfig.load();
+        com.kuudrahelper.features.VisualWords.load();
         PickoblockManager.init();
         MountTimerHud.register();
 
@@ -101,6 +102,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         SupplyProgressHud.register();
         BuildProgressHud.register();
         NotificationHud.register();
+        com.kuudrahelper.features.KickedTimerHud.register();
         CratePriority.register();
         com.kuudrahelper.features.kuudra.KuudraHpHud.register();
     }
@@ -127,7 +129,15 @@ public class KuudraHelperMod implements ClientModInitializer {
             if (!overlay) AnnounceFresh.onChat(raw);
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) com.kuudrahelper.features.kuudra.ManaDrainAnnouncer.onChat(clean);
-            com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
+            if (clean.contains("Used Extreme Focus!")) com.kuudrahelper.features.kuudra.RendTracker.onManaDrain();
+            if (overlay) com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
+            if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
+                    && KuudraConfig.isKickedNotificationEnabled()) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                com.kuudrahelper.features.KickedTimerHud.onKicked();
+                if (mc.getConnection() != null)
+                    mc.execute(() -> mc.getConnection().sendCommand("pc [Phantom] Kicked from Skyblock!"));
+            }
         });
     }
 
@@ -141,6 +151,28 @@ public class KuudraHelperMod implements ClientModInitializer {
                 || lc.contains("not again!");
     }
 
+    private static String toLegacyString(net.minecraft.network.chat.Component comp) {
+        StringBuilder sb = new StringBuilder();
+        comp.visit((style, str) -> {
+            net.minecraft.network.chat.TextColor tc = style.getColor();
+            if (tc == null) {
+                sb.append("§r");
+            } else {
+                int rgb = tc.getValue();
+                for (net.minecraft.ChatFormatting cf : net.minecraft.ChatFormatting.values()) {
+                    if (cf.isColor() && cf.getColor() != null && cf.getColor() == rgb) {
+                        sb.append('§').append(cf.getChar());
+                        break;
+                    }
+                }
+            }
+            if (Boolean.TRUE.equals(style.isBold())) sb.append("§l");
+            sb.append(str);
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
+        return sb.toString();
+    }
+
     private static final java.util.regex.Pattern SUPPLY_RECOVERY_PATTERN =
             java.util.regex.Pattern.compile("(\\S+)\\s+recovered one of Elle's supplies! \\((\\d+/\\d+)\\)");
     private static final java.util.regex.Pattern RANK_NAME_PATTERN =
@@ -148,7 +180,7 @@ public class KuudraHelperMod implements ClientModInitializer {
 
     private static void registerElleFilter() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((text, overlay) -> {
-            String raw = text.getString();
+            String raw   = toLegacyString(text);
             String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
 
             if (isNpreElleLine(clean)) return true;
@@ -253,6 +285,8 @@ public class KuudraHelperMod implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetAll());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             resetAll();
+            KuudraConfig.setAutoRequeueEnabled(true);
+            com.kuudrahelper.features.AutoRequeue.onServerJoin();
             if (ChestTracker.isPendingPc()) {
                 ChestTracker.clearPendingPc();
                 client.execute(() -> {
@@ -287,6 +321,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         AnnounceFresh.reset();
         PearlRefill.reset();
         RendDamage.reset();
+        com.kuudrahelper.features.kuudra.RendTracker.reset();
         com.kuudrahelper.features.kuudra.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
@@ -331,6 +366,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             SupplyWaypointTracker.tick(client);
             com.kuudrahelper.features.supplies.NoPreAnnounce.tick(client);
             com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
+            com.kuudrahelper.features.kuudra.RendTracker.tick();
 
             if (KuudraConfig.isAutoSprintEnabled() && client.player != null) {
                 client.player.setSprinting(true);

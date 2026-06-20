@@ -30,13 +30,7 @@ public final class KuudraPhaseTracker {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
-            // T5 only: dropping below Y=10 in DPS/SKIP signals transition to kill phase
-            int tier = KuudraTierDetector.getTier();
-            if ((tier == 5 || tier == 0) &&
-                    (currentPhase == Phase.DPS || currentPhase == Phase.SKIP) &&
-                    client.player.getY() < 10.0) {
-                setPhase(Phase.BOSS);
-            }
+            checkBossYTransition();
         });
     }
 
@@ -82,12 +76,23 @@ public final class KuudraPhaseTracker {
 
         if (msg.equals("[NPC] Elle: POW! SURELY THAT'S IT! I don't think he has any more in him!")) {
             setPhase(Phase.SKIP);
+            checkBossYTransition();
             return;
         }
 
         if (msg.contains("KUUDRA DOWN") || msg.contains("DEFEAT KUUDRA")) {
             setPhase(Phase.END);
             runActive = false;
+        }
+    }
+
+    private static void checkBossYTransition() {
+        if (currentPhase != Phase.SKIP) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        if (mc.player.getY() < 10.0) {
+            com.kuudrahelper.features.kuudra.RendTracker.onKillPhaseStart();
+            setPhase(Phase.BOSS);
         }
     }
 

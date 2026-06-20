@@ -18,13 +18,14 @@ public final class MountTimerHud {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("phantomaddons", "mount_timer"),
                 (drawContext, tickDelta) -> {
+            if (!KuudraConfig.isEatenTimerEnabled()) return;
             int timer = Phase2BuildTracker.getMountTimer();
             if (timer <= 0) return;
 
             Minecraft client = Minecraft.getInstance();
             if (client.player == null) return;
 
-            int pingTicks   = KuudraConfig.getLowPing() / 50;
+            int pingTicks    = KuudraConfig.isEatenTimerSubtractPingEnabled() ? KuudraConfig.getLowPing() / 50 : 0;
             int displayTimer = Math.max(0, timer - pingTicks);
 
             String text = String.valueOf(displayTimer);
