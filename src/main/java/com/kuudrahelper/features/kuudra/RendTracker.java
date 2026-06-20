@@ -1,6 +1,7 @@
 package com.kuudrahelper.features.kuudra;
 
 import com.kuudrahelper.KuudraConfig;
+import com.kuudrahelper.phase.KuudraPhaseTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -43,6 +44,7 @@ public final class RendTracker {
 
     public static void onBonemerangThrow() {
         if (!KuudraConfig.isRendTrackerEnabled()) return;
+        if (!isBossPhase()) return;
         if (killPhaseStartMs < 0) return;
         clearCycle();
         int pingTicks = (int) Math.round(KuudraConfig.getLowPing() / 50.0);
@@ -50,12 +52,14 @@ public final class RendTracker {
     }
 
     public static void onManaDrain() {
+        if (!isBossPhase()) return;
         if (backboneHitMs < 0) return;
         if (manaDrainMs < 0) manaDrainMs = System.currentTimeMillis();
     }
 
     public static void onLeftClick(ItemStack item) {
         if (!KuudraConfig.isRendTrackerEnabled()) return;
+        if (!isBossPhase()) return;
         if (backboneHitMs < 0) return;
         if (!hasRendInItem(item)) return;
         long pullMs = System.currentTimeMillis();
@@ -76,6 +80,7 @@ public final class RendTracker {
     }
 
     public static void tick() {
+        if (!isBossPhase()) return;
         if (backboneTicksRemaining <= 0) return;
         backboneTicksRemaining--;
         if (backboneTicksRemaining == 0) {
@@ -86,6 +91,10 @@ public final class RendTracker {
                 heldAtBackbone   = mc.player.getMainHandItem().copy();
             }
         }
+    }
+
+    private static boolean isBossPhase() {
+        return KuudraPhaseTracker.getPhase() == KuudraPhaseTracker.Phase.BOSS;
     }
 
     private static void printOutput(ItemStack pullItem, long pullMs) {

@@ -41,10 +41,12 @@ public final class RoleManager {
     }
 
     private static boolean isWearingHollowArmor(Player player) {
-        return isHollow(player.getItemBySlot(EquipmentSlot.FEET))
-                || isHollow(player.getItemBySlot(EquipmentSlot.LEGS))
-                || isHollow(player.getItemBySlot(EquipmentSlot.CHEST))
-                || isHollow(player.getItemBySlot(EquipmentSlot.HEAD));
+        int count = 0;
+        if (isHollow(player.getItemBySlot(EquipmentSlot.FEET)))  count++;
+        if (isHollow(player.getItemBySlot(EquipmentSlot.LEGS)))  count++;
+        if (isHollow(player.getItemBySlot(EquipmentSlot.CHEST))) count++;
+        if (isHollow(player.getItemBySlot(EquipmentSlot.HEAD)))  count++;
+        return count >= 3;
     }
 
     private static boolean isHollow(ItemStack stack) {

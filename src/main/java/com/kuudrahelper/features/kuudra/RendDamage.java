@@ -39,7 +39,7 @@ public final class RendDamage {
             if (client.level == null || client.player == null) return;
 
             Phase phase = KuudraPhaseTracker.getPhase();
-            if (phase == Phase.SUPPLIES || phase == Phase.BUILD || phase == Phase.END) return;
+            if (phase != Phase.BOSS) return;
 
             Slime kuudra = findKuudra(client);
             if (kuudra == null) return;

@@ -17,6 +17,7 @@ import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.utils.Phase2BuildTracker;
 import com.kuudrahelper.features.HideArmorStands;
 import com.kuudrahelper.features.kuudra.RendDamage;
+import com.kuudrahelper.features.kuudra.RendTracker;
 import com.kuudrahelper.utils.RoleManager;
 import net.minecraft.client.Minecraft;
 
@@ -99,6 +100,7 @@ public final class KuudraPhaseEvents {
 
                 case BOSS -> {
                     RendDamage.onKillPhaseStart();
+                    RendTracker.onKillPhaseStart();
                     KuudraSplitTimer.onBossStart();
                 }
 

@@ -91,7 +91,6 @@ public final class KuudraPhaseTracker {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (mc.player.getY() < 10.0) {
-            com.kuudrahelper.features.kuudra.RendTracker.onKillPhaseStart();
             setPhase(Phase.BOSS);
         }
     }

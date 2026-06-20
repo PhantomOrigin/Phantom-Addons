@@ -166,7 +166,7 @@ public class KuudraScreen extends Screen {
         }
         @Override void onKey(int key) {
             if (!focused) return;
-            if (key == 256) { draft = null; focused = false; }
+            if (key == 256) { commit(); focused = false; }       // Esc saves current value
             else if (key == 257 || key == 335) { commit(); focused = false; }
             else if (key == 259 && draft != null && !draft.isEmpty())
                 draft = draft.substring(0, draft.length() - 1);
@@ -452,7 +452,7 @@ public class KuudraScreen extends Screen {
 
         @Override void onKey(int key) {
             if (!focused) return;
-            if (key == 256) { focused = false; draft = ""; }
+            if (key == 256) { focused = false; }   // Esc keeps the typed value, just deselects
             else if (key == 257 || key == 335) { addCategory(); focused = false; }
             else if (key == 259 && !draft.isEmpty())
                 draft = draft.substring(0, draft.length() - 1);
@@ -544,7 +544,7 @@ public class KuudraScreen extends Screen {
 
         @Override void onKey(int key) {
             if (focus == 0) return;
-            if (key == 256) { draft = null; focus = 0; }
+            if (key == 256) { commit(); }                         // Esc saves current value
             else if (key == 257 || key == 335) { commit(); }
             else if (key == 258) { // Tab → jump to the other field
                 var r = rule();
@@ -621,7 +621,7 @@ public class KuudraScreen extends Screen {
 
         @Override void onKey(int key) {
             if (focus == 0) return;
-            if (key == 256) { draft = null; focus = 0; }
+            if (key == 256) { commit(); }                         // Esc saves current value
             else if (key == 257 || key == 335) { commit(); }
             else if (key == 258) { int next = focus % 3 + 1; commit(); focus = next; draft = String.valueOf(comp(next - 1)); }
             else if (key == 259 && draft != null && !draft.isEmpty())
@@ -665,8 +665,8 @@ public class KuudraScreen extends Screen {
     private static class Group extends Node {
         final String name;
         final String key;
-        final Supplier<Boolean> get;  // nullable: header-only group (no master toggle)
-        final Consumer<Boolean> set;  // nullable
+        final Supplier<Boolean> get;
+        final Consumer<Boolean> set;
         final List<Node> children = new ArrayList<>();
         Group(String name, Tab tab, String key, Supplier<Boolean> get, Consumer<Boolean> set) {
             super(tab); this.name = name; this.key = key; this.get = get; this.set = set;
@@ -674,12 +674,10 @@ public class KuudraScreen extends Screen {
         Group add(Node n) { children.add(n); return this; }
     }
 
-    /** A laid-out, possibly partially-revealed on-screen row. */
     private static class RenderRow {
         Node node; int x, y, w, h, contentH, depth;
     }
 
-    // Expand / animation state persists across rebuilds and screen re-opens.
     private static final Map<String, Boolean> EXPANDED = new HashMap<>();
     private static final Map<String, Float>   ANIM     = new HashMap<>();
 
@@ -1296,7 +1294,6 @@ public class KuudraScreen extends Screen {
 
     // ── Layout ────────────────────────────────────────────────────────────────
 
-    /** Build the visible row list with animated heights. */
     private List<RenderRow> layoutRows() {
         List<RenderRow> out = new ArrayList<>();
         int baseX = cx() + PAD;
@@ -1304,7 +1301,10 @@ public class KuudraScreen extends Screen {
         int[] y = { cy() + PAD - scroll };
 
         if (!query.isEmpty()) {
-            for (Node n : roots) collectMatches(n, baseX, baseW, y, out);
+            for (Node n : roots) {
+                Node f = filterNode(n, query);
+                if (f != null) layoutNode(f, 0, baseX, baseW, 1f, y, out);
+            }
             return out;
         }
 
@@ -1315,19 +1315,21 @@ public class KuudraScreen extends Screen {
         return out;
     }
 
-    /** Search mode: flatten the whole tree (ignoring expansion) and keep name matches. */
-    private void collectMatches(Node n, int baseX, int baseW, int[] y, List<RenderRow> out) {
-        String nm = (n instanceof Group g) ? g.name : ((Leaf) n).f.name;
-        if (nm.toLowerCase().contains(query)) {
-            RenderRow r = new RenderRow();
-            r.node = n; r.depth = 0; r.contentH = ROW_H; r.h = ROW_H;
-            r.x = baseX; r.w = baseW; r.y = y[0];
-            out.add(r);
-            y[0] += ROW_H + ROW_GAP;
+    private Node filterNode(Node n, String q) {
+        if (n instanceof Leaf lf) {
+            return lf.f.name.toLowerCase().contains(q) ? lf : null;
         }
-        if (n instanceof Group g) {
-            for (Node c : g.children) collectMatches(c, baseX, baseW, y, out);
+        Group g = (Group) n;
+        if (g.name.toLowerCase().contains(q)) return g; // title match → whole dropdown
+        Group copy = null;
+        for (Node c : g.children) {
+            Node fc = filterNode(c, q);
+            if (fc != null) {
+                if (copy == null) copy = new Group(g.name, g.tab, g.key, g.get, g.set);
+                copy.children.add(fc);
+            }
         }
+        return copy;
     }
 
     private void layoutNode(Node n, int depth, int baseX, int baseW,
@@ -1365,18 +1367,18 @@ public class KuudraScreen extends Screen {
         }
 
         if (super.mouseClicked(click, isDoubleClick)) return true;
+        if (searchField != null) searchField.setFocused(false);
+        this.setFocused(null);
         if (click.button() != 0) return false;
 
         double mx = click.x(), my = click.y();
 
-        // Scrollbar thumb grab
         if (sbMaxScroll > 0) {
             int sbX = cx() + cw() - 5;
             if (mx >= sbX - 1 && mx <= sbX + 4 && my >= sbTrackTop && my <= sbTrackTop + sbTrackH) {
                 if (my >= sbThumbY && my <= sbThumbY + sbThumbH) {
                     draggingScroll = true;
                 } else {
-                    // jump: centre thumb on click
                     setScrollFromThumb(my - sbThumbH / 2.0);
                     draggingScroll = true;
                 }
@@ -1407,7 +1409,6 @@ public class KuudraScreen extends Screen {
         vwInputs.forEach(Feature::cancel);
         rgbInputs.forEach(Feature::cancel);
 
-        // content rows
         if (mx >= cx() && mx <= cx() + cw() && my >= cy() && my <= cy() + ch()) {
             for (RenderRow r : layoutRows()) {
                 if (r.h < r.contentH - 1) continue; // skip rows mid-animation
@@ -1431,7 +1432,6 @@ public class KuudraScreen extends Screen {
     }
 
     private boolean groupHeaderDown(Group g, double mx, double my, int x, int y, int w) {
-        // master toggle area (right side) — only when group has one
         if (g.get != null && g.set != null) {
             int pw = 34, pxa = x + w - pw - 8, pya = y + (ROW_H - 12) / 2;
             if (mx >= pxa && mx <= pxa + pw && my >= pya && my <= pya + 12) {
@@ -1439,7 +1439,6 @@ public class KuudraScreen extends Screen {
                 return true;
             }
         }
-        // anywhere else toggles expansion
         EXPANDED.put(g.key, !isExpanded(g));
         return true;
     }
@@ -1491,18 +1490,22 @@ public class KuudraScreen extends Screen {
         for (RgbInput ri : rgbInputs) {
             if (ri.isCapturing()) { ri.onKey(key); return true; }
         }
-        intInputs.forEach(f -> f.onKey(key));
-
-        if (key == 256) {
-            if (intInputs.stream().anyMatch(Feature::isCapturing)) return true;
-            this.onClose(); return true;
+        if (intInputs.stream().anyMatch(Feature::isCapturing)) {
+            intInputs.forEach(f -> f.onKey(key));
+            return true;
         }
+        if (key == 256 && searchField != null && searchField.isFocused()) {
+            searchField.setFocused(false);
+            this.setFocused(null);
+            return true;
+        }
+
+        if (key == 256) { this.onClose(); return true; }
         return super.keyPressed(event);
     }
 
     @Override
     public boolean charTyped(net.minecraft.client.input.CharacterEvent input) {
-        if (searchField != null && searchField.isFocused()) return super.charTyped(input);
         for (AddCategoryFeature af : categoryInputs) {
             if (af.focused) { af.onChar((char) input.codepoint()); return true; }
         }
@@ -1512,7 +1515,11 @@ public class KuudraScreen extends Screen {
         for (RgbInput ri : rgbInputs) {
             if (ri.isCapturing()) { ri.onChar((char) input.codepoint()); return true; }
         }
-        intInputs.forEach(f -> f.onChar((char) input.codepoint()));
+        if (intInputs.stream().anyMatch(Feature::isCapturing)) {
+            intInputs.forEach(f -> f.onChar((char) input.codepoint()));
+            return true;
+        }
+        if (searchField != null && searchField.isFocused()) return super.charTyped(input);
         return false;
     }
 
@@ -1536,7 +1543,6 @@ public class KuudraScreen extends Screen {
         ctx.fill(px, py, px + PANEL_W, py + HEADER_H, C_HEADER);
         ctx.fill(px, py + HEADER_H - 1, px + PANEL_W, py + HEADER_H, C_ACCENT);
         int logoS = HEADER_H - 8, logoX = px + 6, logoY = py + 4;
-        // floats are (minU, maxU, minV, maxV) — full texture = 0,1,0,1
         ctx.blit(LOGO, logoX, logoY, logoX + logoS, logoY + logoS, 0f, 1f, 0f, 1f);
         ctx.text(font, Component.literal("PhantomAddons"),
                 logoX + logoS + 6, py + (HEADER_H - font.lineHeight) / 2, C_ACCENT);
@@ -1596,7 +1602,6 @@ public class KuudraScreen extends Screen {
 
         ctx.enableScissor(cx, cy, cx + cw, cy + ch);
 
-        // Group block backgrounds (drawn under the rows so the group reads as one block)
         for (int i = 0; i < rows.size(); i++) {
             RenderRow r = rows.get(i);
             if (!(r.node instanceof Group g)) continue;
@@ -1637,13 +1642,11 @@ public class KuudraScreen extends Screen {
         }
         ctx.disableScissor();
 
-        // tab fade-in
         if (tabAnim < 1f) {
             int a = (int)((1f - ease) * 200) << 24;
             ctx.fill(cx, cy, cx + cw, cy + ch, (C_BG & 0xFFFFFF) | a);
         }
 
-        // scrollbar
         sbMaxScroll = maxScroll;
         if (maxScroll > 0) {
             int sbX = cx + cw - 5;
@@ -1667,7 +1670,6 @@ public class KuudraScreen extends Screen {
         ctx.fill(x, y, x + w, y + ROW_H, hov ? 0x14FFFFFF : 0x0CFFFFFF);
         ctx.fill(x, y, x + w, y + 1, 0x22FFFFFF);
 
-        // arrow
         String arrow = a > 0.5f ? "▾" : "▸";
         ctx.text(font, Component.literal(arrow),
                 x + 6, y + (ROW_H - font.lineHeight) / 2, expanded ? C_ACCENT : C_TEXT_DIM);

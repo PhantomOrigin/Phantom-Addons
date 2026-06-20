@@ -40,7 +40,7 @@ public final class PhantomCommands {
     private PhantomCommands() {}
 
     public static void register() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
                 dispatcher.register(
                         ClientCommands.literal("phantom")
                                 .then(ClientCommands.literal("phase")
@@ -76,8 +76,26 @@ public final class PhantomCommands {
                                                 )
                                         )
                                 )
-                )
-        );
+                );
+
+                for (int t = 1; t <= 5; t++) {
+                    final String instance = TIER_INSTANCES[t - 1];
+                    dispatcher.register(
+                            ClientCommands.literal("t" + t)
+                                    .executes(ctx -> { joinInstance(instance); return 1; })
+                    );
+                }
+        });
+    }
+
+    private static final String[] TIER_INSTANCES = {
+            "KUUDRA_NORMAL", "KUUDRA_HOT", "KUUDRA_BURNING", "KUUDRA_FIERY", "KUUDRA_INFERNAL"
+    };
+
+    private static void joinInstance(String instance) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.getConnection() == null) return;
+        mc.execute(() -> mc.getConnection().sendCommand("joininstance " + instance));
     }
 
     private static void showAllPbs() {
