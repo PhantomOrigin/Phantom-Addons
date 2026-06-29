@@ -224,6 +224,71 @@ public class KuudraScreen extends Screen {
         }
     }
 
+    // ── TextInput ─────────────────────────────────────────────────────────────
+
+    private static class TextInput extends Feature {
+        final Supplier<String> get; final Consumer<String> set;
+        String  draft   = null;
+        boolean focused = false;
+        // cached from last render so onDown uses the same geometry
+        private int lastFx, lastFy, lastFw, lastFh;
+        TextInput(String n, Tab t, Supplier<String> get, Consumer<String> set) {
+            super(n, t); this.get = get; this.set = set;
+        }
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            ctx.text(s.font, Component.literal(name),
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+            String display = draft != null ? draft : stripNamespace(get.get());
+            if (display == null) display = "";
+            // Give the field most of the row width — just leave the label and a small gap
+            int labelW = s.font.width(name);
+            int fx = x + 8 + labelW + 8, fy = y + 3, fw = w - fx + x - 8, fh = ROW_H - 6;
+            if (fw < 30) fw = 30;
+            lastFx = fx; lastFy = fy; lastFw = fw; lastFh = fh;
+            ctx.fill(fx, fy, fx + fw, fy + fh, focused ? 0xFF1A2A44 : 0xFF0F1218);
+            ctx.fill(fx, fy + fh - 1, fx + fw, fy + fh, focused ? C_ACCENT : C_BORDER);
+            // Scroll to show the end of the string so the user sees what they're typing
+            int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
+            String shown = display.length() > maxChars
+                    ? display.substring(display.length() - maxChars) : display;
+            ctx.text(s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+        }
+        @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            if (mx >= lastFx && mx <= lastFx + lastFw && my >= lastFy && my <= lastFy + lastFh) {
+                focused = true;
+                String raw = get.get();
+                draft = raw != null ? stripNamespace(raw) : "";
+                return true;
+            }
+            if (focused) { commit(); focused = false; }
+            return false;
+        }
+        @Override void onKey(int key) {
+            if (!focused) return;
+            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
+            else if (key == 259 && draft != null && !draft.isEmpty())
+                draft = draft.substring(0, draft.length() - 1);
+        }
+        @Override void onChar(char c) {
+            if (focused) { if (draft == null) draft = ""; draft += c; }
+        }
+        @Override boolean isCapturing() { return focused; }
+        @Override void cancel() { if (focused) { commit(); focused = false; } }
+        void commit() {
+            if (draft != null) set.accept(addNamespace(draft));
+            draft = null;
+        }
+        // Strip "minecraft:" prefix for display; restore it on commit if no namespace typed
+        private static String stripNamespace(String s) {
+            if (s == null) return "";
+            return s.startsWith("minecraft:") ? s.substring("minecraft:".length()) : s;
+        }
+        private static String addNamespace(String s) {
+            if (s == null || s.isBlank()) return s;
+            return s.contains(":") ? s : "minecraft:" + s;
+        }
+    }
+
     // ── KeyCapture ────────────────────────────────────────────────────────────
 
     public static final int MOUSE_OFFSET = 2000;
@@ -692,6 +757,7 @@ public class KuudraScreen extends Screen {
     private final List<AddCategoryFeature> categoryInputs  = new ArrayList<>();
     private final List<VisualWordEntry>    vwInputs        = new ArrayList<>();
     private final List<RgbInput>           rgbInputs       = new ArrayList<>();
+    private final List<TextInput>          textInputs      = new ArrayList<>();
 
     // ── Build helpers ───────────────────────────────────────────────────────────
 
@@ -702,6 +768,7 @@ public class KuudraScreen extends Screen {
         if (f instanceof AddCategoryFeature a) categoryInputs.add(a);
         if (f instanceof VisualWordEntry v)    vwInputs.add(v);
         if (f instanceof RgbInput rgb)         rgbInputs.add(rgb);
+        if (f instanceof TextInput ti)         textInputs.add(ti);
         allLeaves.add(f);
         return new Leaf(f);
     }
@@ -724,6 +791,7 @@ public class KuudraScreen extends Screen {
         categoryInputs.clear();
         vwInputs.clear();
         rgbInputs.clear();
+        textInputs.clear();
 
         buildAboutTab();
         buildSuppliesTab();
@@ -770,6 +838,7 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isFastDpsWarningEnabled, KuudraConfig::setFastDpsWarningEnabled);
         fastDps.add(leaf(new Toggle("Fast DPS Notification", T,
                 KuudraConfig::isFastDpsNotifyEnabled, KuudraConfig::setFastDpsNotifyEnabled)));
+        fastDps.add(soundGroup(T, KuudraConfig.SOUND_FAST_DPS));
         roots.add(fastDps);
     }
 
@@ -784,10 +853,13 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isAnnounceFreshEnabled, KuudraConfig::setAnnounceFreshEnabled);
         announce.add(leaf(new Toggle("Fresh Notification", T,
                 KuudraConfig::isFreshNotifyEnabled, KuudraConfig::setFreshNotifyEnabled)));
+        announce.add(soundGroup(T, KuudraConfig.SOUND_FRESH));
         roots.add(announce);
 
-        roots.add(leaf(new Toggle("Build Started Notification", T,
-                KuudraConfig::isBuildStartedNotifyEnabled, KuudraConfig::setBuildStartedNotifyEnabled)));
+        Group buildStarted = group("Build Started Notification", T, null,
+                KuudraConfig::isBuildStartedNotifyEnabled, KuudraConfig::setBuildStartedNotifyEnabled);
+        buildStarted.add(soundGroup(T, KuudraConfig.SOUND_BUILD_STARTED));
+        roots.add(buildStarted);
         Group buildBeacons = group("Build Beacons", T, null,
                 KuudraConfig::isBuildBeaconsEnabled, KuudraConfig::setBuildBeaconsEnabled);
         buildBeacons.add(leaf(new Slider("Opacity", T,
@@ -809,7 +881,18 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isNoPreAnnounceEnabled, KuudraConfig::setNoPreAnnounceEnabled);
         noPre.add(leaf(new Toggle("No Pre Notification", T,
                 KuudraConfig::isNoPreNotifyEnabled, KuudraConfig::setNoPreNotifyEnabled)));
+        noPre.add(soundGroup(T, KuudraConfig.SOUND_NO_PRE));
         roots.add(noPre);
+
+        Group supplyGrabbed = group("Supply Grabbed Notification", T, null,
+                KuudraConfig::isSupplyGrabbedNotifyEnabled, KuudraConfig::setSupplyGrabbedNotifyEnabled);
+        supplyGrabbed.add(soundGroup(T, KuudraConfig.SOUND_SUPPLY_GRABBED));
+        roots.add(supplyGrabbed);
+
+        Group supplyDropped = group("Supply Dropped Notification", T, null,
+                KuudraConfig::isSupplyDroppedNotifyEnabled, KuudraConfig::setSupplyDroppedNotifyEnabled);
+        supplyDropped.add(soundGroup(T, KuudraConfig.SOUND_SUPPLY_DROPPED));
+        roots.add(supplyDropped);
 
         roots.add(leaf(new Toggle("Crate Priority", T,
                 KuudraConfig::isCratePriorityEnabled, KuudraConfig::setCratePriorityEnabled)));
@@ -889,6 +972,7 @@ public class KuudraScreen extends Screen {
         bcnCol.add(leaf(new RgbInput("Normal target",  T, KuudraConfig::getBeaconColNormal,  KuudraConfig::setBeaconColNormal)));
         bcnCol.add(leaf(new RgbInput("Correct target", T, KuudraConfig::getBeaconColCorrect, KuudraConfig::setBeaconColCorrect)));
         wp.add(bcnCol);
+        wp.add(soundGroup(T, KuudraConfig.SOUND_PEARL_NOW));
 
         roots.add(wp);
 
@@ -912,6 +996,7 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSoloDetectorEnabled, KuudraConfig::setSoloDetectorEnabled);
         solo.add(leaf(new Toggle("Solo Notification", T,
                 KuudraConfig::isSoloNotifyEnabled, KuudraConfig::setSoloNotifyEnabled)));
+        solo.add(soundGroup(T, KuudraConfig.SOUND_SOLO));
         roots.add(solo);
 
         Group hp = group("Kuudra HP HUD", T, null,
@@ -943,10 +1028,50 @@ public class KuudraScreen extends Screen {
     private void buildMiscTab() {
         Tab T = Tab.MISC;
 
+        Group profit = group("Profit Tracker", T, null,
+                KuudraConfig::isProfitTrackerEnabled, KuudraConfig::setProfitTrackerEnabled);
+        profit.add(leaf(new Toggle("Show During Run", T,
+                KuudraConfig::isProfitShowDuringRun, KuudraConfig::setProfitShowDuringRun)));
+        profit.add(leaf(new Cycle("Armor", T,
+                () -> KuudraConfig.isProfitArmorSalvage() ? "Salvage" : "Sell",
+                () -> KuudraConfig.setProfitArmorSalvage(!KuudraConfig.isProfitArmorSalvage()))));
+        profit.add(leaf(new Cycle("Faction", T,
+                () -> KuudraConfig.isProfitFactionMage() ? "Mage" : "Barbarian",
+                () -> KuudraConfig.setProfitFactionMage(!KuudraConfig.isProfitFactionMage()))));
+        profit.add(leaf(new Toggle("Highlight Unopened Chests", T,
+                KuudraConfig::isProfitHighlightChests, KuudraConfig::setProfitHighlightChests)));
+        profit.add(leaf(new Toggle("Reroll Calculator", T,
+                KuudraConfig::isProfitRerollCalc, KuudraConfig::setProfitRerollCalc)));
+        profit.add(leaf(new Cycle("Bazaar Sell", T,
+                () -> KuudraConfig.isProfitBazaarInstaSell() ? "Instasell" : "Sell Order",
+                () -> KuudraConfig.setProfitBazaarInstaSell(!KuudraConfig.isProfitBazaarInstaSell()))));
+        profit.add(leaf(new Cycle("Bazaar Buy", T,
+                () -> KuudraConfig.isProfitBazaarInstaBuy() ? "Instabuy" : "Buy Order",
+                () -> KuudraConfig.setProfitBazaarInstaBuy(!KuudraConfig.isProfitBazaarInstaBuy()))));
+        profit.add(leaf(new Toggle("Chest Value GUI", T,
+                KuudraConfig::isChestValueGuiEnabled, KuudraConfig::setChestValueGuiEnabled)));
+        profit.add(leaf(new Cycle("Kuudra Pet", T,
+                () -> {
+                    KuudraConfig.KuudraPetRarity r = KuudraConfig.getKuudraPetRarity();
+                    String name = r.name().charAt(0) + r.name().substring(1).toLowerCase();
+                    return name;
+                },
+                () -> {
+                    KuudraConfig.KuudraPetRarity[] vals = KuudraConfig.KuudraPetRarity.values();
+                    int next = (KuudraConfig.getKuudraPetRarity().ordinal() + 1) % vals.length;
+                    KuudraConfig.setKuudraPetRarity(vals[next]);
+                })));
+        profit.add(leaf(new RangeSlider("Pet Level", T, 1, 100, "%.0f",
+                () -> (float) KuudraConfig.getKuudraPetLevel(),
+                v  -> KuudraConfig.setKuudraPetLevel(Math.round(v)))));
+        roots.add(profit);
+
         roots.add(leaf(new Toggle("Pearl Refill", T,
                 KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled)));
-        roots.add(leaf(new Toggle("Kicked Notification", T,
-                KuudraConfig::isKickedNotificationEnabled, KuudraConfig::setKickedNotificationEnabled)));
+        Group kicked = group("Kicked Notification", T, null,
+                KuudraConfig::isKickedNotificationEnabled, KuudraConfig::setKickedNotificationEnabled);
+        kicked.add(soundGroup(T, KuudraConfig.SOUND_KICKED));
+        roots.add(kicked);
         roots.add(leaf(new Toggle("Auto Requeue", T,
                 KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled)));
         roots.add(leaf(new Toggle("Hide Falling Blocks", T,
@@ -1213,6 +1338,24 @@ public class KuudraScreen extends Screen {
                 UpdateChecker::downloadManually)));
     }
 
+    // ── Sound group helper ────────────────────────────────────────────────────
+
+    private Group soundGroup(Tab tab, String soundKey) {
+        Group g = group("Sound", tab, null,
+                () -> KuudraConfig.isNotificationSoundEnabled(soundKey),
+                v  -> KuudraConfig.setNotificationSoundEnabled(soundKey, v));
+        g.add(leaf(new TextInput("Sound ID", tab,
+                () -> KuudraConfig.getNotificationSoundId(soundKey),
+                v  -> KuudraConfig.setNotificationSoundId(soundKey, v))));
+        g.add(leaf(new RangeSlider("Volume", tab, 0f, 2f, "%.2f",
+                () -> KuudraConfig.getNotificationSoundVolume(soundKey),
+                v  -> KuudraConfig.setNotificationSoundVolume(soundKey, v))));
+        g.add(leaf(new RangeSlider("Pitch", tab, 0.1f, 4f, "%.2f",
+                () -> KuudraConfig.getNotificationSoundPitch(soundKey),
+                v  -> KuudraConfig.setNotificationSoundPitch(soundKey, v))));
+        return g;
+    }
+
     // ── Range slider helpers ────────────────────────────────────────────────────
 
     private void addRangeSliders(Group g, Tab tab, ItemTransformSettings s) {
@@ -1225,6 +1368,9 @@ public class KuudraScreen extends Screen {
         g.add(leaf(rs(tab, "scale",     0.25f,  3.0f,  "%.2f×", () -> s.scale,      v -> { s.scale      = v; KuudraConfig.save(); })));
         g.add(leaf(rs(tab, "swing spd", 0.25f,  3.0f,  "%.2f×", () -> s.swingSpeed, v -> { s.swingSpeed = v; KuudraConfig.save(); })));
         g.add(leaf(rs(tab, "proximity", -1.0f,  1.0f,  "%.3f",       () -> s.proximity,  v -> { s.proximity  = v; KuudraConfig.save(); })));
+        g.add(leaf(new Toggle("No Equip Animation", tab, () -> s.noEquipAnimation, v -> { s.noEquipAnimation = v; KuudraConfig.save(); })));
+        g.add(leaf(new Toggle("In Place Swing",     tab, () -> s.inPlaceSwing,     v -> { s.inPlaceSwing     = v; KuudraConfig.save(); })));
+        g.add(leaf(new Toggle("Static Position",    tab, () -> s.staticPosition,   v -> { s.staticPosition   = v; KuudraConfig.save(); })));
     }
 
     private RangeSlider rs(Tab tab, String name, float min, float max, String fmt,
@@ -1396,6 +1542,7 @@ public class KuudraScreen extends Screen {
                     categoryInputs.forEach(Feature::cancel);
                     vwInputs.forEach(Feature::cancel);
                     rgbInputs.forEach(Feature::cancel);
+                    textInputs.forEach(Feature::cancel);
                     currentTab = tabs[i];
                     tabAnim = 0f;
                     scroll = 0;
@@ -1408,6 +1555,7 @@ public class KuudraScreen extends Screen {
         categoryInputs.forEach(f -> { if (f.focused) f.focused = false; });
         vwInputs.forEach(Feature::cancel);
         rgbInputs.forEach(Feature::cancel);
+        textInputs.forEach(Feature::cancel);
 
         if (mx >= cx() && mx <= cx() + cw() && my >= cy() && my <= cy() + ch()) {
             for (RenderRow r : layoutRows()) {
@@ -1494,6 +1642,10 @@ public class KuudraScreen extends Screen {
             intInputs.forEach(f -> f.onKey(key));
             return true;
         }
+        if (textInputs.stream().anyMatch(Feature::isCapturing)) {
+            textInputs.forEach(f -> f.onKey(key));
+            return true;
+        }
         if (key == 256 && searchField != null && searchField.isFocused()) {
             searchField.setFocused(false);
             this.setFocused(null);
@@ -1517,6 +1669,10 @@ public class KuudraScreen extends Screen {
         }
         if (intInputs.stream().anyMatch(Feature::isCapturing)) {
             intInputs.forEach(f -> f.onChar((char) input.codepoint()));
+            return true;
+        }
+        if (textInputs.stream().anyMatch(Feature::isCapturing)) {
+            textInputs.forEach(f -> f.onChar((char) input.codepoint()));
             return true;
         }
         if (searchField != null && searchField.isFocused()) return super.charTyped(input);

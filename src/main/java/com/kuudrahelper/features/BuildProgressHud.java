@@ -51,6 +51,7 @@ public final class BuildProgressHud {
                 if (!buildStartedNotified && KuudraConfig.isBuildStartedNotifyEnabled()) {
                     buildStartedNotified = true;
                     NotificationHud.show("§eBuild Started!", 3000);
+                    KuudraConfig.playNotificationSound(KuudraConfig.SOUND_BUILD_STARTED);
                 }
             }
         });

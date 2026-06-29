@@ -21,10 +21,21 @@ public final class RendTracker {
     private static ItemStack heldAtBackbone    = null;
     private static long manaDrainMs            = -1;
 
+    // Buffered pull — stored when the player clicks before backbone hit registers
+    private static long      pendingPullMs   = -1;
+    private static ItemStack pendingPullItem = null;
+    private static final long PULL_BUFFER_MS = 400;
+
     private RendTracker() {}
 
     public static void onKillPhaseStart() {
         if (killPhaseStartMs > 0) return;
+        killPhaseStartMs = System.currentTimeMillis();
+        clearCycle();
+    }
+
+    /** Called specifically when BOSS phase starts; always resets so timing is from BOSS, not STUN. */
+    public static void onBossPhaseStart() {
         killPhaseStartMs = System.currentTimeMillis();
         clearCycle();
     }
@@ -40,11 +51,13 @@ public final class RendTracker {
         helmetAtBackbone       = null;
         heldAtBackbone         = null;
         manaDrainMs            = -1;
+        pendingPullMs          = -1;
+        pendingPullItem        = null;
     }
 
     public static void onBonemerangThrow() {
         if (!KuudraConfig.isRendTrackerEnabled()) return;
-        if (!isBossPhase()) return;
+        if (!isKillPhase()) return;
         if (killPhaseStartMs < 0) return;
         clearCycle();
         int pingTicks = (int) Math.round(KuudraConfig.getLowPing() / 50.0);
@@ -52,19 +65,24 @@ public final class RendTracker {
     }
 
     public static void onManaDrain() {
-        if (!isBossPhase()) return;
+        if (!isKillPhase()) return;
         if (backboneHitMs < 0) return;
         if (manaDrainMs < 0) manaDrainMs = System.currentTimeMillis();
     }
 
     public static void onLeftClick(ItemStack item) {
         if (!KuudraConfig.isRendTrackerEnabled()) return;
-        if (!isBossPhase()) return;
-        if (backboneHitMs < 0) return;
+        if (!isKillPhase()) return;
         if (!hasRendInItem(item)) return;
         long pullMs = System.currentTimeMillis();
-        printOutput(item.copy(), pullMs);
-        clearCycle();
+        if (backboneHitMs >= 0) {
+            printOutput(item.copy(), pullMs);
+            clearCycle();
+        } else {
+            // Backbone hit not yet registered — buffer the pull and resolve in tick()
+            pendingPullMs   = pullMs;
+            pendingPullItem = item.copy();
+        }
     }
 
     private static boolean hasRendInItem(ItemStack stack) {
@@ -80,7 +98,14 @@ public final class RendTracker {
     }
 
     public static void tick() {
-        if (!isBossPhase()) return;
+        if (!isKillPhase()) return;
+
+        // Expire a buffered pull that never got a backbone hit
+        if (pendingPullMs >= 0 && System.currentTimeMillis() - pendingPullMs > PULL_BUFFER_MS) {
+            pendingPullMs   = -1;
+            pendingPullItem = null;
+        }
+
         if (backboneTicksRemaining <= 0) return;
         backboneTicksRemaining--;
         if (backboneTicksRemaining == 0) {
@@ -90,11 +115,19 @@ public final class RendTracker {
                 helmetAtBackbone = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).copy();
                 heldAtBackbone   = mc.player.getMainHandItem().copy();
             }
+            // If the player already clicked the pull item before backbone hit was registered, fire now
+            if (pendingPullMs >= 0) {
+                printOutput(pendingPullItem, pendingPullMs);
+                clearCycle();
+            }
         }
     }
 
-    private static boolean isBossPhase() {
-        return KuudraPhaseTracker.getPhase() == KuudraPhaseTracker.Phase.BOSS;
+    private static boolean isKillPhase() {
+        KuudraPhaseTracker.Phase p = KuudraPhaseTracker.getPhase();
+        return p == KuudraPhaseTracker.Phase.STUN
+            || p == KuudraPhaseTracker.Phase.DPS
+            || p == KuudraPhaseTracker.Phase.BOSS;
     }
 
     private static void printOutput(ItemStack pullItem, long pullMs) {

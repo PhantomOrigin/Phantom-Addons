@@ -56,6 +56,7 @@ public final class AnnounceFresh {
             String pctStr = progress >= 0 ? progress + "%" : "0%";
             if (KuudraConfig.isFreshNotifyEnabled()) {
                 NotificationHud.show("§aFresh!", 3000);
+                KuudraConfig.playNotificationSound(KuudraConfig.SOUND_FRESH);
             }
             mc.execute(() -> {
                 if (mc.getConnection() != null)

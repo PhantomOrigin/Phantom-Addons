@@ -24,6 +24,13 @@ public final class RendDamage {
     private RendDamage() {}
 
     public static void onKillPhaseStart() {
+        if (phaseStartMs >= 0) return; // already started — keep original timestamp and lastHp
+        lastHp       = KUUDRA_MAX_HP;
+        phaseStartMs = System.currentTimeMillis();
+    }
+
+    /** Called specifically when BOSS phase starts; always resets so timing is from BOSS, not STUN. */
+    public static void onBossPhaseStart() {
         lastHp       = KUUDRA_MAX_HP;
         phaseStartMs = System.currentTimeMillis();
     }
@@ -39,7 +46,9 @@ public final class RendDamage {
             if (client.level == null || client.player == null) return;
 
             Phase phase = KuudraPhaseTracker.getPhase();
-            if (phase != Phase.BOSS) return;
+            if (phase == Phase.SUPPLIES || phase == Phase.BUILD
+                    || phase == Phase.EATEN || phase == Phase.SKIP
+                    || phase == Phase.END || phase == Phase.NONE) return;
 
             Slime kuudra = findKuudra(client);
             if (kuudra == null) return;
@@ -48,6 +57,8 @@ public final class RendDamage {
             if (hp <= 0) { reset(); return; }
 
             int diff = lastHp - hp;
+            lastHp = hp;
+
             if (diff >= MIN_PULL_DIFF) {
                 long damage  = (long) diff * HP_MULTIPLIER;
                 long elapsed = phaseStartMs >= 0 ? System.currentTimeMillis() - phaseStartMs : 0;
@@ -59,8 +70,6 @@ public final class RendDamage {
                                 formatElapsed(elapsed))
                 ));
             }
-
-            lastHp = hp;
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());

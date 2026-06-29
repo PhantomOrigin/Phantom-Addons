@@ -33,6 +33,7 @@ public final class FastDpsWarning {
 
         if (KuudraConfig.isFastDpsNotifyEnabled()) {
             NotificationHud.show("§cFAST DPS!", 3000);
+            KuudraConfig.playNotificationSound(KuudraConfig.SOUND_FAST_DPS);
         }
 
         if (!KuudraConfig.isFastDpsWarningEnabled()) return;

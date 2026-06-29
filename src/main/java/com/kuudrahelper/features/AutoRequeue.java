@@ -8,9 +8,9 @@ import net.minecraft.client.Minecraft;
 public final class AutoRequeue {
 
     private static final String ELLE_FISHING =
-            "[NPC] Elle: Okay adventurers, I will go and fish up Kuudra!";
+            "[npc] elle: okay adventurers, i will go and fish up kuudra!";
     private static final String REQUEUE_CONFIRM = "you have been re-queued!";
-    private static final String REQUEUE_CLICK   = "Click HERE to re-queue into Kuudra's Hollow!";
+    private static final String REQUEUE_CLICK   = "click here to re-queue into kuudra's hollow!";
     private static final long BACKUP_REQUEUE_DELAY_MS = 1_500L;
 
     private static boolean requeued = false;
@@ -69,7 +69,7 @@ public final class AutoRequeue {
 
             if (raw.contains(REQUEUE_CLICK)) {
                 requeued = true;
-                pendingBackupRequeueAtMs = System.currentTimeMillis() + BACKUP_REQUEUE_DELAY_MS;
+                pendingBackupRequeueAtMs = System.currentTimeMillis();
             }
         });
     }

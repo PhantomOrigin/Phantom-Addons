@@ -9,19 +9,20 @@ import net.minecraft.network.chat.Component;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 8;
+    private static final int N = 10;
 
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Pearl Title",
-        "Build Progress", "Notifications", "Crate Priority", "Kuudra HP"
+        "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
+        "Profit Tracker", "Chest Value"
     };
 
-    private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165 };
-    private static final int[] BASE_H = { 30,  36,  95,  28,  28,   28,  18,  22 };
+    private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165, 135, 115 };
+    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  22, 115,  85 };
 
-    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f };
+    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
-    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true };
+    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true, false, false };
 
     private final float[] px = new float[N];
     private final float[] py = new float[N];
@@ -83,6 +84,14 @@ public class HudEditorScreen extends Screen {
         px[7] = KuudraConfig.getKuudraHpHudX();
         py[7] = KuudraConfig.getKuudraHpHudY();
         ps[7] = KuudraConfig.getKuudraHpHudScale();
+
+        px[8] = KuudraConfig.getProfitHudX();
+        py[8] = KuudraConfig.getProfitHudY();
+        ps[8] = KuudraConfig.getProfitHudScale();
+
+        px[9] = KuudraConfig.getChestValueHudX();
+        py[9] = KuudraConfig.getChestValueHudY();
+        ps[9] = KuudraConfig.getChestValueHudScale();
     }
 
     @Override
@@ -118,6 +127,14 @@ public class HudEditorScreen extends Screen {
         KuudraConfig.setKuudraHpHudX(px[7]);
         KuudraConfig.setKuudraHpHudY(py[7]);
         KuudraConfig.setKuudraHpHudScale(ps[7]);
+
+        KuudraConfig.setProfitHudX(px[8]);
+        KuudraConfig.setProfitHudY(py[8]);
+        KuudraConfig.setProfitHudScale(ps[8]);
+
+        KuudraConfig.setChestValueHudX(px[9]);
+        KuudraConfig.setChestValueHudY(py[9]);
+        KuudraConfig.setChestValueHudScale(ps[9]);
 
         KuudraConfig.save();
         minecraft.setScreen(parent);
@@ -257,6 +274,40 @@ public class HudEditorScreen extends Screen {
                 ctx.fill(-barW / 2, 0, barW / 2, 8, 0xAA000000);
                 ctx.fill(-barW / 2, 0, barW / 4, 8, 0xFF44AA44);
             }
+            case 8 -> { // Profit Tracker
+                m.translate(bx + 2, by + 2);
+                m.scale(s, s);
+                String[] lines = {
+                    "§6§lProfit Tracker §7(Session)",
+                    "§bTotal Gains:§r §f332M",
+                    "§bTotal Expenses:§r §c-225M",
+                    "§7  Items: §f125M",
+                    "§7  Essence: §f172M",
+                    "§7  Keys: §c-180M",
+                    "§7  Kismets: §c-45M",
+                    "§bAvg Time:§r §f1:00",
+                    "§bTotal Profit:§r §a107M",
+                    "§bTotal Runs:§r §f60",
+                    "§bProfit/Hour:§r §f107M/H"
+                };
+                int y = 0;
+                for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
+            }
+            case 9 -> { // Chest Value
+                m.translate(bx + 2, by + 2);
+                m.scale(s, s);
+                String[] lines = {
+                    "§6§lChest Value §7(T5)",
+                    "§bChest Value:§r §f50.0M",
+                    "§7  Items: §f35.0M",
+                    "§7  Essence: §f15.0M",
+                    "§bExpenses:§r §c-12.0M",
+                    "§7  Key: §c-10.0M",
+                    "§bChest Profit:§r §a38.0M"
+                };
+                int y = 0;
+                for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
+            }
         }
 
         m.popMatrix();
@@ -354,6 +405,8 @@ public class HudEditorScreen extends Screen {
         px[5] = 0.5f;   py[5] = 0.15f; ps[5] = 1.5f;
         px[6] = 0.5f;   py[6] = 0.6f;  ps[6] = 2.0f;
         px[7] = 0.5f;   py[7] = 0.07f; ps[7] = 1.0f;
+        px[8] = 0.01f;  py[8] = 0.5f;  ps[8] = 1.0f;
+        px[9] = 0.3f;   py[9] = 0.3f;  ps[9] = 1.0f;
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

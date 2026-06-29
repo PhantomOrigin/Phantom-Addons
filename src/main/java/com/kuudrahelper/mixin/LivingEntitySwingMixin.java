@@ -37,7 +37,7 @@ public class LivingEntitySwingMixin {
         float speed = (s.swingSpeed > 0.001f) ? s.swingSpeed : 1f;
         if (Math.abs(speed - 1f) < 0.01f) return;
 
-        int base = cir.getReturnValue();
-        cir.setReturnValue(Math.max(1, Math.round(base / speed)));
+        // Use vanilla base (6 ticks) so haste/fatigue don't affect the configured speed
+        cir.setReturnValue(Math.max(1, Math.round(6f / speed)));
     }
 }

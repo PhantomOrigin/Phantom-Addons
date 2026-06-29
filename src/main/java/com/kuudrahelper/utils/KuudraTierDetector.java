@@ -2,11 +2,9 @@ package com.kuudrahelper.utils;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
 
 import java.util.ArrayList;
@@ -15,6 +13,7 @@ import java.util.List;
 public final class KuudraTierDetector {
 
     private static int     kuudraTier       = 0;
+    private static int     lastKnownTier    = 0; // persists when leaving Hollow
     private static int     tickCounter      = 0;
     private static boolean inKuudraHollow   = false;
     private static boolean inDungeonHub     = false;
@@ -40,8 +39,7 @@ public final class KuudraTierDetector {
         for (String line : getSidebarLines(client)) {
             String clean = line.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
 
-            if (clean.contains("Kuudra's Hollow") || clean.contains("Kuudra"))
-                inKuudraHollow = true;
+            if (clean.contains("Kuudra's Hollow")) inKuudraHollow   = true;
             if (clean.contains("Dungeon Hub"))     inDungeonHub     = true;
             if (clean.contains("Forgotten Skull")) inForgottenSkull = true;
 
@@ -53,6 +51,7 @@ public final class KuudraTierDetector {
                 else if (clean.contains("(T5)")) kuudraTier = 5;
             }
         }
+        if (kuudraTier > 0) lastKnownTier = kuudraTier;
     }
 
     private static List<String> getSidebarLines(Minecraft client) {
@@ -63,16 +62,22 @@ public final class KuudraTierDetector {
         Objective  sidebar    = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
         if (sidebar == null) return lines;
 
-        for (ScoreHolder holder : scoreboard.getTrackedPlayers()) {
-            String     name = holder.getScoreboardName();
-            PlayerTeam team = scoreboard.getPlayersTeam(name);
-            lines.add(PlayerTeam.formatNameForTeam(team,
-                    Component.literal(name)).getString());
+        for (var entry : scoreboard.listPlayerScores(sidebar)) {
+            // Hypixel uses single non-standard §x codes (§t, §h, §j …) as dummy score holder
+            // names. The actual display text is stored in the PlayerTeam prefix for each holder.
+            String holderName = entry.ownerName().getString();
+            PlayerTeam team = scoreboard.getPlayersTeam(holderName);
+            if (team != null) {
+                lines.add(team.getPlayerPrefix().getString() + team.getPlayerSuffix().getString());
+            } else {
+                lines.add(holderName);
+            }
         }
         return lines;
     }
 
     public static int     getTier()              { return kuudraTier; }
+    public static int     getLastKnownTier()     { return lastKnownTier; }
     public static boolean isInKuudraHollow()     { return inKuudraHollow; }
     public static boolean isInDungeonHub()        { return inDungeonHub; }
     public static boolean isInForgottenSkull()    { return inForgottenSkull; }

@@ -21,6 +21,11 @@ public final class StunPreviewRenderer {
     private static final int    T_FILL    = 255;
     private static final int    T_OUTLINE = 255;
 
+    // Static target highlight colour (yellow-green to contrast with the cyan preview)
+    private static final int SR = 80, SG = 255, SB = 80;
+    private static final int S_FILL    = 60;
+    private static final int S_OUTLINE = 200;
+
     private StunPreviewRenderer() {}
 
     public static void render(PoseStack matrices, Camera camera, float tickDelta) {
@@ -40,18 +45,30 @@ public final class StunPreviewRenderer {
 
         MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
+        // Preview block: target offset by player's displacement from the reference stand point
         double wx = TX + dx - cx;
         double wy = TY + dy - cy;
         double wz = TZ + dz - cz;
 
+        // Static block: fixed world position of the actual target (no player offset)
+        double sx = TX - cx;
+        double sy = TY - cy;
+        double sz = TZ - cz;
+
         for (int pass = 0; pass < 2; pass++) {
             if (pass == 1) GL11.glDepthFunc(519);
 
+            // In MC 26.1.2, BufferSource ends the active buffer when a second render type is
+            // requested, so fills and outlines must be flushed separately.
             VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
+            addFill(vf, m, sx, sy, sz, sx+1, sy+1, sz+1, SR, SG, SB, S_FILL);
+            addFill(vf, m, wx, wy, wz, wx+1, wy+1, wz+1, TR, TG, TB, T_FILL);
+            imm.endBatch(RenderTypes.debugQuads());
+
             VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
-            addFill   (vf, m, wx, wy, wz, wx+1, wy+1, wz+1, TR, TG, TB, T_FILL);
+            addOutline(vl, m, sx, sy, sz, sx+1, sy+1, sz+1, SR, SG, SB, S_OUTLINE);
             addOutline(vl, m, wx, wy, wz, wx+1, wy+1, wz+1, TR, TG, TB, T_OUTLINE);
-            imm.endBatch();
+            imm.endBatch(RenderTypes.lines());
 
             if (pass == 1) GL11.glDepthFunc(515);
         }

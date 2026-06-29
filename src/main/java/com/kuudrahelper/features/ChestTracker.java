@@ -2,6 +2,7 @@ package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.KuudraHelperMod;
+import com.kuudrahelper.features.profittracker.ChestValueOverlay;
 import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -28,7 +29,10 @@ public final class ChestTracker {
     private static int success = 0;
     private static int fail    = 0;
 
-    private static boolean pendingPcMessage = false;
+    private static boolean pendingPcMessage  = false;
+    private static long    lastChestOpenMs  = 0;
+    private static final long CHEST_SYNC_COOLDOWN_MS = 6_000;
+
 
     private ChestTracker() {}
 
@@ -87,14 +91,15 @@ public final class ChestTracker {
     }
 
     private static void handlePaidChest() {
+        ChestValueOverlay.commitOnPaidChest();
         if (total <= 0) return;
+        lastChestOpenMs = System.currentTimeMillis();
         total--;
         if (success > 0) success--;
 
         if (total == 0) {
             success = 0;
             fail    = 0;
-            save();
         }
 
         save();
@@ -103,7 +108,7 @@ public final class ChestTracker {
 
     private static void handleFreeChest() {
         if (total <= 0) return;
-
+        lastChestOpenMs = System.currentTimeMillis();
         total--;
 
         if (total == 0) {
@@ -123,6 +128,9 @@ public final class ChestTracker {
 
     public static void syncFromTabList(int tabTotal) {
         if (tabTotal == total) return;
+        // Suppress sync for a few seconds after a local chest open — Hypixel's tab
+        // list lags behind and would otherwise undo our decrement, causing a double-subtract.
+        if (System.currentTimeMillis() - lastChestOpenMs < CHEST_SYNC_COOLDOWN_MS) return;
 
         KuudraHelperMod.LOGGER.info(
                 "[ChestTracker] Tab sync: tab={} tracker={}", tabTotal, total);

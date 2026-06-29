@@ -79,6 +79,8 @@ public final class SlotBinds {
             if (Integer.valueOf(hotbarIndex).equals(existingHotbarIndex)) {
                 KuudraConfig.clearSlotBinding(invSlot);
                 sendMsg("\u00a77Removed binding for inventory slot " + invSlot + ".");
+            } else if (existingHotbarIndex != null) {
+                sendMsg("\u00a7cSlot " + invSlot + " already bound to hotbar " + (existingHotbarIndex + 1) + ". Bind again to remove it first.");
             } else {
                 KuudraConfig.putSlotBinding(invSlot, hotbarIndex);
                 sendMsg("\u00a7aBound inventory slot " + invSlot + " -> hotbar " + (hotbarIndex + 1) + ".");

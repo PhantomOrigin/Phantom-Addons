@@ -50,6 +50,7 @@ public final class SoloDetector {
     private static void triggerSoloAlert() {
         if (KuudraConfig.isSoloNotifyEnabled()) {
             NotificationHud.show("§cSOLO!", 3000);
+            KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SOLO);
         }
 
         Minecraft client = Minecraft.getInstance();

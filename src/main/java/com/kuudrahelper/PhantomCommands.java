@@ -1,5 +1,7 @@
 package com.kuudrahelper;
 
+import com.kuudrahelper.features.profittracker.ProfitHud;
+import com.kuudrahelper.features.profittracker.ProfitStore;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -61,6 +63,34 @@ public final class PhantomCommands {
                                 )
                                 .then(ClientCommands.literal("pb")
                                         .executes(ctx -> { showAllPbs(); return 1; })
+                                )
+                                .then(ClientCommands.literal("tracker")
+                                        .then(ClientCommands.literal("reset")
+                                                .executes(ctx -> {
+                                                    ProfitStore.resetAllTime();
+                                                    Minecraft mc = Minecraft.getInstance();
+                                                    if (mc.player != null) {
+                                                        mc.player.sendSystemMessage(Component.literal(
+                                                                PREFIX + "§aAll-time profit tracker reset."));
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
+                                )
+                                .then(ClientCommands.literal("force")
+                                        .then(ClientCommands.literal("tracker")
+                                                .executes(ctx -> {
+                                                    boolean on = KuudraConfig.toggleProfitTrackerForced();
+                                                    Minecraft mc = Minecraft.getInstance();
+                                                    if (mc.player != null) {
+                                                        mc.player.sendSystemMessage(Component.literal(
+                                                                PREFIX + "§eProfit tracker force "
+                                                                        + (on ? "§aenabled" : "§cdisabled") + "§r"
+                                                                        + (on ? " §7(showing regardless of location)" : "")));
+                                                    }
+                                                    return 1;
+                                                })
+                                        )
                                 )
                                 .then(ClientCommands.literal("setpb")
                                         .then(ClientCommands.argument("tier",

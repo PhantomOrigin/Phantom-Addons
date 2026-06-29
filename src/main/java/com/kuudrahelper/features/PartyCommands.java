@@ -89,6 +89,16 @@ public final class PartyCommands {
             return;
         }
 
+        if (cmd.equals("!allinv") || cmd.equals("!allinvite")) {
+            send("p settings allinvite");
+            return;
+        }
+
+        if (cmd.equals("!inv") || cmd.equals("!invite")) {
+            if (!word2.isEmpty()) send("p " + word2);
+            return;
+        }
+
         if (cmd.equals("!pt") || cmd.equals("!ptme")) {
             String target = resolveOrSelf(word2, sender);
             if (target != null) send("p transfer " + target);

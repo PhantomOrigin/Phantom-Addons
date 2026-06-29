@@ -99,8 +99,14 @@ public final class PearlWaypointRenderer {
         }
 
         boolean frameShouldThrow = anyAimed ? aimedThrow : targetThrow;
-        if (frameShouldThrow && !prevShouldThrow)
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 2.0f));
+        if (frameShouldThrow && !prevShouldThrow) {
+            KuudraConfig.NotificationSound ns = KuudraConfig.getNotificationSound(KuudraConfig.SOUND_PEARL_NOW);
+            if (ns.enabled) {
+                KuudraConfig.playNotificationSound(KuudraConfig.SOUND_PEARL_NOW);
+            } else {
+                mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 2.0f));
+            }
+        }
         prevShouldThrow = frameShouldThrow;
 
         imm.endBatch();

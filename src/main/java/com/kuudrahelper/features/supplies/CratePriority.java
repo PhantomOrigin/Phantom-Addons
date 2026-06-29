@@ -69,6 +69,7 @@ public final class CratePriority {
 
         if (KuudraConfig.isNoPreNotifyEnabled()) {
             NotificationHud.show("§fNo " + missingSpot + "!", 6000);
+            KuudraConfig.playNotificationSound(KuudraConfig.SOUND_NO_PRE);
         }
 
         if (!KuudraConfig.isCratePriorityEnabled()) return;

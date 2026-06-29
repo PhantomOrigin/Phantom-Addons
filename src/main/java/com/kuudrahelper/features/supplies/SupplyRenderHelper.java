@@ -26,8 +26,9 @@ public final class SupplyRenderHelper {
     private static final int PH_R = 255, PH_G = 255, PH_B = 255;
     private static final int PH_A = 160;
 
-    private static final float ROD_RADIUS  = 5.0f;
-    private static final int   CIRCLE_SEGS = 48;
+    private static final float  ROD_RADIUS   = 5.0f;
+    private static final int    CIRCLE_SEGS  = 48;
+    private static final double LAVA_SURFACE = 75.0; // supply crates always sit at this Y
 
     private SupplyRenderHelper() {}
 
@@ -87,8 +88,11 @@ public final class SupplyRenderHelper {
             List<Vec3> centers = clusterCenters(zombies);
             VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
             for (Vec3 ctr : centers) {
+                // Always draw at the lava surface so the circle is visible even when the
+                // supply entity is submerged below the lava.
+                double drawY = Math.max(ctr.y, LAVA_SURFACE);
                 drawHorizontalCircle(lines, m,
-                        ctr.x - camPos.x, ctr.y - camPos.y, ctr.z - camPos.z,
+                        ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
                         ROD_RADIUS, LB_R, LB_G, LB_B, OUTLINE_A);
             }
             imm.endBatch();

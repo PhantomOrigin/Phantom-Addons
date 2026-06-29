@@ -37,6 +37,11 @@ public final class KuudraSplitTimer {
     private static int globalTick = 0;
     private static Split activeSplit = null;
 
+    // Track BUILD phase start/end separately for FRESH! grace period
+    private static long buildPhaseStartMs = -1;
+    private static long buildPhaseEndMs   = -1;
+    private static final long FRESH_GRACE_MS = 2_000;
+
     private static final EnumMap<Split, PhaseResult> results = new EnumMap<>(Split.class);
     private static final List<SupplyTime> supplyTimes = new ArrayList<>();
 
@@ -84,16 +89,15 @@ public final class KuudraSplitTimer {
                 }
             }
 
-            if (text.contains("Party > ") && text.contains(": FRESH!")) {
-                Matcher fm = FRESH_PAT.matcher(text);
-                if (fm.find() && activeSplit == Split.BUILD && phaseStartMs >= 0) {
-                    double elapsed = (System.currentTimeMillis() - phaseStartMs) / 1000.0;
-                    int pct = fm.group(2) != null
-                            ? Integer.parseInt(fm.group(2))
-                            : com.kuudrahelper.features.BuildProgressHud.getCurrentProgress();
-                    runFreshTimes.add(new KuudraConfig.PlayerTime(fm.group(1), elapsed, pct));
-                }
-            }
+            handleFreshMessage(text);
+        });
+
+        // Party chat messages (signed) come through CHAT, not GAME — also catch FRESH! there.
+        net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.CHAT.register(
+                (msg, signed, sender, params, ts) -> {
+            if (runStartMs <= 0) return;
+            String text = msg.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            handleFreshMessage(text);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -110,6 +114,27 @@ public final class KuudraSplitTimer {
         });
     }
 
+    private static void handleFreshMessage(String text) {
+        if (!text.contains("Party > ") || !text.contains(": FRESH!")) return;
+        Matcher fm = FRESH_PAT.matcher(text);
+        if (!fm.find()) return;
+
+        // Accept during BUILD phase, or within FRESH_GRACE_MS after BUILD ends.
+        // The "last supply" FRESH! often arrives just after the BUILD→EATEN phase
+        // transition because both are triggered by the same supply delivery event.
+        boolean inBuild  = activeSplit == Split.BUILD && phaseStartMs >= 0;
+        boolean inGrace  = !inBuild && buildPhaseStartMs >= 0 && buildPhaseEndMs > 0
+                && (System.currentTimeMillis() - buildPhaseEndMs) <= FRESH_GRACE_MS;
+        if (!inBuild && !inGrace) return;
+
+        long   refStartMs = inBuild ? phaseStartMs : buildPhaseStartMs;
+        double elapsed    = (System.currentTimeMillis() - refStartMs) / 1000.0;
+        int pct = fm.group(2) != null
+                ? Integer.parseInt(fm.group(2))
+                : com.kuudrahelper.features.BuildProgressHud.getCurrentProgress();
+        runFreshTimes.add(new KuudraConfig.PlayerTime(fm.group(1), elapsed, pct));
+    }
+
     public static void reset() {
         if (pendingAnnounce) {
             pendingAnnounce = false;
@@ -123,6 +148,8 @@ public final class KuudraSplitTimer {
         runEndMs = -1;
         phaseStartMs = -1;
         phaseStartTick = 0;
+        buildPhaseStartMs = -1;
+        buildPhaseEndMs   = -1;
 
         results.clear();
         supplyTimes.clear();
@@ -158,6 +185,8 @@ public final class KuudraSplitTimer {
         lastStunPos = null;
         inEatenPhase = false;
         playerLastPositions.clear();
+        buildPhaseStartMs = -1;
+        buildPhaseEndMs   = -1;
 
         runStartMs = System.currentTimeMillis();
         runEndMs = -1;
@@ -308,6 +337,7 @@ public final class KuudraSplitTimer {
         activeSplit = s;
         phaseStartMs = System.currentTimeMillis();
         phaseStartTick = globalTick;
+        if (s == Split.BUILD) buildPhaseStartMs = phaseStartMs;
     }
 
     private static void endSplit(Split s) {
@@ -320,6 +350,7 @@ public final class KuudraSplitTimer {
         double tickSec = (endTick - phaseStartTick) * 0.05;
 
         results.put(s, new PhaseResult(wallSec, tickSec));
+        if (s == Split.BUILD) buildPhaseEndMs = endMs;
         activeSplit = null;
     }
 

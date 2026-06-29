@@ -181,14 +181,64 @@ public final class UpdateChecker {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 Files.move(staging, finalJar, StandardCopyOption.REPLACE_EXISTING);
-                if (!currentJar.equals(finalJar)) Files.deleteIfExists(currentJar);
-                KuudraHelperMod.LOGGER.info("[PhantomAddons] Installed {}. Old jar removed.",
-                        finalJar.getFileName());
+                if (!currentJar.equals(finalJar)) {
+                    removeOldJar(currentJar);
+                }
+                KuudraHelperMod.LOGGER.info("[PhantomAddons] Installed {}.", finalJar.getFileName());
             } catch (Exception ex) {
                 KuudraHelperMod.LOGGER.error("[PhantomAddons] Failed to install update: {}",
                         ex.getMessage());
             }
         }, "PhantomAddons-UpdateSwap"));
+    }
+
+    /**
+     * Deletes the old jar after an update. On Windows the JVM may still hold the file
+     * open (via a memory-mapped class-file), so direct deletion often fails. We fall back
+     * to renaming it with a ".disabled" suffix — renames succeed even on locked files
+     * because Windows opens JARs with FILE_SHARE_DELETE. The renamed file is cleaned up
+     * by cleanupLeftoverJars() on the next startup, when the old jar is no longer loaded.
+     */
+    private static void removeOldJar(Path jar) {
+        // Try direct deletion first (works on Mac / Linux and sometimes on Windows).
+        try {
+            Files.deleteIfExists(jar);
+            if (!Files.exists(jar)) {
+                KuudraHelperMod.LOGGER.info("[PhantomAddons] Old jar deleted: {}", jar.getFileName());
+                return;
+            }
+        } catch (Exception ignored) {}
+
+        // Fallback: rename to .disabled so Fabric ignores it on next load,
+        // and cleanupLeftoverJars() can delete it on the next startup.
+        try {
+            Path disabled = jar.resolveSibling(jar.getFileName() + ".disabled");
+            Files.move(jar, disabled, StandardCopyOption.REPLACE_EXISTING);
+            KuudraHelperMod.LOGGER.info("[PhantomAddons] Old jar renamed to {} (will be removed on next startup).",
+                    disabled.getFileName());
+        } catch (Exception ex) {
+            KuudraHelperMod.LOGGER.error("[PhantomAddons] Could not remove old jar {}: {}",
+                    jar.getFileName(), ex.getMessage());
+        }
+    }
+
+    /**
+     * Deletes any *.jar.disabled files left in the mods directory from a previous
+     * Windows update cycle. Call this early in onInitializeClient().
+     */
+    public static void cleanupLeftoverJars() {
+        try {
+            Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+            try (var stream = Files.list(modsDir)) {
+                stream.filter(p -> p.getFileName().toString().endsWith(".jar.disabled"))
+                      .forEach(p -> {
+                          try {
+                              Files.deleteIfExists(p);
+                              KuudraHelperMod.LOGGER.info("[PhantomAddons] Cleaned up leftover: {}", p.getFileName());
+                          } catch (Exception ignored) {}
+                      });
+            }
+        } catch (Exception ignored) {}
     }
 
     public static String currentVersion() {

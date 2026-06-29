@@ -18,6 +18,7 @@ import com.kuudrahelper.utils.Phase2BuildTracker;
 import com.kuudrahelper.features.HideArmorStands;
 import com.kuudrahelper.features.kuudra.RendDamage;
 import com.kuudrahelper.features.kuudra.RendTracker;
+import com.kuudrahelper.utils.KuudraTierDetector;
 import com.kuudrahelper.utils.RoleManager;
 import net.minecraft.client.Minecraft;
 
@@ -77,10 +78,14 @@ public final class KuudraPhaseEvents {
                 }
 
                 case STUN -> {
+                    RendDamage.onKillPhaseStart();
+                    RendTracker.onKillPhaseStart();
                     KuudraSplitTimer.onStunStart();
                 }
 
                 case DPS -> {
+                    RendDamage.onKillPhaseStart();
+                    RendTracker.onKillPhaseStart();
                     FastDpsWarning.onDpsStart();
                     KuudraSplitTimer.onDpsStart();
                 }
@@ -99,13 +104,14 @@ public final class KuudraPhaseEvents {
                 }
 
                 case BOSS -> {
-                    RendDamage.onKillPhaseStart();
-                    RendTracker.onKillPhaseStart();
+                    RendDamage.onBossPhaseStart();
+                    RendTracker.onBossPhaseStart();
                     KuudraSplitTimer.onBossStart();
                 }
 
                 case END -> {
                     com.kuudrahelper.features.AutoRequeue.trigger();
+                    RendDamage.reset();
                     com.kuudrahelper.features.kuudra.RendTracker.reset();
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();

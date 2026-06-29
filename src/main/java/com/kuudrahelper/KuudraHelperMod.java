@@ -32,6 +32,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
 import com.kuudrahelper.features.TabListChestSync;
@@ -65,6 +66,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         appender.start();
         rootLogger.addAppender(appender);
 
+        UpdateChecker.cleanupLeftoverJars();
         KuudraConfig.load();
         com.kuudrahelper.features.VisualWords.load();
         PickoblockManager.init();
@@ -105,11 +107,25 @@ public class KuudraHelperMod implements ClientModInitializer {
         com.kuudrahelper.features.KickedTimerHud.register();
         CratePriority.register();
         com.kuudrahelper.features.kuudra.KuudraHpHud.register();
+
+        com.kuudrahelper.features.profittracker.ProfitStore.load();
+        com.kuudrahelper.features.profittracker.ProfitHud.register();
+        registerProfitTrackerPhaseListener();
+    }
+
+    private void registerProfitTrackerPhaseListener() {
+        // Track run start (used for duration) and fire price fetches on run end
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (!KuudraConfig.isProfitTrackerEnabled()) return;
+            com.kuudrahelper.features.profittracker.PriceFetcher.fetchBazaarIfStale();
+            com.kuudrahelper.features.profittracker.PriceFetcher.fetchBinsIfStale();
+        });
     }
 
     private static void registerChatEvents() {
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> {
             String raw = message.getString();
+            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
             if (isInSuppliesPhase()) NoPre.onChat(raw);
             NoPreAnnounce.onChat(raw);
             SupplyWaypointTracker.onChat(raw);
@@ -117,6 +133,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             DungeonsGfs.onChat(raw);
             SoloDetector.onChat(raw);
             AnnounceFresh.onChat(raw);
+            handleSupplyNotifications(clean);
         });
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String raw = message.getString();
@@ -128,13 +145,15 @@ public class KuudraHelperMod implements ClientModInitializer {
             SoloDetector.onChat(raw);
             if (!overlay) AnnounceFresh.onChat(raw);
             if (!overlay) CratePriority.onChat(clean);
+            if (!overlay) handleSupplyNotifications(clean);
             if (!overlay) com.kuudrahelper.features.kuudra.ManaDrainAnnouncer.onChat(clean);
             if (clean.contains("Used Extreme Focus!")) com.kuudrahelper.features.kuudra.RendTracker.onManaDrain();
-            if (overlay) com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
+            com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
             if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
                     && KuudraConfig.isKickedNotificationEnabled()) {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                 com.kuudrahelper.features.KickedTimerHud.onKicked();
+                KuudraConfig.playNotificationSound(KuudraConfig.SOUND_KICKED);
                 if (mc.getConnection() != null)
                     mc.execute(() -> mc.getConnection().sendCommand("pc [Phantom] Kicked from Skyblock!"));
             }
@@ -236,6 +255,16 @@ public class KuudraHelperMod implements ClientModInitializer {
     }
 
     private void registerCommands() {
+        // Intercept /pa and /phantom before they reach the server (e.g. Hypixel has its own /pa).
+        // ALLOW_COMMAND fires with the raw command string (no leading slash).
+        ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
+            if (command.trim().equalsIgnoreCase("pa")) {
+                openGuiNextTick = true;
+                return false; // cancel — don't send to server
+            }
+            return true;
+        });
+
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
 
             for (String alias : new String[]{"pa", "phantom"}) {
@@ -372,5 +401,21 @@ public class KuudraHelperMod implements ClientModInitializer {
                 client.player.setSprinting(true);
             }
         });
+    }
+
+    private static void handleSupplyNotifications(String clean) {
+        // Supply Grabbed: server tells you someone else is already picking up the supply you clicked
+        if (KuudraConfig.isSupplyGrabbedNotifyEnabled()
+                && clean.contains("Someone else is currently trying to pick up these supplies")) {
+            com.kuudrahelper.features.NotificationHud.show("§cSupply already taken!", 3000);
+            KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SUPPLY_GRABBED);
+        }
+
+        // Supply Dropped: you dropped a supply by moving
+        if (KuudraConfig.isSupplyDroppedNotifyEnabled()
+                && clean.contains("the Chest slipped out of your hands")) {
+            com.kuudrahelper.features.NotificationHud.show("§cYou dropped a supply!", 3000);
+            KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SUPPLY_DROPPED);
+        }
     }
 }

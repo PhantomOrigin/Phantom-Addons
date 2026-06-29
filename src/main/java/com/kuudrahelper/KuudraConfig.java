@@ -69,6 +69,85 @@ public class KuudraConfig {
     private static int     slotBindShowKey          = -1;
     private static final java.util.LinkedHashMap<Integer,Integer> slotBindings = new java.util.LinkedHashMap<>();
 
+    // ── Profit tracker ───────────────────────────────────────────────────────────
+
+    public enum KuudraPetRarity {
+        COMMON, UNCOMMON, RARE, EPIC, LEGENDARY;
+        /** Fractional essence bonus per pet level (e.g. 0.002 = 0.2% per level). */
+        public double bonusPerLevel() {
+            return switch (this) {
+                case RARE          -> 0.0015;
+                case EPIC, LEGENDARY -> 0.002;
+                default            -> 0.0;
+            };
+        }
+        /** Total essence multiplier at the given level (e.g. 1.20 = 20% more essence). */
+        public double essenceMultiplier(int level) { return 1.0 + bonusPerLevel() * level; }
+    }
+
+    private static boolean         profitTrackerForced    = false; // not saved — session-only
+    private static boolean         profitTrackerEnabled   = false;
+    private static boolean         profitShowDuringRun    = false;
+    private static boolean         profitArmorSalvage     = true;  // true = salvage, false = sell AH
+    private static boolean         profitFactionMage      = true;  // true = mage (mycelium), false = barbarian (red sand)
+    private static boolean         profitHighlightChests  = true;
+    private static boolean         profitRerollCalc       = true;
+    private static boolean         profitBazaarInstaSell  = true;  // sell items: instasell vs sell order
+    private static boolean         profitBazaarInstaBuy   = false; // buy items: instabuy vs buy order (false = buy order = cheaper)
+    private static float           profitHudX             = 0.01f;
+    private static float           profitHudY             = 0.5f;
+    private static float           profitHudScale         = 1.0f;
+    private static KuudraPetRarity kuudraPetRarity        = KuudraPetRarity.LEGENDARY;
+    private static int             kuudraPetLevel         = 100;
+
+    private static boolean chestValueGuiEnabled   = true;
+    private static float   chestValueHudX         = 0.3f;
+    private static float   chestValueHudY         = 0.3f;
+    private static float   chestValueHudScale     = 1.0f;
+
+    public static boolean         isProfitTrackerEnabled()    { return profitTrackerEnabled; }
+    public static boolean         isProfitTrackerForced()     { return profitTrackerForced; }
+    public static boolean         toggleProfitTrackerForced() { return profitTrackerForced = !profitTrackerForced; }
+    public static boolean         isProfitShowDuringRun()     { return profitShowDuringRun; }
+    public static boolean         isProfitArmorSalvage()      { return profitArmorSalvage; }
+    public static boolean         isProfitFactionMage()       { return profitFactionMage; }
+    public static boolean         isProfitHighlightChests()   { return profitHighlightChests; }
+    public static boolean         isProfitRerollCalc()        { return profitRerollCalc; }
+    public static boolean         isProfitBazaarInstaSell()   { return profitBazaarInstaSell; }
+    public static boolean         isProfitBazaarInstaBuy()    { return profitBazaarInstaBuy; }
+    public static float           getProfitHudX()             { return profitHudX; }
+    public static float           getProfitHudY()             { return profitHudY; }
+    public static float           getProfitHudScale()         { return profitHudScale; }
+    public static KuudraPetRarity getKuudraPetRarity()        { return kuudraPetRarity; }
+    public static int             getKuudraPetLevel()         { return kuudraPetLevel; }
+    public static double          getKuudraPetEssenceMultiplier() {
+        return kuudraPetRarity.essenceMultiplier(kuudraPetLevel);
+    }
+
+    public static void setProfitTrackerEnabled(boolean v)       { profitTrackerEnabled  = v; save(); }
+    public static void setProfitShowDuringRun(boolean v)        { profitShowDuringRun   = v; save(); }
+    public static void setProfitArmorSalvage(boolean v)         { profitArmorSalvage    = v; save(); }
+    public static void setProfitFactionMage(boolean v)          { profitFactionMage     = v; save(); }
+    public static void setProfitHighlightChests(boolean v)      { profitHighlightChests = v; save(); }
+    public static void setProfitRerollCalc(boolean v)           { profitRerollCalc      = v; save(); }
+    public static void setProfitBazaarInstaSell(boolean v)      { profitBazaarInstaSell = v; save(); }
+    public static void setProfitBazaarInstaBuy(boolean v)       { profitBazaarInstaBuy  = v; save(); }
+    public static void setProfitHudX(float v)                   { profitHudX    = v; save(); }
+    public static void setProfitHudY(float v)                   { profitHudY    = v; save(); }
+    public static void setProfitHudScale(float v)               { profitHudScale = v; save(); }
+    public static void setKuudraPetRarity(KuudraPetRarity v)    { kuudraPetRarity = v; save(); }
+    public static void setKuudraPetLevel(int v)                 { kuudraPetLevel = Math.clamp(v, 1, 100); save(); }
+
+    public static boolean isChestValueGuiEnabled()  { return chestValueGuiEnabled; }
+    public static float   getChestValueHudX()       { return chestValueHudX; }
+    public static float   getChestValueHudY()       { return chestValueHudY; }
+    public static float   getChestValueHudScale()   { return chestValueHudScale; }
+
+    public static void setChestValueGuiEnabled(boolean v) { chestValueGuiEnabled = v; save(); }
+    public static void setChestValueHudX(float v)         { chestValueHudX    = v; save(); }
+    public static void setChestValueHudY(float v)         { chestValueHudY    = v; save(); }
+    public static void setChestValueHudScale(float v)     { chestValueHudScale = v; save(); }
+
     // ── Pearl ─────────────────────────────────────────────────────────────────
 
     private static boolean        pearlWaypointsEnabled = true;
@@ -156,9 +235,11 @@ public class KuudraConfig {
     private static boolean supplyRecoveryMsgEnabled = false;
     private static boolean freshNotifyEnabled       = false;
     private static boolean buildStartedNotifyEnabled= false;
-    private static boolean fastDpsNotifyEnabled     = false;
-    private static boolean soloNotifyEnabled        = false;
-    private static boolean noPreNotifyEnabled       = false;
+    private static boolean fastDpsNotifyEnabled       = false;
+    private static boolean soloNotifyEnabled          = false;
+    private static boolean noPreNotifyEnabled         = false;
+    private static boolean supplyGrabbedNotifyEnabled = false;
+    private static boolean supplyDroppedNotifyEnabled = false;
     private static boolean cratePriorityEnabled     = false;
     private static boolean hideArmorStandsEnabled      = false;
     private static boolean hideArmorStandsBuild        = true;
@@ -583,6 +664,10 @@ public class KuudraConfig {
     public static void setSoloNotifyEnabled(boolean v)      { soloNotifyEnabled = v;           save(); }
     public static boolean isNoPreNotifyEnabled()            { return noPreNotifyEnabled; }
     public static void setNoPreNotifyEnabled(boolean v)     { noPreNotifyEnabled = v;          save(); }
+    public static boolean isSupplyGrabbedNotifyEnabled()    { return supplyGrabbedNotifyEnabled; }
+    public static void setSupplyGrabbedNotifyEnabled(boolean v) { supplyGrabbedNotifyEnabled = v; save(); }
+    public static boolean isSupplyDroppedNotifyEnabled()    { return supplyDroppedNotifyEnabled; }
+    public static void setSupplyDroppedNotifyEnabled(boolean v) { supplyDroppedNotifyEnabled = v; save(); }
     public static boolean isCratePriorityEnabled()          { return cratePriorityEnabled; }
     public static void setCratePriorityEnabled(boolean v)   { cratePriorityEnabled = v;        save(); }
     public static boolean isHideArmorStandsEnabled()              { return hideArmorStandsEnabled; }
@@ -803,6 +888,8 @@ public class KuudraConfig {
             fastDpsNotifyEnabled     = d.fastDpsNotifyEnabled;
             soloNotifyEnabled        = d.soloNotifyEnabled;
             noPreNotifyEnabled       = d.noPreNotifyEnabled;
+            supplyGrabbedNotifyEnabled = d.supplyGrabbedNotifyEnabled;
+            supplyDroppedNotifyEnabled = d.supplyDroppedNotifyEnabled;
             cratePriorityEnabled     = d.cratePriorityEnabled;
             hideArmorStandsEnabled     = d.hideArmorStandsEnabled;
             hideArmorStandsBuild       = d.hideArmorStandsBuild;
@@ -870,8 +957,34 @@ public class KuudraConfig {
                     }
             }
 
+            profitTrackerEnabled  = d.profitTrackerEnabled;
+            profitShowDuringRun   = d.profitShowDuringRun;
+            profitArmorSalvage    = d.profitArmorSalvage;
+            profitFactionMage     = d.profitFactionMage;
+            profitHighlightChests = d.profitHighlightChests;
+            profitRerollCalc      = d.profitRerollCalc;
+            profitBazaarInstaSell = d.profitBazaarInstaSell;
+            profitBazaarInstaBuy  = d.profitBazaarInstaBuy;
+            profitHudX            = d.profitHudX;
+            profitHudY            = d.profitHudY;
+            profitHudScale        = d.profitHudScale;
+            if (d.kuudraPetRarity != null) {
+                try { kuudraPetRarity = KuudraPetRarity.valueOf(d.kuudraPetRarity); }
+                catch (IllegalArgumentException ignored) {}
+            }
+            if (d.kuudraPetLevel > 0) kuudraPetLevel = Math.clamp(d.kuudraPetLevel, 1, 100);
+            chestValueGuiEnabled  = d.chestValueGuiEnabled;
+            chestValueHudX        = d.chestValueHudX;
+            chestValueHudY        = d.chestValueHudY;
+            chestValueHudScale    = d.chestValueHudScale;
+
             itemCustomizationEnabled = d.itemCustomizationEnabled;
             ItemCustomization.loadFrom(d.itemCategorySettings, d.itemCustomCategories);
+
+            if (d.notificationSounds != null) {
+                notificationSounds.clear();
+                notificationSounds.putAll(d.notificationSounds);
+            }
 
         } catch (IOException e) { KuudraHelperMod.LOGGER.error("Failed to load config", e); }
     }
@@ -999,6 +1112,8 @@ public class KuudraConfig {
         d.fastDpsNotifyEnabled     = fastDpsNotifyEnabled;
         d.soloNotifyEnabled        = soloNotifyEnabled;
         d.noPreNotifyEnabled       = noPreNotifyEnabled;
+        d.supplyGrabbedNotifyEnabled = supplyGrabbedNotifyEnabled;
+        d.supplyDroppedNotifyEnabled = supplyDroppedNotifyEnabled;
         d.cratePriorityEnabled     = cratePriorityEnabled;
         d.hideArmorStandsEnabled     = hideArmorStandsEnabled;
         d.hideArmorStandsBuild       = hideArmorStandsBuild;
@@ -1050,9 +1165,28 @@ public class KuudraConfig {
         d.totalRunPbs            = totalRunPbs;
         d.pbRecords              = pbRecords;
 
+        d.profitTrackerEnabled  = profitTrackerEnabled;
+        d.profitShowDuringRun   = profitShowDuringRun;
+        d.profitArmorSalvage    = profitArmorSalvage;
+        d.profitFactionMage     = profitFactionMage;
+        d.profitHighlightChests = profitHighlightChests;
+        d.profitRerollCalc      = profitRerollCalc;
+        d.profitBazaarInstaSell = profitBazaarInstaSell;
+        d.profitBazaarInstaBuy  = profitBazaarInstaBuy;
+        d.profitHudX            = profitHudX;
+        d.profitHudY            = profitHudY;
+        d.profitHudScale        = profitHudScale;
+        d.kuudraPetRarity       = kuudraPetRarity.name();
+        d.kuudraPetLevel        = kuudraPetLevel;
+        d.chestValueGuiEnabled  = chestValueGuiEnabled;
+        d.chestValueHudX        = chestValueHudX;
+        d.chestValueHudY        = chestValueHudY;
+        d.chestValueHudScale    = chestValueHudScale;
+
         d.itemCustomizationEnabled = itemCustomizationEnabled;
         d.itemCategorySettings     = ItemCustomization.serialiseBuiltin();
         d.itemCustomCategories     = ItemCustomization.serialiseCustom();
+        d.notificationSounds       = new java.util.LinkedHashMap<>(notificationSounds);
 
         try (Writer w = new FileWriter(CONFIG_PATH.toFile())) {
             GSON.toJson(d, w);
@@ -1090,6 +1224,67 @@ public class KuudraConfig {
         public List<PlayerTime> supplies  = new ArrayList<>();
         public List<PlayerTime> freshes   = new ArrayList<>();
         public PbRecord() { Arrays.fill(splits, 9999.0); }
+    }
+
+    // ── Notification sounds ───────────────────────────────────────────────────
+
+    public static final String SOUND_PEARL_NOW       = "pearl_now";
+    public static final String SOUND_FAST_DPS        = "fast_dps";
+    public static final String SOUND_FRESH           = "fresh";
+    public static final String SOUND_BUILD_STARTED   = "build_started";
+    public static final String SOUND_NO_PRE          = "no_pre";
+    public static final String SOUND_SOLO            = "solo";
+    public static final String SOUND_KICKED          = "kicked";
+    public static final String SOUND_SUPPLY_GRABBED  = "supply_grabbed";
+    public static final String SOUND_SUPPLY_DROPPED  = "supply_dropped";
+
+    public static class NotificationSound {
+        public boolean enabled = false;
+        public String  soundId = "minecraft:entity.experience_orb.pickup";
+        public float   volume  = 1.0f;
+        public float   pitch   = 1.0f;
+        public NotificationSound() {}
+        public NotificationSound(String id, float pitch) {
+            this.soundId = id; this.pitch = pitch;
+        }
+    }
+
+    private static final java.util.LinkedHashMap<String, NotificationSound> notificationSounds
+            = new java.util.LinkedHashMap<>();
+
+    private static NotificationSound defaultSound(String key) {
+        if (SOUND_PEARL_NOW.equals(key))
+            return new NotificationSound("minecraft:block.note_block.pling", 2.0f);
+        if (SOUND_FAST_DPS.equals(key))
+            return new NotificationSound("minecraft:entity.experience_orb.pickup", 2.0f);
+        return new NotificationSound("minecraft:entity.experience_orb.pickup", 1.0f);
+    }
+
+    public static NotificationSound getNotificationSound(String key) {
+        return notificationSounds.computeIfAbsent(key, KuudraConfig::defaultSound);
+    }
+
+    public static boolean isNotificationSoundEnabled(String key)          { return getNotificationSound(key).enabled; }
+    public static void    setNotificationSoundEnabled(String key, boolean v) { getNotificationSound(key).enabled = v; save(); }
+    public static String  getNotificationSoundId(String key)              { return getNotificationSound(key).soundId; }
+    public static void    setNotificationSoundId(String key, String v)    { getNotificationSound(key).soundId = v; save(); }
+    public static float   getNotificationSoundVolume(String key)          { return getNotificationSound(key).volume; }
+    public static void    setNotificationSoundVolume(String key, float v) { getNotificationSound(key).volume = v; save(); }
+    public static float   getNotificationSoundPitch(String key)           { return getNotificationSound(key).pitch; }
+    public static void    setNotificationSoundPitch(String key, float v)  { getNotificationSound(key).pitch = v; save(); }
+
+    public static void playNotificationSound(String key) {
+        NotificationSound ns = getNotificationSound(key);
+        if (!ns.enabled || ns.soundId == null || ns.soundId.isBlank()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        net.minecraft.resources.Identifier id =
+                net.minecraft.resources.Identifier.tryParse(ns.soundId);
+        if (id == null) return;
+        net.minecraft.sounds.SoundEvent ev =
+                net.minecraft.sounds.SoundEvent.createVariableRangeEvent(id);
+        mc.getSoundManager().play(
+                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, ns.pitch, ns.volume));
     }
 
     // ── JSON model ────────────────────────────────────────────────────────────
@@ -1213,6 +1408,8 @@ public class KuudraConfig {
         boolean fastDpsNotifyEnabled     = false;
         boolean soloNotifyEnabled        = false;
         boolean noPreNotifyEnabled       = false;
+        boolean supplyGrabbedNotifyEnabled = false;
+        boolean supplyDroppedNotifyEnabled = false;
         boolean cratePriorityEnabled     = false;
         boolean hideArmorStandsEnabled     = false;
         boolean hideArmorStandsBuild       = true;
@@ -1258,6 +1455,25 @@ public class KuudraConfig {
         int chestSuccess = 0;
         int chestFail    = 0;
 
+        boolean profitTrackerEnabled   = false;
+        boolean profitShowDuringRun    = false;
+        boolean profitArmorSalvage     = true;
+        boolean profitFactionMage      = true;
+        boolean profitHighlightChests  = true;
+        boolean profitRerollCalc       = true;
+        boolean profitBazaarInstaSell  = true;
+        boolean profitBazaarInstaBuy   = false;
+        float   profitHudX             = 0.01f;
+        float   profitHudY             = 0.5f;
+        float   profitHudScale         = 1.0f;
+        String  kuudraPetRarity        = "LEGENDARY";
+        int     kuudraPetLevel         = 100;
+
+        boolean chestValueGuiEnabled   = true;
+        float   chestValueHudX         = 0.3f;
+        float   chestValueHudY         = 0.3f;
+        float   chestValueHudScale     = 1.0f;
+
         boolean   splitTimerEnabled  = true;
         boolean   supplyTimesEnabled = true;
         double[][] splitPbs          = null;
@@ -1267,5 +1483,6 @@ public class KuudraConfig {
         boolean                                          itemCustomizationEnabled = true;
         Map<String, ItemTransformSettings>               itemCategorySettings     = null;
         java.util.List<ItemCustomization.CustomCategory> itemCustomCategories     = null;
+        java.util.LinkedHashMap<String, NotificationSound> notificationSounds     = null;
     }
 }
