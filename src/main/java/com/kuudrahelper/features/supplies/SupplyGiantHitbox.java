@@ -1,6 +1,9 @@
 package com.kuudrahelper.features.supplies;
 
 import com.kuudrahelper.KuudraConfig;
+import com.kuudrahelper.features.pearls.PearlWaypointManager;
+import com.kuudrahelper.features.pearls.PearlWaypointState;
+import com.kuudrahelper.features.pearls.TrajectorySolver;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -19,50 +22,103 @@ import org.lwjgl.opengl.GL11;
 
 public final class SupplyGiantHitbox {
 
-    // Max distance squared to trigger alert (~5.5 blocks, matching IQ)
-    private static final double ALERT_DIST_SQ = 30.25;
+    private static final int    PEARL_PATH_TICKS = 120;
 
-    // Alert color: red/orange
     private static final int R = 255, G = 80, B = 0;
     private static final int OUTLINE_A = 220;
     private static final int FILL_A    = 30;
 
-    // Giant eye-Y threshold: supply carriers walk at ground level in the arena
-    private static final double MAX_EYE_Y = 67.0;
+    private static final double MAX_GROUND_Y = 67.0;
 
-    private static Giant alertGiant = null;
+    private static Giant   warningGiant = null;
+    private static int     lastGiantId  = -1;
+    private static double  lastGiantY   = Double.NaN;
+    private static double  smoothedVy   = 0.0;
+    private static double  topBound     = Double.NaN;
+    private static double  bottomBound  = Double.NaN;
+
+    private static volatile boolean showWarning = false;
 
     private SupplyGiantHitbox() {}
 
+    public static boolean isWarningActive() { return showWarning; }
+
     public static void tick(Minecraft client) {
-        if (!KuudraConfig.isSupplyGiantHitboxEnabled()) { alertGiant = null; return; }
-        if (client.level == null || client.player == null) { alertGiant = null; return; }
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) { alertGiant = null; return; }
+        if (!KuudraConfig.isSupplyGiantHitboxEnabled()
+                || client.level == null || client.player == null
+                || KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES
+                || !PearlWaypointManager.isTrackingPickup()) {
+            warningGiant = null;
+            showWarning  = false;
+            resetTracking();
+            return;
+        }
 
-        AABB playerBox = client.player.getBoundingBox();
-        Giant closest = null;
-        double closestDistSq = Double.MAX_VALUE;
-
+        Giant nearest = null;
+        double nearestDistSq = Double.MAX_VALUE;
         for (Entity e : client.level.entitiesForRendering()) {
             if (!(e instanceof Giant g)) continue;
-            if (g.getEyeY() >= MAX_EYE_Y) continue;
+            if (g.getY() >= MAX_GROUND_Y) continue;
             if (!isCarryingSupply(g)) continue;
-
             double distSq = g.distanceToSqr(client.player);
-            if (distSq > ALERT_DIST_SQ) continue;
-            if (!g.getBoundingBox().inflate(0.5).intersects(playerBox)) continue;
-
-            if (distSq < closestDistSq) {
-                closestDistSq = distSq;
-                closest = g;
-            }
+            if (distSq < nearestDistSq) { nearestDistSq = distSq; nearest = g; }
         }
-        alertGiant = closest;
+
+        if (nearest == null) {
+            warningGiant = null;
+            showWarning  = false;
+            resetTracking();
+            return;
+        }
+
+        if (nearest.getId() != lastGiantId) resetTracking();
+        lastGiantId = nearest.getId();
+
+        double y = nearest.getY();
+        if (!Double.isNaN(lastGiantY)) {
+            double delta = y - lastGiantY;
+            if (smoothedVy > 0 && delta < 0)      topBound    = lastGiantY;
+            else if (smoothedVy < 0 && delta > 0) bottomBound = lastGiantY;
+            if (delta != 0) smoothedVy = smoothedVy * 0.7 + delta * 0.3;
+        }
+        lastGiantY = y;
+
+        Vec3 myAimDir = null;
+        long throwInMs = 0L;
+        for (PearlWaypointState s : PearlWaypointManager.getSnapshot()) {
+            if (s.isMyTarget()) { myAimDir = s.centerAimDir(); throwInMs = s.throwInMs(); break; }
+        }
+
+        if (myAimDir == null) {
+            warningGiant = null;
+            showWarning  = false;
+            return;
+        }
+
+        Vec3 spawn = PearlWaypointManager.pearlSpawnPos(client);
+        int  delayTicks = throwInMs > 0L ? (int) Math.round(throwInMs / 50.0) : 0;
+
+        double baseY = y, v = smoothedVy, top = topBound, bottom = bottomBound;
+        boolean intersects = TrajectorySolver.pathIntersectsPredictedBox(
+                spawn, myAimDir, nearest.getBoundingBox(), baseY,
+                globalTick -> TrajectorySolver.predictBouncedY(baseY, v, top, bottom, globalTick),
+                delayTicks, PEARL_PATH_TICKS);
+
+        warningGiant = intersects ? nearest : null;
+        showWarning  = intersects;
+    }
+
+    private static void resetTracking() {
+        lastGiantId = -1;
+        lastGiantY  = Double.NaN;
+        smoothedVy  = 0.0;
+        topBound    = Double.NaN;
+        bottomBound = Double.NaN;
     }
 
     public static void render(PoseStack matrices, Camera camera, float tickDelta) {
         if (!KuudraConfig.isSupplyGiantHitboxEnabled()) return;
-        Giant g = alertGiant;
+        Giant g = warningGiant;
         if (g == null || g.isRemoved()) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -76,12 +132,10 @@ public final class SupplyGiantHitbox {
 
         MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
-        // Filled faces (semi-transparent)
         VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
         addFill(vf, m, x1, y1, z1, x2, y2, z2);
         imm.endBatch();
 
-        // Outline (always visible through walls)
         GL11.glDepthFunc(GL11.GL_ALWAYS);
         VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
         addOutline(vl, m, x1, y1, z1, x2, y2, z2);

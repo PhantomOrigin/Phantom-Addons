@@ -1,5 +1,6 @@
 package com.kuudrahelper.features.pearls;
 
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public final class TrajectorySolver {
@@ -51,6 +52,52 @@ public final class TrajectorySolver {
         double len = Math.sqrt(vx * vx + vy * vy + vz * vz);
         Vec3 aimDir = new Vec3(vx / len, vy / len, vz / len);
         return new SolveResult(aimDir, -1L, theta >= SKY_THRESHOLD);
+    }
+
+    public static boolean pathIntersects(Vec3 spawn, Vec3 aimDir, AABB box, int maxTicks) {
+        double vx = SPEED * aimDir.x;
+        double vy = SPEED * aimDir.y;
+        double vz = SPEED * aimDir.z;
+        double x = spawn.x, y = spawn.y, z = spawn.z;
+        for (int i = 0; i < maxTicks; i++) {
+            vy -= GRAVITY;
+            vx *= DRAG; vy *= DRAG; vz *= DRAG;
+            x += vx; y += vy; z += vz;
+            if (box.contains(x, y, z)) return true;
+        }
+        return false;
+    }
+
+    public static double predictBouncedY(double y, double v, double topBound, double bottomBound, int ticksAhead) {
+        for (int i = 0; i < ticksAhead; i++) {
+            y += v;
+            if (!Double.isNaN(topBound) && y > topBound) {
+                y = topBound - (y - topBound);
+                v = -Math.abs(v);
+            } else if (!Double.isNaN(bottomBound) && y < bottomBound) {
+                y = bottomBound + (bottomBound - y);
+                v = Math.abs(v);
+            }
+        }
+        return y;
+    }
+
+    public static boolean pathIntersectsPredictedBox(Vec3 spawn, Vec3 aimDir, AABB box, double boxBaseY,
+                                                      java.util.function.IntToDoubleFunction predictedY,
+                                                      int startDelayTicks, int maxTicks) {
+        double vx = SPEED * aimDir.x;
+        double vy = SPEED * aimDir.y;
+        double vz = SPEED * aimDir.z;
+        double x = spawn.x, y = spawn.y, z = spawn.z;
+        for (int i = 0; i < maxTicks; i++) {
+            vy -= GRAVITY;
+            vx *= DRAG; vy *= DRAG; vz *= DRAG;
+            x += vx; y += vy; z += vz;
+            int globalTick = startDelayTicks + i + 1;
+            AABB shifted = box.move(0.0, predictedY.applyAsDouble(globalTick) - boxBaseY, 0.0);
+            if (shifted.contains(x, y, z)) return true;
+        }
+        return false;
     }
 
     public static long estimateFlightMs(Vec3 spawn, Vec3 aimDir, Vec3 target) {

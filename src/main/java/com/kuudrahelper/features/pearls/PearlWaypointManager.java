@@ -9,7 +9,9 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public final class PearlWaypointManager {
 
@@ -21,6 +23,8 @@ public final class PearlWaypointManager {
     private static volatile boolean                  trackingPickup = false;
     private static volatile long                     pickupStartMs  = -1L;
     private static          Vec3                     lastPearlSpawn = null;
+
+    private static final Map<PickupLocation, Vec3> doublePearlLandings = new EnumMap<>(PickupLocation.class);
 
     private PearlWaypointManager() {}
 
@@ -49,6 +53,7 @@ public final class PearlWaypointManager {
         NoPre.reset();
         SupplyTracker.reset();
         DoublePearlCoords.reset();
+        doublePearlLandings.clear();
     }
 
     public static void tickUpdate() {
@@ -218,11 +223,28 @@ public final class PearlWaypointManager {
                                                  Vec3 spawn,
                                                  List<PearlWaypointState> out,
                                                  boolean isHighlighted) {
-        Vec3 iqTarget = DoublePearlCoords.getBestLanding(targetPickup);
-        Vec3 target   = iqTarget != null ? iqTarget : targetPickup.position;
+        Vec3 target = doublePearlLandings.computeIfAbsent(targetPickup,
+                p -> DoublePearlCoords.findValidLandingNear(p.position));
 
         TrajectorySolver.SolveResult r = TrajectorySolver.solveSky(spawn, target);
-        if (r == null) return;
+        boolean isSky = true;
+        if (r == null) {
+            r = TrajectorySolver.solveFlat(spawn, target);
+            isSky = false;
+        }
+
+        long delayMs = Math.round(KuudraConfig.getDoublePearlDelayS() * 1000L);
+
+        if (r == null) {
+            Vec3 fallDir = directionalFallbackAim(spawn, target);
+            if (fallDir == null) return;
+            long flightMs = TrajectorySolver.estimateFlightMs(spawn, fallDir, target);
+            long flight   = (flightMs > 0 ? flightMs : 0) + delayMs;
+            long throwIn  = computeThrowIn(flight);
+            out.add(new PearlWaypointState(displayLoc, fallDir, new Vec3[4],
+                    false, true, isHighlighted, flight, throwIn));
+            return;
+        }
 
         Vec3[] corners = {
                 target.add(-CORNER_OFFSET, 0, -CORNER_OFFSET),
@@ -232,14 +254,16 @@ public final class PearlWaypointManager {
         };
         Vec3[] cornerAimDirs = new Vec3[4];
         for (int i = 0; i < 4; i++) {
-            TrajectorySolver.SolveResult cr = TrajectorySolver.solveSky(spawn, corners[i]);
+            TrajectorySolver.SolveResult cr = isSky
+                    ? TrajectorySolver.solveSky (spawn, corners[i])
+                    : TrajectorySolver.solveFlat(spawn, corners[i]);
             if (cr != null) cornerAimDirs[i] = cr.aimDir();
         }
 
-        long flight  = r.flightMs() + Math.round(KuudraConfig.getDoublePearlDelayS() * 1000L);
+        long flight  = r.flightMs() + delayMs;
         long throwIn = computeThrowIn(flight);
         out.add(new PearlWaypointState(displayLoc, r.aimDir(), cornerAimDirs,
-                true, true, isHighlighted, flight, throwIn));
+                isSky, true, isHighlighted, flight, throwIn));
     }
 
     private static void refreshTimers() {

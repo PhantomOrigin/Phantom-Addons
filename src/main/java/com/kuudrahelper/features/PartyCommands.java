@@ -1,8 +1,14 @@
 package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
+import com.kuudrahelper.features.profile.AutoKickManager;
+import com.kuudrahelper.features.profile.KuudraProfileFetcher;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -19,7 +25,20 @@ public final class PartyCommands {
     private static final Pattern PARTY_DISBAND = Pattern.compile(
             "The party was disbanded");
     private static final Pattern YOU_JOINED = Pattern.compile(
-            "You have joined (?:\\[[^\\]]+\\] )?\\w+'s? party!|You accepted (?:\\[[^\\]]+\\] )?\\w+'s? party invitation!");
+            "You have joined (?:\\[[^\\]]+\\] )?(\\w+)'s? party!|You accepted (?:\\[[^\\]]+\\] )?(\\w+)'s? party invitation!");
+    private static final Pattern YOU_LEFT_OR_KICKED = Pattern.compile(
+            "^You left the party\\.$|^You are not currently in a party\\.$|^You have been kicked from the party by (?:\\[[^\\]]+\\] )?\\w+$");
+    private static final Pattern PARTY_TRANSFER = Pattern.compile(
+            "^The party was transferred to (?:\\[[^\\]]+\\] )?(\\w+) (?:by|because) (?:\\[[^\\]]+\\] )?\\w+(?: left)?$");
+    private static final Pattern PARTY_INVITE = Pattern.compile(
+            "^(?:\\[[^\\]]+\\] )?(\\w+) invited (?:\\[[^\\]]+\\] )?\\w+ to the party! They have 60 seconds to accept\\.$");
+    private static final Pattern PARTY_LIST_SECTION = Pattern.compile(
+            "^Party (Leader|Moderators|Members): (.+)$");
+    private static final Pattern PARTY_LIST_NAME = Pattern.compile(
+            "^(?:\\[[^\\]]+\\] )?(\\w+)$");
+    private static final String PARTY_LIST_DELIM = " ●";
+    private static final Pattern PARTY_FINDER_JOIN = Pattern.compile(
+            "^Party Finder > (?:\\[[^\\]]+\\] )?(\\w+) joined the group! \\(Combat Level \\d+\\)$");
 
     private static final Map<String, String> TIERS = Map.of(
             "t1", "KUUDRA_NORMAL",
@@ -33,12 +52,20 @@ public final class PartyCommands {
     private static long lastAnnounceMs = 0L;
 
     private static final Set<String> partyMembers = new LinkedHashSet<>();
+    private static String partyLeader = null;
 
     private PartyCommands() {}
 
     public static void reset() {
         partyMembers.clear();
+        partyLeader = null;
         lastAnnounceMs = 0L;
+    }
+
+    public static boolean isPartyLeader() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || partyLeader == null) return false;
+        return partyLeader.equalsIgnoreCase(mc.player.getScoreboardName());
     }
 
     public static void register() {
@@ -52,20 +79,61 @@ public final class PartyCommands {
     }
 
     private static void handle(String raw) {
-        if (YOU_JOINED.matcher(raw).find()) {
+        Matcher youJoined = YOU_JOINED.matcher(raw);
+        if (youJoined.find()) {
             partyMembers.clear();
+            partyLeader = youJoined.group(1) != null ? youJoined.group(1) : youJoined.group(2);
             com.kuudrahelper.features.splits.KuudraSplitTimer.resetPartySession();
+            return;
+        }
+
+        if (YOU_LEFT_OR_KICKED.matcher(raw).find()) {
+            partyMembers.clear();
+            partyLeader = null;
             return;
         }
 
         Matcher join = PARTY_JOIN.matcher(raw);
         if (join.find()) { partyMembers.add(join.group(1)); return; }
 
+        Matcher finderJoin = PARTY_FINDER_JOIN.matcher(raw);
+        if (finderJoin.find()) {
+            String joined = finderJoin.group(1);
+            partyMembers.add(joined);
+            ShitterList.checkAutoKick(joined);
+            onPartyFinderJoin(joined);
+            return;
+        }
+
         Matcher leave = PARTY_LEAVE.matcher(raw);
         if (leave.find()) { partyMembers.remove(leave.group(1)); return; }
 
+        Matcher transfer = PARTY_TRANSFER.matcher(raw);
+        if (transfer.find()) { partyLeader = transfer.group(1); return; }
+
+        Matcher invite = PARTY_INVITE.matcher(raw);
+        if (invite.find()) {
+            String inviter = invite.group(1);
+            partyMembers.add(inviter);
+            if (partyLeader == null) partyLeader = inviter;
+            return;
+        }
+
+        Matcher listSection = PARTY_LIST_SECTION.matcher(raw);
+        if (listSection.find()) {
+            boolean isLeaderSection = listSection.group(1).equals("Leader");
+            for (String token : listSection.group(2).split(PARTY_LIST_DELIM)) {
+                Matcher name = PARTY_LIST_NAME.matcher(token.trim());
+                if (!name.find()) continue;
+                partyMembers.add(name.group(1));
+                if (isLeaderSection) partyLeader = name.group(1);
+            }
+            return;
+        }
+
         if (PARTY_DISBAND.matcher(raw).find()) {
             partyMembers.clear();
+            partyLeader = null;
             com.kuudrahelper.features.splits.KuudraSplitTimer.resetPartySession();
             return;
         }
@@ -131,12 +199,16 @@ public final class PartyCommands {
 
         if (cmd.equals("!dt")) {
             KuudraConfig.setAutoRequeueEnabled(false);
-            send("pc [Phantom] Auto Requeue: OFF");
+            if (KuudraConfig.isAutoRequeueMessageEnabled() && isPartyLeader()) {
+                send("pc [Phantom] Auto Requeue: OFF");
+            }
             return;
         }
         if (cmd.equals("!undt")) {
             KuudraConfig.setAutoRequeueEnabled(true);
-            send("pc [Phantom] Auto Requeue: ON");
+            if (KuudraConfig.isAutoRequeueMessageEnabled() && isPartyLeader()) {
+                send("pc [Phantom] Auto Requeue: ON");
+            }
             return;
         }
 
@@ -187,6 +259,24 @@ public final class PartyCommands {
     private static String resolveOrSelf(String arg, String sender) {
         if (arg.isEmpty()) return sender;
         return resolve(arg);
+    }
+
+    /** Prefetches the joiner's Kuudra profile (so a later /kuudra open is instant), evaluates
+     *  the stat-based Auto Kick feature against it, and posts a clickable profile link. */
+    private static void onPartyFinderJoin(String name) {
+        if (!KuudraConfig.isProfileViewerEnabled()) return;
+        KuudraProfileFetcher.fetchAsync(name, data -> AutoKickManager.evaluate(name, data));
+        announceProfileLink(name);
+    }
+
+    private static void announceProfileLink(String name) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        MutableComponent msg = Component.literal("§f[PhantomAddons]§r §bView Profile for §e" + name + "§b (click)")
+                .withStyle(style -> style
+                        .withClickEvent(new ClickEvent.RunCommand("/kuudra " + name))
+                        .withHoverEvent(new HoverEvent.ShowText(Component.literal("§7Click to view §b" + name + "§7's Kuudra profile"))));
+        mc.player.sendSystemMessage(msg);
     }
 
     private static void send(String cmd) {

@@ -1,6 +1,7 @@
 package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
+import com.kuudrahelper.KuudraHelperMod;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -19,18 +20,27 @@ public final class AutoRequeue {
     private AutoRequeue() {}
 
     public static void reset() {
+        KuudraHelperMod.LOGGER.info("[AutoRequeue] reset() — requeued=false, backup timer cleared");
         requeued = false;
         pendingBackupRequeueAtMs = -1L;
     }
 
     public static void trigger() {
-        if (!KuudraConfig.isAutoRequeueEnabled()) return;
+        if (!KuudraConfig.isAutoRequeueEnabled()) {
+            KuudraHelperMod.LOGGER.info("[AutoRequeue] trigger() called but feature is disabled — skipping");
+            return;
+        }
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.getConnection() == null) return;
+        if (mc.player == null || mc.getConnection() == null) {
+            KuudraHelperMod.LOGGER.info("[AutoRequeue] trigger() called but player/connection is null — skipping");
+            return;
+        }
+        KuudraHelperMod.LOGGER.info("[AutoRequeue] trigger() -> sending /instancerequeue (phase-end trigger)");
         mc.execute(() -> mc.getConnection().sendCommand("instancerequeue"));
     }
 
     public static void onServerJoin() {
+        KuudraHelperMod.LOGGER.info("[AutoRequeue] onServerJoin() — requeued=true, backup timer cleared");
         requeued = true;
         pendingBackupRequeueAtMs = -1L;
     }
@@ -39,35 +49,39 @@ public final class AutoRequeue {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (pendingBackupRequeueAtMs < 0) return;
             if (!KuudraConfig.isAutoRequeueEnabled()) {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] backup timer cancelled — feature disabled");
                 pendingBackupRequeueAtMs = -1L;
                 return;
             }
             if (System.currentTimeMillis() < pendingBackupRequeueAtMs) return;
             if (client.player == null || client.getConnection() == null) return;
             pendingBackupRequeueAtMs = -1L;
+            KuudraHelperMod.LOGGER.info("[AutoRequeue] backup timer fired -> sending /instancerequeue");
             client.execute(() -> client.getConnection().sendCommand("instancerequeue"));
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            if (overlay) return;
             if (!KuudraConfig.isAutoRequeueEnabled()) return;
 
             String raw   = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
             String lower = raw.toLowerCase().trim();
 
-            if (raw.equals(ELLE_FISHING)) {
+            if (lower.equals(ELLE_FISHING)) {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] saw Elle-fishing line -> reset()");
                 reset();
                 return;
             }
 
             if (lower.contains(REQUEUE_CONFIRM)) {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] saw requeue confirmation -> requeued=true");
                 requeued = true;
                 return;
             }
 
             if (requeued) return;
 
-            if (raw.contains(REQUEUE_CLICK)) {
+            if (lower.contains(REQUEUE_CLICK)) {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] saw 'click here to re-queue' line -> requeued=true, backup timer armed ({}ms)", BACKUP_REQUEUE_DELAY_MS);
                 requeued = true;
                 pendingBackupRequeueAtMs = System.currentTimeMillis();
             }

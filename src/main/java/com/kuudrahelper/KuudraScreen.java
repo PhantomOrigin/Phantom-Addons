@@ -187,6 +187,44 @@ public class KuudraScreen extends Screen {
         }
     }
 
+    // ── OptionalIntInput ──────────────────────────────────────────────────────
+    // Like IntInput, but an empty field means "unset" (stored as -1) rather than being ignored —
+    // used for Auto Kick thresholds where a blank field means that stat isn't checked.
+
+    private static class OptionalIntInput extends IntInput {
+        OptionalIntInput(String n, Tab t, Supplier<Integer> get, Consumer<Integer> set) {
+            super(n, t, get, set);
+        }
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            ctx.text(s.font, Component.literal(name),
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+            int val = get.get();
+            String display = draft != null ? draft : (val < 0 ? "" : String.valueOf(val));
+            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
+            ctx.fill(fx, fy, fx + fw, fy + fh, focused ? 0xFF1A2A44 : 0xFF0F1218);
+            ctx.fill(fx, fy + fh - 1, fx + fw, fy + fh, focused ? C_ACCENT : C_BORDER);
+            ctx.centeredText(s.font, Component.literal(display),
+                    fx + fw / 2, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+        }
+        @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
+            if (mx >= fx && mx <= fx + fw && my >= fy && my <= fy + fh) {
+                focused = true;
+                int val = get.get();
+                draft = val < 0 ? "" : String.valueOf(val);
+                return true;
+            }
+            if (focused) { commit(); focused = false; }
+            return false;
+        }
+        @Override void commit() {
+            if (draft == null) return;
+            if (draft.isEmpty()) set.accept(-1);
+            else { try { set.accept(Integer.parseInt(draft)); } catch (NumberFormatException ignored) {} }
+            draft = null;
+        }
+    }
+
     // ── SignedIntInput ────────────────────────────────────────────────────────
 
     private static class SignedIntInput extends IntInput {
@@ -289,6 +327,60 @@ public class KuudraScreen extends Screen {
         }
     }
 
+    // ── RawTextInput ──────────────────────────────────────────────────────────
+    // Same as TextInput but without the "minecraft:" namespace add/strip behaviour
+    // (that's specific to item-ID fields; this is for plain strings like an API key).
+
+    private static class RawTextInput extends Feature {
+        final Supplier<String> get; final Consumer<String> set;
+        String  draft   = null;
+        boolean focused = false;
+        private int lastFx, lastFy, lastFw, lastFh;
+        RawTextInput(String n, Tab t, Supplier<String> get, Consumer<String> set) {
+            super(n, t); this.get = get; this.set = set;
+        }
+        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
+            ctx.text(s.font, Component.literal(name),
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+            String display = draft != null ? draft : get.get();
+            if (display == null) display = "";
+            int labelW = s.font.width(name);
+            int fx = x + 8 + labelW + 8, fy = y + 3, fw = w - fx + x - 8, fh = ROW_H - 6;
+            if (fw < 30) fw = 30;
+            lastFx = fx; lastFy = fy; lastFw = fw; lastFh = fh;
+            ctx.fill(fx, fy, fx + fw, fy + fh, focused ? 0xFF1A2A44 : 0xFF0F1218);
+            ctx.fill(fx, fy + fh - 1, fx + fw, fy + fh, focused ? C_ACCENT : C_BORDER);
+            int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
+            String shown = display.length() > maxChars
+                    ? display.substring(display.length() - maxChars) : display;
+            ctx.text(s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+        }
+        @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            if (mx >= lastFx && mx <= lastFx + lastFw && my >= lastFy && my <= lastFy + lastFh) {
+                focused = true;
+                draft = get.get() != null ? get.get() : "";
+                return true;
+            }
+            if (focused) { commit(); focused = false; }
+            return false;
+        }
+        @Override void onKey(int key) {
+            if (!focused) return;
+            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
+            else if (key == 259 && draft != null && !draft.isEmpty())
+                draft = draft.substring(0, draft.length() - 1);
+        }
+        @Override void onChar(char c) {
+            if (focused) { if (draft == null) draft = ""; draft += c; }
+        }
+        @Override boolean isCapturing() { return focused; }
+        @Override void cancel() { if (focused) { commit(); focused = false; } }
+        void commit() {
+            if (draft != null) set.accept(draft);
+            draft = null;
+        }
+    }
+
     // ── KeyCapture ────────────────────────────────────────────────────────────
 
     public static final int MOUSE_OFFSET = 2000;
@@ -334,7 +426,7 @@ public class KuudraScreen extends Screen {
         }
         @Override void onKey(int key) {
             if (!capturing) return;
-            if (key == 256) { capturing = false; return; } // Escape = cancel
+            if (key == 256) { setKey.accept(-1); capturing = false; return; } // Escape = unbind
             setKey.accept(key); capturing = false;
         }
         void onMouseButton(int button) {
@@ -350,18 +442,41 @@ public class KuudraScreen extends Screen {
     private static class Slider extends Feature {
         final Supplier<Float> get; final Consumer<Float> set;
         final String unit;
-        boolean drag = false;
+        boolean drag    = false;
+        boolean editing = false;
+        String  draft   = null;
+        int boxX, boxY, boxW, boxH;
         Slider(String n, Tab t, Supplier<Float> get, Consumer<Float> set, String unit) {
             super(n, t); this.get = get; this.set = set; this.unit = unit;
         }
+        String displayValue()  { return (int)(get.get() * 100) + unit; }
+        String editableText()  { return String.valueOf((int)(get.get() * 100)); }
+        void   applyEdited(String text) {
+            try {
+                float pct = Float.parseFloat(text);
+                set.accept(Mth.clamp(pct / 100f, 0f, 1f));
+            } catch (NumberFormatException ignored) {}
+        }
+        int labelColor() { return C_TEXT; }
+        int trackColor() { return C_SLIDER_FG; }
         @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
             ctx.text(s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
-            String valStr = (int)(get.get() * 100) + unit;
-            ctx.text(s.font, Component.literal(valStr),
-                    x + w - s.font.width(valStr) - 68,
-                    y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
-            drawTrack(ctx, x, y, w, get.get(), C_SLIDER_FG);
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, labelColor());
+            renderValueBox(ctx, s, x, y, w);
+            drawTrack(ctx, x, y, w, get.get(), trackColor());
+        }
+        void renderValueBox(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w) {
+            String shown = editing ? (draft == null ? "" : draft) : displayValue();
+            int bw = 44, bh = 12;
+            int bx = x + w - 68 - bw, by = y + (ROW_H - bh) / 2;
+            boxX = bx; boxY = by; boxW = bw; boxH = bh;
+            if (editing) {
+                ctx.fill(bx, by, bx + bw, by + bh, 0xFF1A2A44);
+                ctx.fill(bx, by + bh - 1, bx + bw, by + bh, C_ACCENT);
+            }
+            ctx.text(s.font, Component.literal(shown),
+                    bx + bw - s.font.width(shown) - 3,
+                    y + (ROW_H - s.font.lineHeight) / 2, editing ? C_TEXT : C_TEXT_DIM);
         }
         void drawTrack(GuiGraphicsExtractor ctx, int x, int y, int w, float v, int fill) {
             int sw = 52, sx = x + w - sw - 8, sy = y + ROW_H / 2 - 3;
@@ -372,10 +487,16 @@ public class KuudraScreen extends Screen {
             ctx.fill(gx, sy - 2, gx + 8, sy + 8, C_SLIDER_GR);
         }
         @Override boolean onDown(double mx, double my, int x, int y, int w) {
+            if (mx >= boxX && mx <= boxX + boxW && my >= boxY && my <= boxY + boxH) {
+                if (!editing) { editing = true; draft = editableText(); }
+                return true;
+            }
             int sw = 52, sx = x + w - sw - 8, sy = y + ROW_H / 2 - 5;
             if (mx >= sx - 4 && mx <= sx + sw + 4 && my >= sy && my <= sy + 10) {
+                if (editing) { commit(); editing = false; }
                 drag = true; apply(mx, sx, sw); return true;
             }
+            if (editing) { commit(); editing = false; }
             return false;
         }
         @Override boolean onDrag(double mx, double my, int x, int y, int w) {
@@ -384,6 +505,26 @@ public class KuudraScreen extends Screen {
         @Override void onUp() { drag = false; }
         void apply(double mx, int sx, int sw) {
             set.accept((float) Mth.clamp((mx - sx) / sw, 0.0, 1.0));
+        }
+        @Override void onKey(int key) {
+            if (!editing) return;
+            if (key == 256) { commit(); editing = false; }        // Esc saves current value
+            else if (key == 257 || key == 335) { commit(); editing = false; }
+            else if (key == 259 && draft != null && !draft.isEmpty())
+                draft = draft.substring(0, draft.length() - 1);
+        }
+        @Override void onChar(char c) {
+            if (!editing) return;
+            if (Character.isDigit(c) || c == '.' || c == '-') {
+                if (draft == null) draft = "";
+                draft += c;
+            }
+        }
+        @Override boolean isCapturing() { return editing; }
+        @Override void cancel() { if (editing) { commit(); editing = false; } }
+        void commit() {
+            if (draft != null && !draft.isEmpty() && !draft.equals("-")) applyEdited(draft);
+            draft = null;
         }
     }
 
@@ -400,15 +541,24 @@ public class KuudraScreen extends Screen {
                     "");
             this.min = min; this.max = max; this.fmt = fmt;
         }
-        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-            ctx.text(s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+        @Override String displayValue() {
             float raw = get.get() * (max - min) + min;
-            String disp = String.format(fmt, raw);
-            ctx.text(s.font, Component.literal(disp),
-                    x + w - s.font.width(disp) - 68,
-                    y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
-            drawTrack(ctx, x, y, w, get.get(), C_SLIDER_FG);
+            return String.format(fmt, raw);
+        }
+        @Override String editableText() { return stripToNumber(displayValue()); }
+        @Override void applyEdited(String text) {
+            try {
+                float raw = Mth.clamp(Float.parseFloat(text), min, max);
+                set.accept((raw - min) / (max - min));
+            } catch (NumberFormatException ignored) {}
+        }
+        private static String stripToNumber(String formatted) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < formatted.length(); i++) {
+                char c = formatted.charAt(i);
+                if (Character.isDigit(c) || c == '.' || c == '-') sb.append(c);
+            }
+            return sb.toString();
         }
     }
 
@@ -425,14 +575,15 @@ public class KuudraScreen extends Screen {
                     }, "");
             this.shift = shift; this.tint = tint;
         }
-        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-            ctx.text(s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, tint | 0xFF000000);
-            String valStr = String.valueOf((int)(get.get() * 255));
-            ctx.text(s.font, Component.literal(valStr),
-                    x + w - s.font.width(valStr) - 68,
-                    y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
-            drawTrack(ctx, x, y, w, get.get(), tint | 0xFF000000);
+        @Override int labelColor() { return tint | 0xFF000000; }
+        @Override int trackColor() { return tint | 0xFF000000; }
+        @Override String displayValue() { return String.valueOf((int)(get.get() * 255)); }
+        @Override String editableText()  { return displayValue(); }
+        @Override void applyEdited(String text) {
+            try {
+                int v = Mth.clamp(Integer.parseInt(text), 0, 255);
+                set.accept(v / 255f);
+            } catch (NumberFormatException ignored) {}
         }
     }
 
@@ -758,6 +909,7 @@ public class KuudraScreen extends Screen {
     private final List<VisualWordEntry>    vwInputs        = new ArrayList<>();
     private final List<RgbInput>           rgbInputs       = new ArrayList<>();
     private final List<TextInput>          textInputs      = new ArrayList<>();
+    private final List<RawTextInput>       rawTextInputs   = new ArrayList<>();
 
     // ── Build helpers ───────────────────────────────────────────────────────────
 
@@ -769,6 +921,7 @@ public class KuudraScreen extends Screen {
         if (f instanceof VisualWordEntry v)    vwInputs.add(v);
         if (f instanceof RgbInput rgb)         rgbInputs.add(rgb);
         if (f instanceof TextInput ti)         textInputs.add(ti);
+        if (f instanceof RawTextInput rti)     rawTextInputs.add(rti);
         allLeaves.add(f);
         return new Leaf(f);
     }
@@ -792,6 +945,7 @@ public class KuudraScreen extends Screen {
         vwInputs.clear();
         rgbInputs.clear();
         textInputs.clear();
+        rawTextInputs.clear();
 
         buildAboutTab();
         buildSuppliesTab();
@@ -818,6 +972,7 @@ public class KuudraScreen extends Screen {
                 }))));
         gfs.add(leaf(new IntInput("DPS Amount",  T, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue)));
         gfs.add(leaf(new IntInput("Stun Amount", T, KuudraConfig::getStunValue, KuudraConfig::setStunValue)));
+        gfs.add(leaf(new IntInput("Refill Amount", T, KuudraConfig::getDpsRefillAmount, KuudraConfig::setDpsRefillAmount)));
         roots.add(gfs);
 
         roots.add(leaf(new Toggle("Pickobulus Blocker", T,
@@ -908,8 +1063,21 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSupplyPearlHitboxEnabled, KuudraConfig::setSupplyPearlHitboxEnabled)));
         roots.add(leaf(new Toggle("Supply Giant Hitbox Alert", T,
                 KuudraConfig::isSupplyGiantHitboxEnabled, KuudraConfig::setSupplyGiantHitboxEnabled)));
+
+        Group giantHitbox = group("Giant Hitbox", T, null,
+                KuudraConfig::isGiantHitboxEnabled, KuudraConfig::setGiantHitboxEnabled);
+        giantHitbox.add(leaf(new Toggle("Filled", T,
+                KuudraConfig::isGiantHitboxFilled, KuudraConfig::setGiantHitboxFilled)));
+        giantHitbox.add(leaf(new Slider("Fill Opacity", T,
+                KuudraConfig::getGiantHitboxFillOpacity, KuudraConfig::setGiantHitboxFillOpacity, "")));
+        giantHitbox.add(leaf(new RgbInput("Colour", T,
+                KuudraConfig::getGiantHitboxColor, KuudraConfig::setGiantHitboxColor)));
+        roots.add(giantHitbox);
+
         roots.add(leaf(new Toggle("Lava Bobber Fix", T,
                 KuudraConfig::isLavaBobberFixEnabled, KuudraConfig::setLavaBobberFixEnabled)));
+        roots.add(leaf(new Toggle("Legacy Rod Physics", T,
+                KuudraConfig::isLegacyRodPhysicsEnabled, KuudraConfig::setLegacyRodPhysicsEnabled)));
         roots.add(leaf(new Toggle("Etherwarp Waypoints", T,
                 KuudraConfig::isEtherwarpWaypointsEnabled, KuudraConfig::setEtherwarpWaypointsEnabled)));
         roots.add(leaf(new Toggle("Block Slot 9", T,
@@ -926,19 +1094,8 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isPearlSkyEnabled, KuudraConfig::setPearlSkyEnabled)));
         wp.add(leaf(new Toggle("Double Pearls", T,
                 KuudraConfig::isPearlDoubleEnabled, KuudraConfig::setPearlDoubleEnabled)));
-        wp.add(leaf(new Slider("Double Pearl Delay", T,
-                () -> (KuudraConfig.getDoublePearlDelayS() - 0.05f) / 0.5f,
-                v  ->  KuudraConfig.setDoublePearlDelayS(v * 0.5f + 0.05f), "") {
-            @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-                ctx.text(s.font, Component.literal(name),
-                        x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
-                String valStr = String.format("%.2fs", KuudraConfig.getDoublePearlDelayS());
-                ctx.text(s.font, Component.literal(valStr),
-                        x + w - s.font.width(valStr) - 68,
-                        y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
-                drawTrack(ctx, x, y, w, get.get(), C_SLIDER_FG);
-            }
-        }));
+        wp.add(leaf(new RangeSlider("Double Pearl Delay", T, 0.05f, 0.55f, "%.2fs",
+                KuudraConfig::getDoublePearlDelayS, KuudraConfig::setDoublePearlDelayS)));
         wp.add(leaf(new Cycle("Waypoint Type", T,
                 () -> KuudraConfig.getWaypointType().name().charAt(0)
                         + KuudraConfig.getWaypointType().name().substring(1).toLowerCase(),
@@ -1066,14 +1223,20 @@ public class KuudraScreen extends Screen {
                 v  -> KuudraConfig.setKuudraPetLevel(Math.round(v)))));
         roots.add(profit);
 
-        roots.add(leaf(new Toggle("Pearl Refill", T,
-                KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled)));
+        Group pearlRefill = group("Pearl Refill", T, null,
+                KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled);
+        pearlRefill.add(leaf(new Toggle("Work Outside Kuudra", T,
+                KuudraConfig::isPearlRefillOutsideKuudraEnabled, KuudraConfig::setPearlRefillOutsideKuudraEnabled)));
+        roots.add(pearlRefill);
         Group kicked = group("Kicked Notification", T, null,
                 KuudraConfig::isKickedNotificationEnabled, KuudraConfig::setKickedNotificationEnabled);
         kicked.add(soundGroup(T, KuudraConfig.SOUND_KICKED));
         roots.add(kicked);
-        roots.add(leaf(new Toggle("Auto Requeue", T,
-                KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled)));
+        Group autoRequeue = group("Auto Requeue", T, null,
+                KuudraConfig::isAutoRequeueEnabled, KuudraConfig::setAutoRequeueEnabled);
+        autoRequeue.add(leaf(new Toggle("Party Chat Message", T,
+                KuudraConfig::isAutoRequeueMessageEnabled, KuudraConfig::setAutoRequeueMessageEnabled)));
+        roots.add(autoRequeue);
         roots.add(leaf(new Toggle("Hide Falling Blocks", T,
                 KuudraConfig::isHideFallingBlocksEnabled, KuudraConfig::setHideFallingBlocksEnabled)));
         roots.add(leaf(new Toggle("Hide Entity Fire", T,
@@ -1082,12 +1245,6 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isHideDamageTitleEnabled, KuudraConfig::setHideDamageTitleEnabled)));
         roots.add(leaf(new Toggle("Hide Dead Enemies", T,
                 KuudraConfig::isHideDeadEntitiesEnabled, KuudraConfig::setHideDeadEntitiesEnabled)));
-        roots.add(leaf(rs(T, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
-                KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale)));
-        roots.add(leaf(rs(T, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",
-                KuudraConfig::getOtherPlayerScale, KuudraConfig::setOtherPlayerScale)));
-        roots.add(leaf(rs(T, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
-                KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale)));
         roots.add(leaf(new Toggle("Auto Sprint", T,
                 KuudraConfig::isAutoSprintEnabled, KuudraConfig::setAutoSprintEnabled)));
         roots.add(leaf(new Toggle("Hollow Wand Announcer", T,
@@ -1142,7 +1299,7 @@ public class KuudraScreen extends Screen {
         shop.add(leaf(new KeyCapture("Cannon Key", T, KuudraConfig::getShopCannonKey, KuudraConfig::setShopCannonKey)));
         roots.add(shop);
 
-        Group wardrobe = group("Wardrobe Keybinds", T, null,
+        Group wardrobe = group("Loadout Keybinds", T, null,
                 KuudraConfig::isWardrobeEnabled, KuudraConfig::setWardrobeEnabled);
         String[] slotLabels = {"Slot 1","Slot 2","Slot 3","Slot 4","Slot 5",
                                "Slot 6","Slot 7","Slot 8","Slot 9"};
@@ -1153,12 +1310,32 @@ public class KuudraScreen extends Screen {
                     v  -> KuudraConfig.setWardrobeSlotKey(idx, v))));
         }
         wardrobe.add(leaf(new KeyCapture("Open Wardrobe",  T, KuudraConfig::getWardrobeOpenKey,     KuudraConfig::setWardrobeOpenKey)));
-        wardrobe.add(leaf(new KeyCapture("Open Equipment", T, KuudraConfig::getEquipmentOpenKey,    KuudraConfig::setEquipmentOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Stats Keybind",  T, KuudraConfig::getStatsOpenKey,        KuudraConfig::setStatsOpenKey)));
         wardrobe.add(leaf(new KeyCapture("Open Pets",      T, KuudraConfig::getPetsOpenKey,         KuudraConfig::setPetsOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Equipment Wardrobe Keybind", T, KuudraConfig::getEqWardrobeOpenKey, KuudraConfig::setEqWardrobeOpenKey)));
+        wardrobe.add(leaf(new KeyCapture("Loadouts Keybind", T, KuudraConfig::getLoadoutsOpenKey,    KuudraConfig::setLoadoutsOpenKey)));
+        for (int i = 0; i < 12; i++) {
+            final int idx = i;
+            wardrobe.add(leaf(new KeyCapture("Loadout Slot " + (idx + 1), T,
+                    () -> KuudraConfig.getLoadoutSlotKeys()[idx],
+                    v  -> KuudraConfig.setLoadoutSlotKey(idx, v))));
+        }
         wardrobe.add(leaf(new KeyCapture("Next Page",      T, KuudraConfig::getWardrobeNextPageKey, KuudraConfig::setWardrobeNextPageKey)));
         wardrobe.add(leaf(new KeyCapture("Prev Page",      T, KuudraConfig::getWardrobePrevPageKey, KuudraConfig::setWardrobePrevPageKey)));
         wardrobe.add(leaf(new KeyCapture("Unequip",        T, KuudraConfig::getWardrobeUnequipKey,  KuudraConfig::setWardrobeUnequipKey)));
+        wardrobe.add(leaf(new Toggle("Disable Unequip", T,
+                KuudraConfig::isWardrobeDisableUnequipEnabled, KuudraConfig::setWardrobeDisableUnequipEnabled)));
+        wardrobe.add(leaf(new Toggle("Auto Close Wardrobe", T,
+                KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
         roots.add(wardrobe);
+
+        Group shitterList = group("Shitter List", T, null,
+                com.kuudrahelper.features.ShitterList::isEnabled,
+                com.kuudrahelper.features.ShitterList::setEnabled);
+        shitterList.add(leaf(new Toggle("Auto Kick Shitters", T,
+                com.kuudrahelper.features.ShitterList::isAutoKickEnabled,
+                com.kuudrahelper.features.ShitterList::setAutoKickEnabled)));
+        roots.add(shitterList);
 
         Group explosion = group("Exploison Hider", T, null,
                 KuudraConfig::isExplosionFilterEnabled, KuudraConfig::setExplosionFilterEnabled);
@@ -1180,6 +1357,24 @@ public class KuudraScreen extends Screen {
         m7toxic.add(leaf(new IntInput("Toxic Amount", T, KuudraConfig::getToxicAmount, KuudraConfig::setToxicAmount)));
         roots.add(m7toxic);
 
+        Group autoKick = group("Auto Kick" + (KuudraConfig.API_KEY_FEATURES_UNLOCKED ? "" : " (DISABLED)"), T, null,
+                KuudraConfig::isAutoKickEnabled, KuudraConfig::setAutoKickEnabled);
+        autoKick.add(leaf(new OptionalIntInput("Catacombs Level", T, KuudraConfig::getAkMinCatacombs, KuudraConfig::setAkMinCatacombs)));
+        autoKick.add(leaf(new OptionalIntInput("Foraging Level", T, KuudraConfig::getAkMinForaging, KuudraConfig::setAkMinForaging)));
+        autoKick.add(leaf(new OptionalIntInput("Magical Power", T, KuudraConfig::getAkMinMagicalPower, KuudraConfig::setAkMinMagicalPower)));
+        autoKick.add(leaf(new OptionalIntInput("Infernal Comps", T, KuudraConfig::getAkMinInfernal, KuudraConfig::setAkMinInfernal)));
+        autoKick.add(leaf(new OptionalIntInput("Fiery Comps", T, KuudraConfig::getAkMinFiery, KuudraConfig::setAkMinFiery)));
+        autoKick.add(leaf(new OptionalIntInput("Burning Comps", T, KuudraConfig::getAkMinBurning, KuudraConfig::setAkMinBurning)));
+        autoKick.add(leaf(new OptionalIntInput("Hot Comps", T, KuudraConfig::getAkMinHot, KuudraConfig::setAkMinHot)));
+        autoKick.add(leaf(new OptionalIntInput("Basic Comps", T, KuudraConfig::getAkMinBasic, KuudraConfig::setAkMinBasic)));
+        autoKick.add(leaf(new Toggle("Rend", T,
+                KuudraConfig::isAkRequireRend, KuudraConfig::setAkRequireRend)));
+        autoKick.add(leaf(new OptionalIntInput("Gdrag Level", T, KuudraConfig::getAkMinGdragLevel, KuudraConfig::setAkMinGdragLevel)));
+        roots.add(autoKick);
+
+        roots.add(leaf(new Toggle("Profile Viewer" + (KuudraConfig.API_KEY_FEATURES_UNLOCKED ? "" : " (DISABLED)"), T,
+                KuudraConfig::isProfileViewerEnabled, KuudraConfig::setProfileViewerEnabled)));
+
         Group m7twi = group("M7 Auto GFS Twilight", T, null,
                 KuudraConfig::isAutoGfsTwilightEnabled, KuudraConfig::setAutoGfsTwilight);
         m7twi.add(leaf(new IntInput("Twilight Amount", T, KuudraConfig::getTwilightAmount, KuudraConfig::setTwilightAmount)));
@@ -1190,6 +1385,16 @@ public class KuudraScreen extends Screen {
 
     private void buildCustomisationTab() {
         Tab T = Tab.CUSTOMISATION;
+
+        // Scaling — player and mob size overrides
+        Group scaling = group("Scaling", T, null, null, null);
+        scaling.add(leaf(rs(T, "Self Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getSelfPlayerScale, KuudraConfig::setSelfPlayerScale)));
+        scaling.add(leaf(rs(T, "Other Player Scale", 1.0f, 300.0f, "%.0f%%",
+                KuudraConfig::getOtherPlayerScale, KuudraConfig::setOtherPlayerScale)));
+        scaling.add(leaf(rs(T, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
+                KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale)));
+        roots.add(scaling);
 
         // Item customisation — master dropdown, each type a nested dropdown
         Group ic = group("Item Customisation", T, null,
@@ -1543,6 +1748,8 @@ public class KuudraScreen extends Screen {
                     vwInputs.forEach(Feature::cancel);
                     rgbInputs.forEach(Feature::cancel);
                     textInputs.forEach(Feature::cancel);
+                    rawTextInputs.forEach(Feature::cancel);
+                    allSliders.forEach(Feature::cancel);
                     currentTab = tabs[i];
                     tabAnim = 0f;
                     scroll = 0;
@@ -1556,6 +1763,8 @@ public class KuudraScreen extends Screen {
         vwInputs.forEach(Feature::cancel);
         rgbInputs.forEach(Feature::cancel);
         textInputs.forEach(Feature::cancel);
+        rawTextInputs.forEach(Feature::cancel);
+        allSliders.forEach(Feature::cancel);
 
         if (mx >= cx() && mx <= cx() + cw() && my >= cy() && my <= cy() + ch()) {
             for (RenderRow r : layoutRows()) {
@@ -1646,6 +1855,14 @@ public class KuudraScreen extends Screen {
             textInputs.forEach(f -> f.onKey(key));
             return true;
         }
+        if (rawTextInputs.stream().anyMatch(Feature::isCapturing)) {
+            rawTextInputs.forEach(f -> f.onKey(key));
+            return true;
+        }
+        if (allSliders.stream().anyMatch(Feature::isCapturing)) {
+            allSliders.forEach(f -> f.onKey(key));
+            return true;
+        }
         if (key == 256 && searchField != null && searchField.isFocused()) {
             searchField.setFocused(false);
             this.setFocused(null);
@@ -1673,6 +1890,14 @@ public class KuudraScreen extends Screen {
         }
         if (textInputs.stream().anyMatch(Feature::isCapturing)) {
             textInputs.forEach(f -> f.onChar((char) input.codepoint()));
+            return true;
+        }
+        if (rawTextInputs.stream().anyMatch(Feature::isCapturing)) {
+            rawTextInputs.forEach(f -> f.onChar((char) input.codepoint()));
+            return true;
+        }
+        if (allSliders.stream().anyMatch(Feature::isCapturing)) {
+            allSliders.forEach(f -> f.onChar((char) input.codepoint()));
             return true;
         }
         if (searchField != null && searchField.isFocused()) return super.charTyped(input);

@@ -19,6 +19,7 @@
     "ArmorStandRendererMixin",
     "FallingBlockMixin",
     "FishingHookMixin",
+    "FishingHookRendererMixin",
     "EntityScaleMixin",
     "KuudraScaleMixin",
     "EntityFireMixin"

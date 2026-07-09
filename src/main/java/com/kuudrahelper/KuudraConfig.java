@@ -17,6 +17,8 @@ import java.util.Map;
 
 public class KuudraConfig {
 
+    public static final boolean API_KEY_FEATURES_UNLOCKED = false; // Toggles the ability to use Hypixel API features. MEANS DONT TOUCH NERDS!
+
     private static final Gson GSON        = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance()
             .getConfigDir().resolve("phantomaddons.json");
@@ -31,6 +33,7 @@ public class KuudraConfig {
     private static RoleMode roleMode          = RoleMode.AUTO;
     private static int      dpsValue          = 40;
     private static int      stunValue         = 9;
+    private static int      dpsRefillAmount   = 10;
     private static boolean  eatenTimerEnabled              = false;
     private static boolean  eatenTimerSubtractPingEnabled  = false;
     private static boolean  etherwarpLavaBlock = true;
@@ -58,10 +61,27 @@ public class KuudraConfig {
     private static int     shopCannonKey            = 50;
     private static boolean explosionFilterEnabled   = false;
     private static float   explosionHideRadius      = 0.3f;
+
+    // ── Auto Kick ─────────────────────────────────────────────────────────────
+    // Thresholds are "minimum required"; -1 means the field is empty/unset and isn't checked.
+
+    private static boolean autoKickEnabled       = false;
+    private static boolean profileViewerEnabled  = true;
+    private static int     akMinCatacombs        = -1;
+    private static int     akMinForaging         = -1;
+    private static int     akMinMagicalPower     = -1;
+    private static int     akMinInfernal         = -1;
+    private static int     akMinFiery            = -1;
+    private static int     akMinBurning          = -1;
+    private static int     akMinHot              = -1;
+    private static int     akMinBasic            = -1;
+    private static boolean akRequireRend         = false;
+    private static int     akMinGdragLevel       = -1;
     private static float   explosionSizeMultiplier  = 0.33f;
     private static boolean chestAnnouncerEnabled    = true;
     private static boolean partyCmdsEnabled         = true;
     private static boolean autoRequeueEnabled       = true;
+    private static boolean autoRequeueMessageEnabled = true;
     private static boolean autoUpdatesEnabled       = true;
     private static boolean autoSprintEnabled        = false;
     private static boolean slotBindsEnabled         = false;
@@ -73,7 +93,6 @@ public class KuudraConfig {
 
     public enum KuudraPetRarity {
         COMMON, UNCOMMON, RARE, EPIC, LEGENDARY;
-        /** Fractional essence bonus per pet level (e.g. 0.002 = 0.2% per level). */
         public double bonusPerLevel() {
             return switch (this) {
                 case RARE          -> 0.0015;
@@ -81,7 +100,6 @@ public class KuudraConfig {
                 default            -> 0.0;
             };
         }
-        /** Total essence multiplier at the given level (e.g. 1.20 = 20% more essence). */
         public double essenceMultiplier(int level) { return 1.0 + bonusPerLevel() * level; }
     }
 
@@ -155,7 +173,6 @@ public class KuudraConfig {
     private static boolean        pearlFlatEnabled      = true;
     private static boolean        pearlSkyEnabled       = true;
     private static boolean        pearlDoubleEnabled    = true;
-    /** Delay (seconds) added between the first and second pearl in a double pearl. */
     private static float          doublePearlDelayS     = 0.2f;
     private static WaypointType   waypointType          = WaypointType.CIRCLE;
     private static boolean        waypointFill          = true;
@@ -169,15 +186,12 @@ public class KuudraConfig {
     private static int            lowPing               = 0;
     private static float          waypointFillAlpha     = 0.25f;
     private static float          beaconAlpha           = 0.63f;
-    // Pearl waypoint marker colours (packed 0xRRGGBB)
     private static int            wpColNormal           = 0xFFFFFF;
     private static int            wpColCorrect          = 0xFF4444;
     private static int            wpColHovered          = 0xFFAA00;
     private static int            wpColReady            = 0x33FF33;
-    // Pearl beacon beam colours (packed 0xRRGGBB)
     private static int            beaconColNormal       = 0xFFFFFF;
     private static int            beaconColCorrect      = 0x00C800;
-    // Build phase beacon opacity
     private static float          buildBeaconAlpha      = 0.63f;
     private static boolean        blockSlot9Enabled          = false;
     private static boolean        stunPreviewEnabled         = false;
@@ -199,11 +213,16 @@ public class KuudraConfig {
     private static boolean        supplyRodRadiusEnabled       = false;
     private static boolean        supplyPearlHitboxEnabled     = false;
     private static boolean        pearlRefillEnabled           = false;
+    private static boolean        pearlRefillOutsideKuudraEnabled = false;
     private static boolean        hideSelfieEnabled            = false;
     private static boolean        preventPlacingPlayerHeadsEnabled      = false;
     private static boolean        preventPlacingPlayerHeadsExceptGarden = true;
     private static boolean        preventPlacingWeaponsEnabled          = false;
     private static boolean        supplyGiantHitboxEnabled              = false;
+    private static boolean        giantHitboxEnabled                    = false;
+    private static boolean        giantHitboxFilled                     = false;
+    private static float          giantHitboxFillOpacity                = 0.05f;
+    private static int            giantHitboxColor                      = 0xFFFFFF;
 
     // ── HUD layout ────────────────────────────────────────────────────────────
 
@@ -258,6 +277,7 @@ public class KuudraConfig {
     private static boolean manaDrainAnnouncerEnabled = false;
     private static boolean hideEntityFireEnabled  = false;
     private static boolean lavaBobberFixEnabled    = false;
+    private static boolean legacyRodPhysicsEnabled = false;
     private static boolean hideDamageTitleEnabled  = false;
     private static boolean hideDeadEntitiesEnabled    = false;
     private static boolean etherwarpWaypointsEnabled  = false;
@@ -282,12 +302,18 @@ public class KuudraConfig {
 
     private static boolean wardrobeEnabled      = false;
     private static int     wardrobeOpenKey      = -1;
-    private static int     equipmentOpenKey     = -1;
+    private static int     statsOpenKey         = -1;
     private static int     petsOpenKey          = -1;
+    private static int     eqWardrobeOpenKey    = -1;
+    private static int     loadoutsOpenKey      = -1;
     private static int[]   wardrobeSlotKeys     = {49,50,51,52,53,54,55,56,57};
+    private static int[]   loadoutSlotKeys      = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
     private static int     wardrobeNextPageKey  = 262; // GLFW_KEY_RIGHT
     private static int     wardrobePrevPageKey  = 263; // GLFW_KEY_LEFT
     private static int     wardrobeUnequipKey   = 85;  // GLFW_KEY_U
+    private static boolean wardrobeDisableUnequipEnabled = true;
+    private static boolean wardrobeAutoCloseEnabled      = true;
+    private static int     lastEquippedWardrobeSlot      = -1;
 
     private static boolean autoGfsToxic    = false;
     private static boolean autoGfsTwilight = false;
@@ -333,6 +359,7 @@ public class KuudraConfig {
     public static boolean  isStunMode()                  { return roleMode == RoleMode.STUN; }
     public static boolean  isAutoMode()                  { return roleMode == RoleMode.AUTO; }
     public static int      getDpsValue()                 { return dpsValue; }
+    public static int      getDpsRefillAmount()          { return dpsRefillAmount; }
     public static int      getStunValue()                { return stunValue; }
     public static boolean  isEatenTimerEnabled()              { return eatenTimerEnabled; }
     public static boolean  isEatenTimerSubtractPingEnabled()  { return eatenTimerSubtractPingEnabled; }
@@ -363,8 +390,22 @@ public class KuudraConfig {
     public static float   getExplosionSizeMultiplier(){ return explosionSizeMultiplier * 3.0f; }
     public static float   getExplosionSizeRaw()       { return explosionSizeMultiplier; }
     public static boolean isChestAnnouncerEnabled()   { return chestAnnouncerEnabled; }
+
+    public static boolean isAutoKickEnabled()     { return API_KEY_FEATURES_UNLOCKED && autoKickEnabled; }
+    public static boolean isProfileViewerEnabled() { return API_KEY_FEATURES_UNLOCKED && profileViewerEnabled; }
+    public static int     getAkMinCatacombs()     { return akMinCatacombs; }
+    public static int     getAkMinForaging()      { return akMinForaging; }
+    public static int     getAkMinMagicalPower()  { return akMinMagicalPower; }
+    public static int     getAkMinInfernal()      { return akMinInfernal; }
+    public static int     getAkMinFiery()         { return akMinFiery; }
+    public static int     getAkMinBurning()       { return akMinBurning; }
+    public static int     getAkMinHot()           { return akMinHot; }
+    public static int     getAkMinBasic()         { return akMinBasic; }
+    public static boolean isAkRequireRend()       { return akRequireRend; }
+    public static int     getAkMinGdragLevel()    { return akMinGdragLevel; }
     public static boolean isPartyCmdsEnabled()        { return partyCmdsEnabled; }
     public static boolean isAutoRequeueEnabled()      { return autoRequeueEnabled; }
+    public static boolean isAutoRequeueMessageEnabled() { return autoRequeueMessageEnabled; }
     public static boolean isAutoUpdatesEnabled()      { return autoUpdatesEnabled; }
     public static boolean isAutoSprintEnabled()       { return autoSprintEnabled; }
     public static boolean isSlotBindsEnabled()        { return slotBindsEnabled; }
@@ -421,11 +462,16 @@ public class KuudraConfig {
     public static boolean        isSupplyRodRadiusEnabled()        { return supplyRodRadiusEnabled; }
     public static boolean        isSupplyPearlHitboxEnabled()      { return supplyPearlHitboxEnabled; }
     public static boolean        isPearlRefillEnabled()            { return pearlRefillEnabled; }
+    public static boolean        isPearlRefillOutsideKuudraEnabled() { return pearlRefillOutsideKuudraEnabled; }
     public static boolean        isHideSelfieEnabled()             { return hideSelfieEnabled; }
     public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return preventPlacingPlayerHeadsEnabled; }
     public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return preventPlacingPlayerHeadsExceptGarden; }
     public static boolean        isPreventPlacingWeaponsEnabled()          { return preventPlacingWeaponsEnabled; }
     public static boolean        isSupplyGiantHitboxEnabled()              { return supplyGiantHitboxEnabled; }
+    public static boolean        isGiantHitboxEnabled()                    { return giantHitboxEnabled; }
+    public static boolean        isGiantHitboxFilled()                     { return giantHitboxFilled; }
+    public static float          getGiantHitboxFillOpacity()               { return giantHitboxFillOpacity; }
+    public static int            getGiantHitboxColor()                     { return giantHitboxColor; }
 
     public static int getPickupDurationMs() {
         int tier = KuudraTierDetector.getTier();
@@ -514,6 +560,7 @@ public class KuudraConfig {
     // General
     public static void setRoleMode(RoleMode m)          { roleMode = m;           save(); }
     public static void setDpsValue(int v)               { dpsValue = v;           save(); }
+    public static void setDpsRefillAmount(int v)        { dpsRefillAmount = Math.max(4, v); save(); }
     public static void setStunValue(int v)              { stunValue = v;          save(); }
     public static void setEatenTimerEnabled(boolean v)             { eatenTimerEnabled = v;             save(); }
     public static void setEatenTimerSubtractPingEnabled(boolean v) { eatenTimerSubtractPingEnabled = v;  save(); }
@@ -542,8 +589,22 @@ public class KuudraConfig {
     public static void setExplosionHideRadius(float v)      { explosionHideRadius = clamp01(v); save(); }
     public static void setExplosionSizeMultiplier(float v)  { explosionSizeMultiplier = clamp01(v); save(); }
     public static void setChestAnnouncerEnabled(boolean v)  { chestAnnouncerEnabled = v;   save(); }
+
+    public static void setAutoKickEnabled(boolean v)   { if (API_KEY_FEATURES_UNLOCKED) { autoKickEnabled = v; save(); } }
+    public static void setProfileViewerEnabled(boolean v) { if (API_KEY_FEATURES_UNLOCKED) { profileViewerEnabled = v; save(); } }
+    public static void setAkMinCatacombs(int v)        { akMinCatacombs = v;    save(); }
+    public static void setAkMinForaging(int v)         { akMinForaging = v;     save(); }
+    public static void setAkMinMagicalPower(int v)     { akMinMagicalPower = v; save(); }
+    public static void setAkMinInfernal(int v)         { akMinInfernal = v;     save(); }
+    public static void setAkMinFiery(int v)            { akMinFiery = v;        save(); }
+    public static void setAkMinBurning(int v)          { akMinBurning = v;      save(); }
+    public static void setAkMinHot(int v)              { akMinHot = v;          save(); }
+    public static void setAkMinBasic(int v)            { akMinBasic = v;        save(); }
+    public static void setAkRequireRend(boolean v)     { akRequireRend = v;     save(); }
+    public static void setAkMinGdragLevel(int v)       { akMinGdragLevel = v;   save(); }
     public static void setPartyCmdsEnabled(boolean v)       { partyCmdsEnabled = v;        save(); }
     public static void setAutoRequeueEnabled(boolean v)     { autoRequeueEnabled = v;      save(); }
+    public static void setAutoRequeueMessageEnabled(boolean v) { autoRequeueMessageEnabled = v; save(); }
     public static void setAutoUpdatesEnabled(boolean v)     { autoUpdatesEnabled = v;      save(); }
     public static void setAutoSprintEnabled(boolean v)      { autoSprintEnabled = v;       save(); }
     public static void setSlotBindsEnabled(boolean v)       { slotBindsEnabled = v;        save(); }
@@ -596,11 +657,16 @@ public class KuudraConfig {
     public static void setSupplyRodRadiusEnabled(boolean v)          { supplyRodRadiusEnabled = v;              save(); }
     public static void setSupplyPearlHitboxEnabled(boolean v)        { supplyPearlHitboxEnabled = v;            save(); }
     public static void setPearlRefillEnabled(boolean v)              { pearlRefillEnabled = v;                  save(); }
+    public static void setPearlRefillOutsideKuudraEnabled(boolean v) { pearlRefillOutsideKuudraEnabled = v;     save(); }
     public static void setHideSelfieEnabled(boolean v)               { hideSelfieEnabled = v;                    save(); }
     public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { preventPlacingPlayerHeadsEnabled = v;      save(); }
     public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { preventPlacingPlayerHeadsExceptGarden = v; save(); }
     public static void setPreventPlacingWeaponsEnabled(boolean v)          { preventPlacingWeaponsEnabled = v;          save(); }
     public static void setSupplyGiantHitboxEnabled(boolean v)              { supplyGiantHitboxEnabled = v;              save(); }
+    public static void setGiantHitboxEnabled(boolean v)                    { giantHitboxEnabled = v;                    save(); }
+    public static void setGiantHitboxFilled(boolean v)                     { giantHitboxFilled = v;                     save(); }
+    public static void setGiantHitboxFillOpacity(float v)                  { giantHitboxFillOpacity = clamp01(v);       save(); }
+    public static void setGiantHitboxColor(int v)                          { giantHitboxColor = v & 0xFFFFFF;           save(); }
 
     // HUD layout (no auto-save — HudEditorScreen calls save() on close)
     public static float getMountTimerHudX()     { return mountTimerHudX; }
@@ -702,6 +768,8 @@ public class KuudraConfig {
     public static void setHideEntityFireEnabled(boolean v)    { hideEntityFireEnabled = v; save(); }
     public static boolean isLavaBobberFixEnabled()             { return lavaBobberFixEnabled; }
     public static void setLavaBobberFixEnabled(boolean v)      { lavaBobberFixEnabled = v; save(); }
+    public static boolean isLegacyRodPhysicsEnabled()          { return legacyRodPhysicsEnabled; }
+    public static void setLegacyRodPhysicsEnabled(boolean v)   { legacyRodPhysicsEnabled = v; save(); }
     public static boolean isHideDamageTitleEnabled()           { return hideDamageTitleEnabled; }
     public static void setHideDamageTitleEnabled(boolean v)    { hideDamageTitleEnabled = v; save(); }
     public static boolean isHideDeadEntitiesEnabled()          { return hideDeadEntitiesEnabled; }
@@ -726,18 +794,30 @@ public class KuudraConfig {
     public static void setWardrobeEnabled(boolean v)  { wardrobeEnabled = v; save(); }
     public static int  getWardrobeOpenKey()           { return wardrobeOpenKey; }
     public static void setWardrobeOpenKey(int v)      { wardrobeOpenKey = v; save(); }
-    public static int  getEquipmentOpenKey()          { return equipmentOpenKey; }
-    public static void setEquipmentOpenKey(int v)     { equipmentOpenKey = v; save(); }
+    public static int  getStatsOpenKey()              { return statsOpenKey; }
+    public static void setStatsOpenKey(int v)         { statsOpenKey = v; save(); }
     public static int  getPetsOpenKey()               { return petsOpenKey; }
     public static void setPetsOpenKey(int v)          { petsOpenKey = v; save(); }
+    public static int  getEqWardrobeOpenKey()         { return eqWardrobeOpenKey; }
+    public static void setEqWardrobeOpenKey(int v)    { eqWardrobeOpenKey = v; save(); }
+    public static int  getLoadoutsOpenKey()           { return loadoutsOpenKey; }
+    public static void setLoadoutsOpenKey(int v)      { loadoutsOpenKey = v; save(); }
     public static int[] getWardrobeSlotKeys()         { return wardrobeSlotKeys.clone(); }
     public static void setWardrobeSlotKey(int i, int v){ wardrobeSlotKeys[i] = v; save(); }
+    public static int[] getLoadoutSlotKeys()          { return loadoutSlotKeys.clone(); }
+    public static void setLoadoutSlotKey(int i, int v) { loadoutSlotKeys[i] = v; save(); }
     public static int  getWardrobeNextPageKey()       { return wardrobeNextPageKey; }
     public static void setWardrobeNextPageKey(int v)  { wardrobeNextPageKey = v; save(); }
     public static int  getWardrobePrevPageKey()       { return wardrobePrevPageKey; }
     public static void setWardrobePrevPageKey(int v)  { wardrobePrevPageKey = v; save(); }
     public static int  getWardrobeUnequipKey()        { return wardrobeUnequipKey; }
     public static void setWardrobeUnequipKey(int v)   { wardrobeUnequipKey = v; save(); }
+    public static boolean isWardrobeDisableUnequipEnabled()      { return wardrobeDisableUnequipEnabled; }
+    public static void setWardrobeDisableUnequipEnabled(boolean v) { wardrobeDisableUnequipEnabled = v; save(); }
+    public static boolean isWardrobeAutoCloseEnabled()           { return wardrobeAutoCloseEnabled; }
+    public static void setWardrobeAutoCloseEnabled(boolean v)    { wardrobeAutoCloseEnabled = v; save(); }
+    public static int  getLastEquippedWardrobeSlot()          { return lastEquippedWardrobeSlot; }
+    public static void setLastEquippedWardrobeSlot(int v)     { lastEquippedWardrobeSlot = v; save(); }
 
     // Dungeons
     public static void setAutoGfsToxic(boolean v)    { autoGfsToxic = v;    save(); }
@@ -767,6 +847,7 @@ public class KuudraConfig {
 
             roleMode           = safeEnum(RoleMode.class, d.roleMode, RoleMode.AUTO);
             dpsValue           = d.dpsValue;
+            dpsRefillAmount    = Math.max(4, d.dpsRefillAmount);
             stunValue          = d.stunValue;
             eatenTimerEnabled             = d.eatenTimerEnabled;
             eatenTimerSubtractPingEnabled = d.eatenTimerSubtractPingEnabled;
@@ -792,8 +873,21 @@ public class KuudraConfig {
             explosionHideRadius     = clamp01(d.explosionHideRadius);
             explosionSizeMultiplier = clamp01(d.explosionSizeMultiplier);
             chestAnnouncerEnabled   = d.chestAnnouncerEnabled;
+            autoKickEnabled         = d.autoKickEnabled;
+            profileViewerEnabled    = d.profileViewerEnabled;
+            akMinCatacombs          = d.akMinCatacombs;
+            akMinForaging           = d.akMinForaging;
+            akMinMagicalPower       = d.akMinMagicalPower;
+            akMinInfernal           = d.akMinInfernal;
+            akMinFiery              = d.akMinFiery;
+            akMinBurning            = d.akMinBurning;
+            akMinHot                = d.akMinHot;
+            akMinBasic              = d.akMinBasic;
+            akRequireRend           = d.akRequireRend;
+            akMinGdragLevel         = d.akMinGdragLevel;
             partyCmdsEnabled        = d.partyCmdsEnabled;
             autoRequeueEnabled      = d.autoRequeueEnabled;
+            autoRequeueMessageEnabled = d.autoRequeueMessageEnabled;
             autoUpdatesEnabled      = d.autoUpdatesEnabled;
             autoSprintEnabled       = d.autoSprintEnabled;
             slotBindsEnabled        = d.slotBindsEnabled;
@@ -851,11 +945,16 @@ public class KuudraConfig {
             supplyRodRadiusEnabled        = d.supplyRodRadiusEnabled;
             supplyPearlHitboxEnabled      = d.supplyPearlHitboxEnabled;
             pearlRefillEnabled            = d.pearlRefillEnabled;
+            pearlRefillOutsideKuudraEnabled = d.pearlRefillOutsideKuudraEnabled;
             hideSelfieEnabled             = d.hideSelfieEnabled;
             preventPlacingPlayerHeadsEnabled      = d.preventPlacingPlayerHeadsEnabled;
             preventPlacingPlayerHeadsExceptGarden = d.preventPlacingPlayerHeadsExceptGarden;
             preventPlacingWeaponsEnabled          = d.preventPlacingWeaponsEnabled;
             supplyGiantHitboxEnabled              = d.supplyGiantHitboxEnabled;
+            giantHitboxEnabled                    = d.giantHitboxEnabled;
+            giantHitboxFilled                     = d.giantHitboxFilled;
+            giantHitboxFillOpacity                = clamp01(d.giantHitboxFillOpacity);
+            giantHitboxColor                      = d.giantHitboxColor & 0xFFFFFF;
             kuudraDirectionEnabled = d.kuudraDirectionEnabled;
 
             mountTimerHudX     = d.mountTimerHudX;
@@ -907,6 +1006,7 @@ public class KuudraConfig {
             manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
             hideEntityFireEnabled      = d.hideEntityFireEnabled;
             lavaBobberFixEnabled       = d.lavaBobberFixEnabled;
+            legacyRodPhysicsEnabled    = d.legacyRodPhysicsEnabled;
             hideDamageTitleEnabled     = d.hideDamageTitleEnabled;
             hideDeadEntitiesEnabled    = d.hideDeadEntitiesEnabled;
             etherwarpWaypointsEnabled  = d.etherwarpWaypointsEnabled;
@@ -919,13 +1019,20 @@ public class KuudraConfig {
 
             wardrobeEnabled     = d.wardrobeEnabled;
             wardrobeOpenKey     = d.wardrobeOpenKey;
-            equipmentOpenKey    = d.equipmentOpenKey;
+            statsOpenKey        = d.statsOpenKey;
             petsOpenKey         = d.petsOpenKey;
+            eqWardrobeOpenKey   = d.eqWardrobeOpenKey;
+            loadoutsOpenKey     = d.loadoutsOpenKey;
             if (d.wardrobeSlotKeys != null && d.wardrobeSlotKeys.length == 9)
                 wardrobeSlotKeys = d.wardrobeSlotKeys;
+            if (d.loadoutSlotKeys != null && d.loadoutSlotKeys.length == 12)
+                loadoutSlotKeys = d.loadoutSlotKeys;
             wardrobeNextPageKey = d.wardrobeNextPageKey;
             wardrobePrevPageKey = d.wardrobePrevPageKey;
             wardrobeUnequipKey  = d.wardrobeUnequipKey;
+            wardrobeDisableUnequipEnabled = d.wardrobeDisableUnequipEnabled;
+            wardrobeAutoCloseEnabled      = d.wardrobeAutoCloseEnabled;
+            lastEquippedWardrobeSlot      = d.lastEquippedWardrobeSlot;
 
             autoGfsToxic    = d.autoGfsToxic;
             autoGfsTwilight = d.autoGfsTwilight;
@@ -994,6 +1101,7 @@ public class KuudraConfig {
 
         d.roleMode           = roleMode.name();
         d.dpsValue           = dpsValue;
+        d.dpsRefillAmount    = dpsRefillAmount;
         d.stunValue          = stunValue;
         d.eatenTimerEnabled             = eatenTimerEnabled;
         d.eatenTimerSubtractPingEnabled = eatenTimerSubtractPingEnabled;
@@ -1019,8 +1127,21 @@ public class KuudraConfig {
         d.explosionHideRadius     = explosionHideRadius;
         d.explosionSizeMultiplier = explosionSizeMultiplier;
         d.chestAnnouncerEnabled   = chestAnnouncerEnabled;
+        d.autoKickEnabled         = autoKickEnabled;
+        d.profileViewerEnabled    = profileViewerEnabled;
+        d.akMinCatacombs          = akMinCatacombs;
+        d.akMinForaging           = akMinForaging;
+        d.akMinMagicalPower       = akMinMagicalPower;
+        d.akMinInfernal           = akMinInfernal;
+        d.akMinFiery              = akMinFiery;
+        d.akMinBurning            = akMinBurning;
+        d.akMinHot                = akMinHot;
+        d.akMinBasic              = akMinBasic;
+        d.akRequireRend           = akRequireRend;
+        d.akMinGdragLevel         = akMinGdragLevel;
         d.partyCmdsEnabled        = partyCmdsEnabled;
         d.autoRequeueEnabled      = autoRequeueEnabled;
+        d.autoRequeueMessageEnabled = autoRequeueMessageEnabled;
         d.autoUpdatesEnabled      = autoUpdatesEnabled;
         d.autoSprintEnabled       = autoSprintEnabled;
         d.slotBindsEnabled        = slotBindsEnabled;
@@ -1075,11 +1196,16 @@ public class KuudraConfig {
         d.supplyRodRadiusEnabled        = supplyRodRadiusEnabled;
         d.supplyPearlHitboxEnabled      = supplyPearlHitboxEnabled;
         d.pearlRefillEnabled            = pearlRefillEnabled;
+        d.pearlRefillOutsideKuudraEnabled = pearlRefillOutsideKuudraEnabled;
         d.hideSelfieEnabled             = hideSelfieEnabled;
         d.preventPlacingPlayerHeadsEnabled      = preventPlacingPlayerHeadsEnabled;
         d.preventPlacingPlayerHeadsExceptGarden = preventPlacingPlayerHeadsExceptGarden;
         d.preventPlacingWeaponsEnabled          = preventPlacingWeaponsEnabled;
         d.supplyGiantHitboxEnabled              = supplyGiantHitboxEnabled;
+        d.giantHitboxEnabled                    = giantHitboxEnabled;
+        d.giantHitboxFilled                     = giantHitboxFilled;
+        d.giantHitboxFillOpacity                = giantHitboxFillOpacity;
+        d.giantHitboxColor                      = giantHitboxColor;
         d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
 
         d.mountTimerHudX     = mountTimerHudX;
@@ -1131,6 +1257,7 @@ public class KuudraConfig {
         d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
         d.hideEntityFireEnabled      = hideEntityFireEnabled;
         d.lavaBobberFixEnabled       = lavaBobberFixEnabled;
+        d.legacyRodPhysicsEnabled    = legacyRodPhysicsEnabled;
         d.hideDamageTitleEnabled     = hideDamageTitleEnabled;
         d.hideDeadEntitiesEnabled    = hideDeadEntitiesEnabled;
         d.etherwarpWaypointsEnabled  = etherwarpWaypointsEnabled;
@@ -1143,12 +1270,18 @@ public class KuudraConfig {
 
         d.wardrobeEnabled     = wardrobeEnabled;
         d.wardrobeOpenKey     = wardrobeOpenKey;
-        d.equipmentOpenKey    = equipmentOpenKey;
+        d.statsOpenKey        = statsOpenKey;
         d.petsOpenKey         = petsOpenKey;
+        d.eqWardrobeOpenKey   = eqWardrobeOpenKey;
+        d.loadoutsOpenKey     = loadoutsOpenKey;
         d.wardrobeSlotKeys    = wardrobeSlotKeys.clone();
+        d.loadoutSlotKeys     = loadoutSlotKeys.clone();
         d.wardrobeNextPageKey = wardrobeNextPageKey;
         d.wardrobePrevPageKey = wardrobePrevPageKey;
         d.wardrobeUnequipKey  = wardrobeUnequipKey;
+        d.wardrobeDisableUnequipEnabled = wardrobeDisableUnequipEnabled;
+        d.wardrobeAutoCloseEnabled      = wardrobeAutoCloseEnabled;
+        d.lastEquippedWardrobeSlot      = lastEquippedWardrobeSlot;
 
         d.autoGfsToxic    = autoGfsToxic;
         d.autoGfsTwilight = autoGfsTwilight;
@@ -1292,6 +1425,7 @@ public class KuudraConfig {
     private static class Data {
         String  roleMode           = "AUTO";
         int     dpsValue           = 32;
+        int     dpsRefillAmount    = 10;
         int     stunValue          = 9;
         boolean eatenTimerEnabled             = false;
         boolean eatenTimerSubtractPingEnabled = false;
@@ -1317,8 +1451,21 @@ public class KuudraConfig {
         float   explosionHideRadius     = 0.3f;
         float   explosionSizeMultiplier = 0.33f;
         boolean chestAnnouncerEnabled   = true;
+        boolean autoKickEnabled         = false;
+        boolean profileViewerEnabled    = true;
+        int     akMinCatacombs         = -1;
+        int     akMinForaging          = -1;
+        int     akMinMagicalPower      = -1;
+        int     akMinInfernal          = -1;
+        int     akMinFiery             = -1;
+        int     akMinBurning           = -1;
+        int     akMinHot               = -1;
+        int     akMinBasic             = -1;
+        boolean akRequireRend          = false;
+        int     akMinGdragLevel        = -1;
         boolean partyCmdsEnabled        = true;
         boolean autoRequeueEnabled      = true;
+        boolean autoRequeueMessageEnabled = true;
         boolean autoUpdatesEnabled      = true;
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
@@ -1371,11 +1518,16 @@ public class KuudraConfig {
         boolean supplyRodRadiusEnabled       = false;
         boolean supplyPearlHitboxEnabled     = false;
         boolean pearlRefillEnabled           = false;
+        boolean pearlRefillOutsideKuudraEnabled = false;
         boolean hideSelfieEnabled            = false;
         boolean preventPlacingPlayerHeadsEnabled      = false;
         boolean preventPlacingPlayerHeadsExceptGarden = true;
         boolean preventPlacingWeaponsEnabled          = false;
         boolean supplyGiantHitboxEnabled              = false;
+        boolean giantHitboxEnabled                    = false;
+        boolean giantHitboxFilled                     = false;
+        float   giantHitboxFillOpacity                = 0.05f;
+        int     giantHitboxColor                      = 0xFFFFFF;
         boolean kuudraDirectionEnabled  = false;
 
         float mountTimerHudX     = 0.5f;
@@ -1427,6 +1579,7 @@ public class KuudraConfig {
         boolean manaDrainAnnouncerEnabled  = false;
         boolean hideEntityFireEnabled      = false;
         boolean lavaBobberFixEnabled       = false;
+        boolean legacyRodPhysicsEnabled    = false;
         boolean hideDamageTitleEnabled     = false;
         boolean hideDeadEntitiesEnabled    = false;
         boolean etherwarpWaypointsEnabled  = false;
@@ -1439,12 +1592,18 @@ public class KuudraConfig {
 
         boolean wardrobeEnabled     = false;
         int     wardrobeOpenKey     = -1;
-        int     equipmentOpenKey    = -1;
+        int     statsOpenKey        = -1;
         int     petsOpenKey         = -1;
+        int     eqWardrobeOpenKey   = -1;
+        int     loadoutsOpenKey     = -1;
         int[]   wardrobeSlotKeys    = {49,50,51,52,53,54,55,56,57};
+        int[]   loadoutSlotKeys     = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
         int     wardrobeNextPageKey = 262;
         int     wardrobePrevPageKey = 263;
         int     wardrobeUnequipKey  = 85;
+        boolean wardrobeDisableUnequipEnabled = true;
+        boolean wardrobeAutoCloseEnabled      = true;
+        int     lastEquippedWardrobeSlot      = -1;
 
         boolean autoGfsToxic    = false;
         boolean autoGfsTwilight = false;

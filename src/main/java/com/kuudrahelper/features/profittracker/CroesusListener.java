@@ -63,17 +63,10 @@ public final class CroesusListener {
         int detectedTier           // tier read from "Cost: X Kuudra Key" lore (0 if not found)
     ) {}
 
-    // Kuudra reward chest layout: 6 rows × 9 cols. The 5 reward items are always
-    // in the middle 5 columns of row 2 = slots 11-15. Everything else is UI chrome
-    // or player inventory (slots 54-89). Only analyse these fixed slots.
     public static final int REWARD_SLOT_START = 11;
     public static final int REWARD_SLOT_END   = 15; // inclusive
 
     public static ChestAnalysis analyseChest(AbstractContainerScreen<?> screen) {
-        return analyseChest(screen, false);
-    }
-
-    public static ChestAnalysis analyseChest(AbstractContainerScreen<?> screen, boolean quiet) {
         var slots = screen.getMenu().slots;
         long itemsValue     = 0;
         long attributeValue = 0;
@@ -108,7 +101,6 @@ public final class CroesusListener {
                 wheelSlot = i;
             }
 
-            // Detect tier from "Cost: <X> Kuudra Key" lore line (present on the "Open Reward Chest" item)
             if (detectedTier == 0) {
                 for (String l : lore) {
                     int t = tierFromKeyLore(stripColor(l).toLowerCase());
@@ -117,16 +109,9 @@ public final class CroesusListener {
             }
         }
 
-        if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] ── Analysing chest ({} slots, rewards at {}-{}) ──",
-                slots.size(), REWARD_SLOT_START, REWARD_SLOT_END);
-
-        // Only iterate the 5 fixed reward slots
         for (int i = REWARD_SLOT_START; i <= REWARD_SLOT_END && i < slots.size(); i++) {
             ItemStack stack = slots.get(i).getItem();
-            if (stack.isEmpty()) {
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} EMPTY", i);
-                continue;
-            }
+            if (stack.isEmpty()) continue;
             if (i == rerollSlot || i == wheelSlot) continue;
 
             String rawName = stack.getDisplayName().getString();
@@ -142,13 +127,9 @@ public final class CroesusListener {
                     double petMult = KuudraConfig.getKuudraPetEssenceMultiplier();
                     long val = (long)(essence * essencePrice * petMult);
                     itemsValue += val;
-                    if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} ARMOR(salvage) name='{}' id={} stars={} essence={} essPrice={} petMult={} -> {}g",
-                            i, name, armorId, stars, essence, essencePrice, petMult, val);
                 } else {
                     double price = PriceCache.getBin(armorId);
                     if (price > 0) itemsValue += (long)price;
-                    if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} ARMOR name='{}' id={} binPrice={} -> {}g",
-                            i, name, armorId, price, (long)price);
                 }
                 continue;
             }
@@ -165,8 +146,6 @@ public final class CroesusListener {
                     priceSource = "bazaar";
                 }
                 if (price > 0) itemsValue += (long)price;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} WEAPON name='{}' id={} {}Price={} -> {}g",
-                        i, name, weaponId, priceSource, price, (long)price);
                 continue;
             }
 
@@ -175,10 +154,6 @@ public final class CroesusListener {
                 if (shardId != null) {
                     double price = bazaarSellPrice(shardId);
                     if (price > 0) attributeValue += (long)price;
-                    if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} SHARD name='{}' id={} bazaarPrice={} -> {}g",
-                            i, name, shardId, price, (long)price);
-                } else {
-                    if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} SHARD name='{}' -> NO ID MATCH", i, name);
                 }
                 continue;
             }
@@ -186,7 +161,6 @@ public final class CroesusListener {
             if (name.contains("enchanted book")) {
                 long val = enchantedBookValue(lore);
                 if (val > 0) itemsValue += val;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} BOOK lore={} -> {}g", i, lore.isEmpty() ? "(empty)" : lore.get(0), val);
                 continue;
             }
 
@@ -196,8 +170,6 @@ public final class CroesusListener {
                 double price = bazaarSellPrice(KuudraDrops.KUUDRA_TEETH);
                 long val = price > 0 ? (long)(count * price) : 0;
                 if (price > 0) itemsValue += val;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} TEETH name='{}' qty={} bazaarPrice={} -> {}g",
-                        i, name, count, price, val);
                 continue;
             }
 
@@ -207,8 +179,6 @@ public final class CroesusListener {
                 double price = bazaarSellPrice(KuudraDrops.KUUDRA_TENTACLE);
                 long val = price > 0 ? (long)(count * price) : 0;
                 if (price > 0) itemsValue += val;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} TENTACLE name='{}' qty={} bazaarPrice={} -> {}g",
-                        i, name, count, price, val);
                 continue;
             }
 
@@ -218,8 +188,6 @@ public final class CroesusListener {
                 double price = bazaarSellPrice(KuudraDrops.HEAVY_PEARL);
                 long val = price > 0 ? (long)(count * price) : 0;
                 if (price > 0) itemsValue += val;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} HEAVY_PEARL name='{}' qty={} bazaarPrice={} -> {}g",
-                        i, name, count, price, val);
                 continue;
             }
 
@@ -230,17 +198,11 @@ public final class CroesusListener {
                 double petMult = KuudraConfig.getKuudraPetEssenceMultiplier();
                 long val = price > 0 ? (long)(count * price * petMult) : 0;
                 if (price > 0) essenceValue += val;
-                if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} ESSENCE name='{}' qty={} bazaarPrice={} petMult={} -> {}g",
-                        i, name, count, price, petMult, val);
                 continue;
             }
-
-            if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] slot={} UNRECOGNISED name='{}'", i, name);
         }
 
         long totalValue = itemsValue + attributeValue + essenceValue;
-        if (!quiet) KuudraHelperMod.LOGGER.info("[ChestDebug] ── Total: items={}g attr={}g essence={}g TOTAL={}g ──",
-                itemsValue, attributeValue, essenceValue, totalValue);
 
         boolean rerollProfit = false;
         if (canReroll) {
@@ -297,10 +259,15 @@ public final class CroesusListener {
         return qty > 0 ? qty : 1;
     }
 
-    // Parse an enchanted book's BIN value from its lore.
-    // SkyBlock books have lines like "§9Last Breath V" or "§d§lUltimate Wise V".
-    // Constructs ENCHANTMENT_<NAME>_<LEVEL> and looks up the BIN price.
     private static long enchantedBookValue(List<String> lore) {
+        boolean isUltimate = false;
+        for (String line : lore) {
+            if (stripColor(line).toLowerCase().contains("only have 1 ultimate enchantment")) {
+                isUltimate = true;
+                break;
+            }
+        }
+
         for (String line : lore) {
             String stripped = stripColor(line).trim();
             if (stripped.isEmpty()) continue;
@@ -314,7 +281,10 @@ public final class CroesusListener {
                 try { level = Integer.parseInt(levelStr); } catch (NumberFormatException ignored) {}
             }
             if (level <= 0) continue;
-            String apiId = "ENCHANTMENT_" + enchName.toUpperCase().replace(' ', '_') + "_" + level;
+            String namePart = enchName.toUpperCase().replace(' ', '_');
+            String apiId = isUltimate
+                    ? "ENCHANTMENT_ULTIMATE_" + namePart + "_" + level
+                    : "ENCHANTMENT_" + namePart + "_" + level;
             double price = bazaarSellPrice(apiId);
             if (price > 0) return (long) price;
         }

@@ -78,7 +78,8 @@ public final class SupplyWaypointTracker {
                 || KuudraConfig.isSupplyLocationAnnounceEnabled()
                 || KuudraConfig.isSupplyHitboxEnabled()
                 || KuudraConfig.isSupplyRodRadiusEnabled()
-                || KuudraConfig.isSupplyPearlHitboxEnabled();
+                || KuudraConfig.isSupplyPearlHitboxEnabled()
+                || KuudraConfig.isCratePriorityEnabled();
         if (!needsTracking) return;
         if (mc.player == null || mc.level == null) return;
         if (ticksSinceStart < 0) return;

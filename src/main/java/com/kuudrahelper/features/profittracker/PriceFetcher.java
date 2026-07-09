@@ -58,8 +58,6 @@ public final class PriceFetcher {
         PriceCache.markBinsFetched();
         CompletableFuture.runAsync(() -> {
             try {
-                // Fetch one request per AH item from CoflNet's single-item endpoint.
-                // Response: {"min":34400000,"median":...,"mean":...}
                 int ok = 0, fail = 0;
                 for (String id : KuudraDrops.AH_ITEM_IDS) {
                     try {

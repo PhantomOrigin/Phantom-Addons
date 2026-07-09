@@ -72,7 +72,7 @@ public final class KuudraPhaseEvents {
                         RoleManager.setManualRole(KuudraConfig.getRoleMode());
                     }
                     AutoGFS.queueCommand();
-                    AutoGFS.start(10);
+                    AutoGFS.start(KuudraConfig.getDpsRefillAmount());
                     PhaseLogger.begin();
                     KuudraSplitTimer.onEatenStart();
                 }

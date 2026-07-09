@@ -6,6 +6,7 @@ import com.kuudrahelper.features.ElleHighlightRenderer;
 import com.kuudrahelper.features.kuudra.KuudraHighlightRenderer;
 import com.kuudrahelper.features.supplies.EtherwarpWaypointRenderer;
 import com.kuudrahelper.features.supplies.SupplyBeaconRenderer;
+import com.kuudrahelper.features.supplies.GiantHitboxOutline;
 import com.kuudrahelper.features.supplies.SupplyGiantHitbox;
 import com.kuudrahelper.features.supplies.SupplyRenderHelper;
 import com.kuudrahelper.features.pearls.PearlWaypointRenderer;
@@ -48,5 +49,6 @@ public abstract class WorldRendererMixin {
         EtherwarpWaypointRenderer.render(matrices, camera, tickDelta);
         AnnounceFresh.renderTimers(matrices, camera, tickDelta);
         SupplyGiantHitbox.render(matrices, camera, tickDelta);
+        GiantHitboxOutline.render(matrices, camera, tickDelta);
     }
 }

@@ -52,12 +52,10 @@ public final class KuudraDrops {
         return null;
     }
 
-    // Only these weapon IDs are traded on the AH (BIN). Everything else uses bazaar.
     public static final Set<String> AH_WEAPON_IDS = Set.of(
         "HOLLOW_WAND", "HELLSTORM_WAND", "TORMENTOR", "BURNING_KUUDRA_CORE"
     );
 
-    // All item IDs that need BIN prices fetched from CoflNet (weapons + all armor pieces).
     public static final Set<String> AH_ITEM_IDS;
     static {
         Set<String> ids = new java.util.LinkedHashSet<>(AH_WEAPON_IDS);
@@ -124,14 +122,11 @@ public final class KuudraDrops {
 
     public static final int[] FREE_CHEST_ESSENCE = {0, 10, 30, 75, 125, 200}; // index = tier
 
-    // fixedCoinCost is added on top of the bazaar ingredient cost (already discount-applied).
     public record KeyRecipe(String mageItem, int mageAmt,
                             String barbItem, int barbAmt,
                             String extraItem, int extraAmt,
                             long fixedCoinCost) {}
 
-    // T5 infernal key: 2.4M NPC coin cost with 3% accessory discount = 2,328,000,
-    // plus 80 Enchanted Mycelium/Red Sand and 2 Nether Stars from bazaar.
     public static final KeyRecipe[] KEY_RECIPES = {
         null,                                                                                        // [0] unused
         new KeyRecipe(ENCHANTED_MYCELIUM,  2, ENCHANTED_RED_SAND,  2, null,        0,          0L), // T1

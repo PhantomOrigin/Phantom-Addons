@@ -4,6 +4,7 @@ import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.features.ShopKeybinds;
 import com.kuudrahelper.features.SlotBinds;
 import com.kuudrahelper.features.WardrobeKeybinds;
+import com.kuudrahelper.features.profile.PartyFinderProfileHook;
 import com.kuudrahelper.features.profittracker.ChestValueOverlay;
 import com.kuudrahelper.features.profittracker.CroesusListener;
 import com.kuudrahelper.features.profittracker.ProfitHud;
@@ -112,6 +113,7 @@ public class HandledScreenMixin {
         SlotBinds.clearPending();
         kuudrahelper$cachedAnalysis = null;
         ChestValueOverlay.reset();
+        PartyFinderProfileHook.reset();
     }
 
     // ── Croesus + Profit Tracker ──────────────────────────────────────────────────
@@ -123,6 +125,8 @@ public class HandledScreenMixin {
                                                CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         boolean profitOn = KuudraConfig.isProfitTrackerEnabled();
+
+        PartyFinderProfileHook.checkShiftHover(self, hoveredSlot, Minecraft.getInstance());
 
         // ── Croesus main menu: highlight unopened chests ──────────────────────────
         if (profitOn && KuudraConfig.isProfitHighlightChests() && CroesusListener.isCroesusMain(self)) {
@@ -145,9 +149,8 @@ public class HandledScreenMixin {
                 ChestValueOverlay.onChestOpen(self);
             }
             // Re-analyse every frame so prices update as the bazaar/BIN cache populates.
-            // Logging is suppressed after the first commit to avoid flooding the log.
             if (ChestValueOverlay.areSlotsReady(self)) {
-                kuudrahelper$cachedAnalysis = CroesusListener.analyseChest(self, ChestValueOverlay.hasCommitted());
+                kuudrahelper$cachedAnalysis = CroesusListener.analyseChest(self);
                 ChestValueOverlay.updatePending(kuudrahelper$cachedAnalysis);
             }
             CroesusListener.ChestAnalysis a = kuudrahelper$cachedAnalysis;

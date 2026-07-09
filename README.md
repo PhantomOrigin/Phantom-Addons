@@ -46,7 +46,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Mana Drain Announcer
 - Kuudra Highlight / ESP
 - Rend / Backbone Tracker
-### Kuudra General Features
+### Kuudra General Features=
 - Kuudra Profit Tracker
 - Chest Value HUD
 - Hide Elle Dialogue
@@ -61,6 +61,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Split Timer
 - Moveable Crate Pickup Progress Bar
 - Kuudra Mob Scale
+- Shitter List with auto kick
 ### Other Features
 - M7 Dragons Auto GFS Poisons
 - Held Item Animation / Position / Scale Customiser

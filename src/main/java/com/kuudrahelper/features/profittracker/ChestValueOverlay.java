@@ -60,9 +60,6 @@ public final class ChestValueOverlay {
 
     public static int  getCachedTier() { return cachedTier; }
 
-    // Trigger analysis as soon as reward slots are populated.
-    // Guard: require 90 slots to avoid false-positive on the 4-row Croesus navigation GUI.
-    // Free chests have 1 reward item; paid chests have 5 — use different thresholds.
     public static boolean areSlotsReady(AbstractContainerScreen<?> screen) {
         var slots = screen.getMenu().slots;
         if (slots.size() < 90) return false;
@@ -88,7 +85,6 @@ public final class ChestValueOverlay {
     public static void tryCommitRun(CroesusListener.ChestAnalysis a) {
         if (hasCommitted || a == null) return;
 
-        // Prefer tier detected from the chest's "Cost: X Kuudra Key" lore over title/scoreboard guesses.
         if (a.detectedTier() > 0) cachedTier = a.detectedTier();
 
         int freeEssAmt = (cachedTier >= 1 && cachedTier <= 5) ? KuudraDrops.FREE_CHEST_ESSENCE[cachedTier] : 0;
@@ -123,11 +119,9 @@ public final class ChestValueOverlay {
         int screenW = mc.getWindow().getGuiScaledWidth();
         int screenH = mc.getWindow().getGuiScaledHeight();
 
-        // Use tier detected from chest lore if available
         int renderTier = a.detectedTier() > 0 ? a.detectedTier() : cachedTier;
 
         long itemValue    = a.itemsValue() + a.attributeValue();
-        // Include free chest essence in the display (same calculation as tryCommitRun)
         int freeEssAmt = (renderTier >= 1 && renderTier <= 5) ? KuudraDrops.FREE_CHEST_ESSENCE[renderTier] : 0;
         double petMult  = KuudraConfig.getKuudraPetEssenceMultiplier();
         double essPrice = CroesusListener.bazaarSellPrice(KuudraDrops.CRIMSON_ESSENCE);

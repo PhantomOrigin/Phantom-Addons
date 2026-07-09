@@ -1,23 +1,32 @@
 package com.kuudrahelper;
 
+import com.kuudrahelper.features.ShitterList;
+import com.kuudrahelper.features.profile.KuudraProfileScreen;
 import com.kuudrahelper.features.profittracker.ProfitHud;
 import com.kuudrahelper.features.profittracker.ProfitStore;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.RootCommandNode;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public final class PhantomCommands {
 
@@ -92,6 +101,29 @@ public final class PhantomCommands {
                                                 })
                                         )
                                 )
+                                .then(ClientCommands.literal("shitter")
+                                        .then(ClientCommands.literal("add")
+                                                .then(ClientCommands.argument("name",
+                                                                StringArgumentType.word())
+                                                        .executes(ctx -> {
+                                                            shitterAdd(StringArgumentType.getString(ctx, "name"));
+                                                            return 1;
+                                                        })
+                                                )
+                                        )
+                                        .then(ClientCommands.literal("remove")
+                                                .then(ClientCommands.argument("name",
+                                                                StringArgumentType.word())
+                                                        .executes(ctx -> {
+                                                            shitterRemove(StringArgumentType.getString(ctx, "name"));
+                                                            return 1;
+                                                        })
+                                                )
+                                        )
+                                        .then(ClientCommands.literal("list")
+                                                .executes(ctx -> { shitterList(); return 1; })
+                                        )
+                                )
                                 .then(ClientCommands.literal("setpb")
                                         .then(ClientCommands.argument("tier",
                                                         IntegerArgumentType.integer(1, 5))
@@ -115,7 +147,66 @@ public final class PhantomCommands {
                                     .executes(ctx -> { joinInstance(instance); return 1; })
                     );
                 }
+
+                // Hypixel's own server sends a "kuudra" node in its command tree, and Fabric's
+                // client-command merge silently refuses to add a client node over an existing
+                // one with the same name. Force it out of the dispatcher root first so ours wins
+                // (same technique KIC uses in someoneok.kic.commands.core.CommandRegistrar).
+                forceRemoveRootChild(dispatcher, "kuudra");
+
+                dispatcher.register(
+                        ClientCommands.literal("kuudra")
+                                .executes(ctx -> {
+                                    Minecraft mc = Minecraft.getInstance();
+                                    if (mc.player != null) openProfile(mc.player.getName().getString());
+                                    return 1;
+                                })
+                                .then(ClientCommands.argument("name", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            openProfile(StringArgumentType.getString(ctx, "name"));
+                                            return 1;
+                                        })
+                                )
+                );
         });
+    }
+
+    private static Field childrenField;
+    private static Field literalsField;
+    private static Field argumentsField;
+
+    @SuppressWarnings("unchecked")
+    private static void forceRemoveRootChild(CommandDispatcher<FabricClientCommandSource> dispatcher, String name) {
+        try {
+            if (childrenField == null) {
+                childrenField = CommandNode.class.getDeclaredField("children");
+                childrenField.setAccessible(true);
+                literalsField = CommandNode.class.getDeclaredField("literals");
+                literalsField.setAccessible(true);
+                argumentsField = CommandNode.class.getDeclaredField("arguments");
+                argumentsField.setAccessible(true);
+            }
+            RootCommandNode<FabricClientCommandSource> root = dispatcher.getRoot();
+            Map<String, CommandNode<FabricClientCommandSource>> children =
+                    (Map<String, CommandNode<FabricClientCommandSource>>) childrenField.get(root);
+            Map<String, Object> literals = (Map<String, Object>) literalsField.get(root);
+            Map<String, Object> arguments = (Map<String, Object>) argumentsField.get(root);
+
+            String match = null;
+            for (String key : children.keySet()) {
+                if (key.equalsIgnoreCase(name)) {
+                    match = key;
+                    break;
+                }
+            }
+            if (match != null) {
+                children.remove(match);
+                literals.remove(match);
+                arguments.remove(match);
+            }
+        } catch (ReflectiveOperationException e) {
+            KuudraHelperMod.LOGGER.warn("[PhantomCommands] Failed to force-clear conflicting '{}' command node: {}", name, e.toString());
+        }
     }
 
     private static final String[] TIER_INSTANCES = {
@@ -196,6 +287,42 @@ public final class PhantomCommands {
         }
 
         return t;
+    }
+
+    private static void shitterAdd(String name) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        boolean added = ShitterList.add(name);
+        mc.player.sendSystemMessage(Component.literal(PREFIX +
+                (added ? "§c" + name + " §7added to the shitter list."
+                       : "§7" + name + " is already on the shitter list.")));
+    }
+
+    private static void shitterRemove(String name) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        boolean removed = ShitterList.remove(name);
+        mc.player.sendSystemMessage(Component.literal(PREFIX +
+                (removed ? "§a" + name + " §7removed from the shitter list."
+                         : "§7" + name + " isn't on the shitter list.")));
+    }
+
+    private static void shitterList() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        List<String> names = ShitterList.getNames();
+        if (names.isEmpty()) {
+            mc.player.sendSystemMessage(Component.literal(PREFIX + "§7Shitter list is empty."));
+            return;
+        }
+        mc.player.sendSystemMessage(Component.literal(
+                PREFIX + "§cShitter List §7(" + names.size() + "): §f" + String.join("§7, §f", names)));
+    }
+
+    private static void openProfile(String name) {
+        if (!KuudraConfig.isProfileViewerEnabled()) return;
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.setScreen(new KuudraProfileScreen(List.of(name))));
     }
 
     private static void forcePhase(KuudraPhaseTracker.Phase phase) {

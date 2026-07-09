@@ -63,7 +63,6 @@ public final class DoublePearlCoords {
         int cy = (int) Math.floor(hint.y);
         int cz = (int) Math.floor(hint.z);
 
-        // Two candidates: best reachable (solveSky succeeds), best valid (any non-lava 2x2)
         Vec3   bestReachable   = null;
         double bestReachableD2 = Double.MAX_VALUE;
         Vec3   bestValid       = null;
@@ -90,10 +89,35 @@ public final class DoublePearlCoords {
             }
         }
 
-        // Prefer a spot the solver can actually reach; fall back to closest valid 2x2
         if (bestReachable != null) return bestReachable;
         if (bestValid     != null) return bestValid;
         return hint;
+    }
+
+    public static Vec3 findValidLandingNear(Vec3 hint) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return hint;
+
+        int cx = (int) Math.floor(hint.x);
+        int cy = (int) Math.floor(hint.y);
+        int cz = (int) Math.floor(hint.z);
+
+        Vec3   best   = null;
+        double bestD2 = Double.MAX_VALUE;
+
+        for (int dy = -3; dy <= 3; dy++) {
+            for (int dx = -5; dx <= 5; dx++) {
+                for (int dz = -5; dz <= 5; dz++) {
+                    int bx = cx + dx, by = cy + dy, bz = cz + dz;
+                    if (!is2x2Valid(mc, bx, by, bz)) continue;
+
+                    Vec3   cand = new Vec3(bx + 1.0, by + 1.0, bz + 1.0);
+                    double d2   = cand.distanceToSqr(hint);
+                    if (d2 < bestD2) { bestD2 = d2; best = cand; }
+                }
+            }
+        }
+        return best != null ? best : hint;
     }
 
     private static boolean is2x2Valid(Minecraft mc, int x, int y, int z) {

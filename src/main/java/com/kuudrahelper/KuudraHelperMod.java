@@ -10,6 +10,7 @@ import com.kuudrahelper.features.supplies.SupplyWaypointTracker;
 import com.kuudrahelper.features.pearls.SupplyTracker;
 import com.kuudrahelper.features.pearls.PearlTitleHud;
 import com.kuudrahelper.features.pearls.PearlTitleListener;
+import com.kuudrahelper.logging.GiantYLogger;
 import com.kuudrahelper.logging.PhaseLogAppender;
 import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
@@ -69,6 +70,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         UpdateChecker.cleanupLeftoverJars();
         KuudraConfig.load();
         com.kuudrahelper.features.VisualWords.load();
+        com.kuudrahelper.features.ShitterList.load();
         PickoblockManager.init();
         MountTimerHud.register();
 
@@ -99,6 +101,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         SlotBlocker.register();
         KuudraDirectionHud.register();
         PearlTitleHud.register();
+        com.kuudrahelper.features.supplies.DoublePearlWarningHud.register();
         BuildProgressTracker.register();
         RendDamage.register();
         SupplyProgressHud.register();
@@ -133,6 +136,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             DungeonsGfs.onChat(raw);
             SoloDetector.onChat(raw);
             AnnounceFresh.onChat(raw);
+            CratePriority.onChat(clean);
             handleSupplyNotifications(clean);
         });
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
@@ -281,6 +285,15 @@ public class KuudraHelperMod implements ClientModInitializer {
                         return 1;
                     }));
 
+            dispatcher.register(ClientCommands.literal("giantlog")
+                    .executes(ctx -> {
+                        boolean next = !GiantYLogger.isEnabled();
+                        GiantYLogger.setEnabled(next);
+                        ctx.getSource().sendFeedback(Component.literal("Giant Y logging: " + next));
+                        LOGGER.info("[PhantomAddons] Giant Y logging = {}", next);
+                        return 1;
+                    }));
+
             dispatcher.register(ClientCommands.literal("phantomdebug")
                     .executes(ctx -> {
                         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
@@ -395,6 +408,8 @@ public class KuudraHelperMod implements ClientModInitializer {
             SupplyWaypointTracker.tick(client);
             com.kuudrahelper.features.supplies.NoPreAnnounce.tick(client);
             com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
+            com.kuudrahelper.features.supplies.GiantHitboxOutline.tick(client);
+            GiantYLogger.tick(client);
             com.kuudrahelper.features.kuudra.RendTracker.tick();
 
             if (KuudraConfig.isAutoSprintEnabled() && client.player != null) {
@@ -404,14 +419,12 @@ public class KuudraHelperMod implements ClientModInitializer {
     }
 
     private static void handleSupplyNotifications(String clean) {
-        // Supply Grabbed: server tells you someone else is already picking up the supply you clicked
         if (KuudraConfig.isSupplyGrabbedNotifyEnabled()
                 && clean.contains("Someone else is currently trying to pick up these supplies")) {
             com.kuudrahelper.features.NotificationHud.show("§cSupply already taken!", 3000);
             KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SUPPLY_GRABBED);
         }
 
-        // Supply Dropped: you dropped a supply by moving
         if (KuudraConfig.isSupplyDroppedNotifyEnabled()
                 && clean.contains("the Chest slipped out of your hands")) {
             com.kuudrahelper.features.NotificationHud.show("§cYou dropped a supply!", 3000);
