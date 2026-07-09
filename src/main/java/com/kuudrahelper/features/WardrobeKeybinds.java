@@ -29,16 +29,12 @@ public final class WardrobeKeybinds {
     private static final int     CLOSE_TIMEOUT_TICKS = 20;
     private static final long    SUPPRESS_REOPEN_MS  = 1000;
 
-    // Left-side "currently equipped" preview column in the Loadouts screen: the boots
-    // slot (3rd column, 5th row -> container slot 38) is the last one to refresh when the
-    // server pushes the post-equip menu update, so once it changes the whole screen is settled.
     private static final int     LOADOUT_BOOTS_PREVIEW_SLOT = 38;
     private static final int     BOOTS_WATCH_TIMEOUT_TICKS  = 40;
 
     private static volatile boolean  watchingBootsChange = false;
     private static volatile ItemStack watchedBootsStack   = ItemStack.EMPTY;
     private static volatile int      bootsWatchTimeoutTicks = -1;
-    private static volatile int      closeAfterBootsChangeTicks = -1;
 
     private static final Pattern WARDROBE_TITLE_PATTERN =
             Pattern.compile("wardrobe|armor sets|equipment sets", Pattern.CASE_INSENSITIVE);
@@ -79,14 +75,13 @@ public final class WardrobeKeybinds {
                 }
             }
 
-            // Hypixel briefly re-opens the wardrobe screen server-side after an equip is
-            // actually processed (a "confirmation" push), then closes it itself a moment
-            // later. We let it open normally (so the client's real close flow still fires
-            // and a proper close packet is sent) and just react to it the tick it appears.
             if (System.currentTimeMillis() < suppressReopenUntilMs
                     && client.screen instanceof AbstractContainerScreen<?> reopened) {
                 String reopenedTitle = strip(reopened.getTitle().getString());
-                if (WARDROBE_TITLE_PATTERN.matcher(reopenedTitle).find()) {
+                boolean isWardrobe = WARDROBE_TITLE_PATTERN.matcher(reopenedTitle).find();
+                boolean isLoadouts = KuudraConfig.isLoadoutsLegacyCloseEnabled()
+                        && LOADOUTS_TITLE_PATTERN.matcher(reopenedTitle).find();
+                if (isWardrobe || isLoadouts) {
                     client.player.closeContainer();
                 }
             }
@@ -129,22 +124,11 @@ public final class WardrobeKeybinds {
         watchedBootsStack   = handler.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem().copy();
         watchingBootsChange = true;
         bootsWatchTimeoutTicks = BOOTS_WATCH_TIMEOUT_TICKS;
-        closeAfterBootsChangeTicks = -1;
     }
 
     private static void tickBootsWatch(Minecraft client) {
         if (!(client.screen instanceof AbstractContainerScreen<?> screen)) {
             watchingBootsChange = false;
-            return;
-        }
-
-        if (closeAfterBootsChangeTicks == 1) {
-            watchingBootsChange = false;
-            closeAfterBootsChangeTicks = -1;
-            closeContainerNow(client);
-            return;
-        } else if (closeAfterBootsChangeTicks > 1) {
-            closeAfterBootsChangeTicks--;
             return;
         }
 
@@ -157,7 +141,8 @@ public final class WardrobeKeybinds {
 
         ItemStack current = menu.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem();
         if (!ItemStack.matches(current, watchedBootsStack)) {
-            closeAfterBootsChangeTicks = 1;
+            watchingBootsChange = false;
+            closeContainerNow(client);
             return;
         }
 
@@ -263,8 +248,12 @@ public final class WardrobeKeybinds {
             if (slotKeys[i] > 0 && keyCode == slotKeys[i]) {
                 int containerSlot = LOADOUT_SLOTS[i];
                 if (containerSlot >= handler.slots.size()) return true;
-                doClick(mc, handler, containerSlot, false, keyCode);
-                armBootsWatch(handler);
+                if (KuudraConfig.isLoadoutsLegacyCloseEnabled()) {
+                    doClick(mc, handler, containerSlot, true, keyCode);
+                } else {
+                    doClick(mc, handler, containerSlot, false, keyCode);
+                    armBootsWatch(handler);
+                }
                 return true;
             }
         }

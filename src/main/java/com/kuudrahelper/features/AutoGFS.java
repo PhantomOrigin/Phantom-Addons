@@ -64,6 +64,9 @@ public final class AutoGFS {
     }
 
     public static void queueCommand() {
+        if (!KuudraConfig.isAutoGfsEnabled()) return;
+        KuudraConfig.RoleMode role = RoleManager.getActiveRole();
+        if (role != KuudraConfig.RoleMode.DPS && role != KuudraConfig.RoleMode.STUN) return;
         commandQueue.add(buildCommand());
     }
 

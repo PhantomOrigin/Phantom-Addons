@@ -313,6 +313,7 @@ public class KuudraConfig {
     private static int     wardrobeUnequipKey   = 85;  // GLFW_KEY_U
     private static boolean wardrobeDisableUnequipEnabled = true;
     private static boolean wardrobeAutoCloseEnabled      = true;
+    private static boolean loadoutsLegacyCloseEnabled    = false;
     private static int     lastEquippedWardrobeSlot      = -1;
 
     private static boolean autoGfsToxic    = false;
@@ -816,6 +817,8 @@ public class KuudraConfig {
     public static void setWardrobeDisableUnequipEnabled(boolean v) { wardrobeDisableUnequipEnabled = v; save(); }
     public static boolean isWardrobeAutoCloseEnabled()           { return wardrobeAutoCloseEnabled; }
     public static void setWardrobeAutoCloseEnabled(boolean v)    { wardrobeAutoCloseEnabled = v; save(); }
+    public static boolean isLoadoutsLegacyCloseEnabled()         { return loadoutsLegacyCloseEnabled; }
+    public static void setLoadoutsLegacyCloseEnabled(boolean v)  { loadoutsLegacyCloseEnabled = v; save(); }
     public static int  getLastEquippedWardrobeSlot()          { return lastEquippedWardrobeSlot; }
     public static void setLastEquippedWardrobeSlot(int v)     { lastEquippedWardrobeSlot = v; save(); }
 
@@ -1032,6 +1035,7 @@ public class KuudraConfig {
             wardrobeUnequipKey  = d.wardrobeUnequipKey;
             wardrobeDisableUnequipEnabled = d.wardrobeDisableUnequipEnabled;
             wardrobeAutoCloseEnabled      = d.wardrobeAutoCloseEnabled;
+            loadoutsLegacyCloseEnabled    = d.loadoutsLegacyCloseEnabled;
             lastEquippedWardrobeSlot      = d.lastEquippedWardrobeSlot;
 
             autoGfsToxic    = d.autoGfsToxic;
@@ -1281,6 +1285,7 @@ public class KuudraConfig {
         d.wardrobeUnequipKey  = wardrobeUnequipKey;
         d.wardrobeDisableUnequipEnabled = wardrobeDisableUnequipEnabled;
         d.wardrobeAutoCloseEnabled      = wardrobeAutoCloseEnabled;
+        d.loadoutsLegacyCloseEnabled    = loadoutsLegacyCloseEnabled;
         d.lastEquippedWardrobeSlot      = lastEquippedWardrobeSlot;
 
         d.autoGfsToxic    = autoGfsToxic;
@@ -1603,6 +1608,7 @@ public class KuudraConfig {
         int     wardrobeUnequipKey  = 85;
         boolean wardrobeDisableUnequipEnabled = true;
         boolean wardrobeAutoCloseEnabled      = true;
+        boolean loadoutsLegacyCloseEnabled    = false;
         int     lastEquippedWardrobeSlot      = -1;
 
         boolean autoGfsToxic    = false;
