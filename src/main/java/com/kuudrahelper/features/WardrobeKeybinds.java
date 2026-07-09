@@ -1,7 +1,6 @@
 package com.kuudrahelper.features;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.KuudraHelperMod;
 import com.kuudrahelper.KuudraScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -22,11 +21,24 @@ public final class WardrobeKeybinds {
     private static volatile int  pendingCloseKeyCode = -1;
     private static volatile int  pendingCloseTimeoutTicks = -1;
     private static volatile long nextAllowedAtMs    = 0;
+    private static volatile long suppressReopenUntilMs = 0;
 
     private static final long    ACTION_COOLDOWN_MS = 200;
     private static final int     CLOSE_DELAY_TICKS  = 1;
 
     private static final int     CLOSE_TIMEOUT_TICKS = 20;
+    private static final long    SUPPRESS_REOPEN_MS  = 1000;
+
+    // Left-side "currently equipped" preview column in the Loadouts screen: the boots
+    // slot (3rd column, 5th row -> container slot 38) is the last one to refresh when the
+    // server pushes the post-equip menu update, so once it changes the whole screen is settled.
+    private static final int     LOADOUT_BOOTS_PREVIEW_SLOT = 38;
+    private static final int     BOOTS_WATCH_TIMEOUT_TICKS  = 40;
+
+    private static volatile boolean  watchingBootsChange = false;
+    private static volatile ItemStack watchedBootsStack   = ItemStack.EMPTY;
+    private static volatile int      bootsWatchTimeoutTicks = -1;
+    private static volatile int      closeAfterBootsChangeTicks = -1;
 
     private static final Pattern WARDROBE_TITLE_PATTERN =
             Pattern.compile("wardrobe|armor sets|equipment sets", Pattern.CASE_INSENSITIVE);
@@ -67,6 +79,22 @@ public final class WardrobeKeybinds {
                 }
             }
 
+            // Hypixel briefly re-opens the wardrobe screen server-side after an equip is
+            // actually processed (a "confirmation" push), then closes it itself a moment
+            // later. We let it open normally (so the client's real close flow still fires
+            // and a proper close packet is sent) and just react to it the tick it appears.
+            if (System.currentTimeMillis() < suppressReopenUntilMs
+                    && client.screen instanceof AbstractContainerScreen<?> reopened) {
+                String reopenedTitle = strip(reopened.getTitle().getString());
+                if (WARDROBE_TITLE_PATTERN.matcher(reopenedTitle).find()) {
+                    client.player.closeContainer();
+                }
+            }
+
+            if (watchingBootsChange) {
+                tickBootsWatch(client);
+            }
+
             boolean eligible = KuudraConfig.isWardrobeEnabled() && client.screen == null;
 
             long handle = GLFW.glfwGetCurrentContext();
@@ -95,16 +123,60 @@ public final class WardrobeKeybinds {
         return GLFW.glfwGetKey(handle, keyCode) == GLFW.GLFW_PRESS;
     }
 
+    private static void armBootsWatch(AbstractContainerMenu handler) {
+        if (!KuudraConfig.isWardrobeAutoCloseEnabled()) return;
+        if (LOADOUT_BOOTS_PREVIEW_SLOT >= handler.slots.size()) return;
+        watchedBootsStack   = handler.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem().copy();
+        watchingBootsChange = true;
+        bootsWatchTimeoutTicks = BOOTS_WATCH_TIMEOUT_TICKS;
+        closeAfterBootsChangeTicks = -1;
+    }
+
+    private static void tickBootsWatch(Minecraft client) {
+        if (!(client.screen instanceof AbstractContainerScreen<?> screen)) {
+            watchingBootsChange = false;
+            return;
+        }
+
+        if (closeAfterBootsChangeTicks == 1) {
+            watchingBootsChange = false;
+            closeAfterBootsChangeTicks = -1;
+            closeContainerNow(client);
+            return;
+        } else if (closeAfterBootsChangeTicks > 1) {
+            closeAfterBootsChangeTicks--;
+            return;
+        }
+
+        AbstractContainerMenu menu = screen.getMenu();
+        if (LOADOUT_BOOTS_PREVIEW_SLOT >= menu.slots.size()) {
+            watchingBootsChange = false;
+            closeContainerNow(client);
+            return;
+        }
+
+        ItemStack current = menu.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem();
+        if (!ItemStack.matches(current, watchedBootsStack)) {
+            closeAfterBootsChangeTicks = 1;
+            return;
+        }
+
+        bootsWatchTimeoutTicks--;
+        if (bootsWatchTimeoutTicks <= 0) {
+            watchingBootsChange = false;
+            closeContainerNow(client);
+        }
+    }
+
     private static void closeContainerNow(Minecraft client) {
-        if (client.screen instanceof AbstractContainerScreen<?> screen && client.player != null) {
-            KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} closeContainerNow() -> closeContainer() (screen={})",
-                    System.currentTimeMillis(), strip(screen.getTitle().getString()));
+        if (client.screen instanceof AbstractContainerScreen && client.player != null) {
             client.player.closeContainer();
         }
     }
 
     private static void scheduleCloseAfterRelease(int keyCode) {
         if (!KuudraConfig.isWardrobeAutoCloseEnabled()) return;
+        suppressReopenUntilMs = System.currentTimeMillis() + SUPPRESS_REOPEN_MS;
         if (keyCode < 0) { closeInTicks = CLOSE_DELAY_TICKS; return; }
         pendingCloseKeyCode = keyCode;
         pendingCloseTimeoutTicks = CLOSE_TIMEOUT_TICKS;
@@ -191,7 +263,8 @@ public final class WardrobeKeybinds {
             if (slotKeys[i] > 0 && keyCode == slotKeys[i]) {
                 int containerSlot = LOADOUT_SLOTS[i];
                 if (containerSlot >= handler.slots.size()) return true;
-                doClick(mc, handler, containerSlot, true, keyCode);
+                doClick(mc, handler, containerSlot, false, keyCode);
+                armBootsWatch(handler);
                 return true;
             }
         }
@@ -220,8 +293,6 @@ public final class WardrobeKeybinds {
     private static void doClick(Minecraft mc, AbstractContainerMenu handler, int slot, boolean scheduleClose, int triggeringKeyCode) {
         if (mc.gameMode == null || mc.player == null) return;
         nextAllowedAtMs = System.currentTimeMillis() + ACTION_COOLDOWN_MS;
-        KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} doClick() slot={} scheduleClose={}",
-                System.currentTimeMillis(), slot, scheduleClose);
         mc.gameMode.handleContainerInput(handler.containerId, slot, 0, ContainerInput.PICKUP, mc.player);
         if (scheduleClose) scheduleCloseAfterRelease(triggeringKeyCode);
     }

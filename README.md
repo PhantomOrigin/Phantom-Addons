@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.6  
+Latest Version: 1.6.7 
 Supported Minecraft Versions: 26.1.2  
 Discord Invite: https://discord.gg/6MquvmrXNP  
 
