@@ -110,6 +110,9 @@ public class HandledScreenMixin {
 
     @Inject(method = "removed", at = @At("HEAD"))
     private void kuudrahelper$onRemoved(CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        com.kuudrahelper.KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} screen removed: \"{}\"",
+                System.currentTimeMillis(), self.getTitle().getString());
         SlotBinds.clearPending();
         kuudrahelper$cachedAnalysis = null;
         ChestValueOverlay.reset();
@@ -119,12 +122,19 @@ public class HandledScreenMixin {
     // ── Croesus + Profit Tracker ──────────────────────────────────────────────────
 
     private CroesusListener.ChestAnalysis kuudrahelper$cachedAnalysis = null;
+    private boolean kuudrahelper$loggedShown = false;
 
     @Inject(method = "extractRenderState", at = @At("HEAD"))
     private void kuudrahelper$inventoryOverlay(GuiGraphicsExtractor ctx, int mx, int my, float delta,
                                                CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         boolean profitOn = KuudraConfig.isProfitTrackerEnabled();
+
+        if (!kuudrahelper$loggedShown) {
+            kuudrahelper$loggedShown = true;
+            com.kuudrahelper.KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} screen shown: \"{}\"",
+                    System.currentTimeMillis(), self.getTitle().getString());
+        }
 
         PartyFinderProfileHook.checkShiftHover(self, hoveredSlot, Minecraft.getInstance());
 

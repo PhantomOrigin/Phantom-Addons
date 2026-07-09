@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.5  
+Latest Version: 1.6.6  
 Supported Minecraft Versions: 26.1.2  
 Discord Invite: https://discord.gg/6MquvmrXNP  
 
@@ -57,6 +57,8 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Chest Tracker HUD
 - Shop Keybinds
 - Wardrobe Keybinds
+- Loadout Keybinds
+- Equipment Wardrobe Keybinds
 - Explosion Hider
 - Split Timer
 - Moveable Crate Pickup Progress Bar

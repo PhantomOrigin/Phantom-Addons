@@ -96,7 +96,9 @@ public final class WardrobeKeybinds {
     }
 
     private static void closeContainerNow(Minecraft client) {
-        if (client.screen instanceof AbstractContainerScreen && client.player != null) {
+        if (client.screen instanceof AbstractContainerScreen<?> screen && client.player != null) {
+            KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} closeContainerNow() -> closeContainer() (screen={})",
+                    System.currentTimeMillis(), strip(screen.getTitle().getString()));
             client.player.closeContainer();
         }
     }
@@ -218,6 +220,8 @@ public final class WardrobeKeybinds {
     private static void doClick(Minecraft mc, AbstractContainerMenu handler, int slot, boolean scheduleClose, int triggeringKeyCode) {
         if (mc.gameMode == null || mc.player == null) return;
         nextAllowedAtMs = System.currentTimeMillis() + ACTION_COOLDOWN_MS;
+        KuudraHelperMod.LOGGER.info("[WardrobeDebug] t={} doClick() slot={} scheduleClose={}",
+                System.currentTimeMillis(), slot, scheduleClose);
         mc.gameMode.handleContainerInput(handler.containerId, slot, 0, ContainerInput.PICKUP, mc.player);
         if (scheduleClose) scheduleCloseAfterRelease(triggeringKeyCode);
     }
