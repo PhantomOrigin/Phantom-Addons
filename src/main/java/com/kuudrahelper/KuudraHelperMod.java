@@ -81,7 +81,12 @@ public class KuudraHelperMod implements ClientModInitializer {
         registerCommands();
         registerConnectionEvents();
         registerTickEvents();
-        LavaRenderInit.init();
+        {
+            var nativeLava  = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.LAVA);
+            var nativeWater = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.WATER);
+            LavaRenderInit.init(nativeLava, nativeWater);
+            com.kuudrahelper.features.water.WaterRenderInit.init(nativeWater, nativeLava);
+        }
         ChestTracker.init();
         TabListChestSync.init();
         PearlRefill.register();
@@ -328,7 +333,6 @@ public class KuudraHelperMod implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             resetAll();
             KuudraConfig.setAutoRequeueEnabled(true);
-            com.kuudrahelper.features.AutoRequeue.onServerJoin();
             if (ChestTracker.isPendingPc()) {
                 ChestTracker.clearPendingPc();
                 client.execute(() -> {

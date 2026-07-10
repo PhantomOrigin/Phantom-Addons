@@ -42,13 +42,6 @@ public final class AutoRequeue {
         mc.execute(() -> mc.getConnection().sendCommand("instancerequeue"));
     }
 
-    public static void onServerJoin() {
-        KuudraHelperMod.LOGGER.info("[AutoRequeue] onServerJoin() — requeued=true, backup timer cleared");
-        requeued = true;
-        pendingBackupRequeueAtMs = -1L;
-        backupRetriesLeft = 0;
-    }
-
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (pendingBackupRequeueAtMs < 0) return;
@@ -60,10 +53,6 @@ public final class AutoRequeue {
             if (System.currentTimeMillis() < pendingBackupRequeueAtMs) return;
             if (client.player == null || client.getConnection() == null) return;
             pendingBackupRequeueAtMs = -1L;
-            // Dying/respawning can leave the player in spectator mode for longer than
-            // one backup delay, during which /instancerequeue gets rejected server-side
-            // with no confirmation message — so retry a few times instead of giving up
-            // after a single attempt.
             if (backupRetriesLeft > 0) {
                 backupRetriesLeft--;
                 pendingBackupRequeueAtMs = System.currentTimeMillis() + BACKUP_REQUEUE_DELAY_MS;
@@ -76,11 +65,6 @@ public final class AutoRequeue {
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (!KuudraConfig.isAutoRequeueEnabled()) return;
-
-            // Hypixel sometimes sends this message with raw '&' color codes instead of
-            // the usual '§' section-sign codes (seen on the post-respawn requeue prompt
-            // specifically) — strip both, otherwise codes embedded mid-phrase (e.g.
-            // "Click &e&lHERE &7to re-queue...") break the substring match below.
             String raw   = message.getString().replaceAll("[§&][0-9a-fk-orA-FK-OR]", "").trim();
             String lower = raw.toLowerCase().trim();
 

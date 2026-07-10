@@ -21,11 +21,12 @@ public class SodiumFluidRendererMixin {
     private static final boolean IRIS_LOADED =
             FabricLoader.getInstance().isModLoaded("iris");
 
+    // 0 = neither, 1 = lava, 2 = water
     @Unique
-    private static final ThreadLocal<Boolean> kuudra$isLava =
-            ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Integer> kuudra$fluidKind =
+            ThreadLocal.withInitial(() -> 0);
 
-    // ── Detect lava ──────────────────────────────────────────────────────────
+    // ── Detect lava/water ────────────────────────────────────────────────────
 
     @ModifyVariable(
             method = "render",
@@ -35,9 +36,13 @@ public class SodiumFluidRendererMixin {
             remap = false
     )
     private FluidState kuudra$captureFluid(FluidState state) {
-        kuudra$isLava.set(state != null
-                && (state.getType() == Fluids.LAVA
-                || state.getType() == Fluids.FLOWING_LAVA));
+        if (state != null && (state.getType() == Fluids.LAVA || state.getType() == Fluids.FLOWING_LAVA)) {
+            kuudra$fluidKind.set(1);
+        } else if (state != null && (state.getType() == Fluids.WATER || state.getType() == Fluids.FLOWING_WATER)) {
+            kuudra$fluidKind.set(2);
+        } else {
+            kuudra$fluidKind.set(0);
+        }
         return state;
     }
 
@@ -49,8 +54,11 @@ public class SodiumFluidRendererMixin {
             remap = false
     )
     private Material kuudra$swapMaterial(Material material) {
-        if (kuudra$isLava.get()
-                && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
+        int kind = kuudra$fluidKind.get();
+        if (kind == 1 && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
+            return DefaultMaterials.TRANSLUCENT;
+        }
+        if (kind == 2 && (KuudraConfig.getWaterOpacity() < 0.999f || KuudraConfig.isWaterAsLava())) {
             return DefaultMaterials.TRANSLUCENT;
         }
         return material;
@@ -63,41 +71,44 @@ public class SodiumFluidRendererMixin {
             at = @At("RETURN"),
             remap = false
     )
-    private void kuudra$applyLavaColor(CallbackInfo ci) {
-        if (!kuudra$isLava.get()) return;
+    private void kuudra$applyFluidColor(CallbackInfo ci) {
+        int kind = kuudra$fluidKind.get();
+        if (kind == 0) return;
 
         if (IRIS_LOADED && kuudra$irisHasShadersActive()) return;
+
+        boolean isLava = kind == 1;
+        float   opacity        = isLava ? KuudraConfig.getLavaOpacity()      : KuudraConfig.getWaterOpacity();
+        boolean colorOverride  = isLava ? KuudraConfig.isLavaColorOverride() : KuudraConfig.isWaterColorOverride();
+        int     userColor      = isLava ? KuudraConfig.getLavaColor()       : KuudraConfig.getWaterColor();
+        boolean baseIsLavaTexture = isLava ? !KuudraConfig.isLavaAsWater() : KuudraConfig.isWaterAsLava();
 
         int[] quadColors = ((DefaultFluidRendererAccessor) (Object) this).getQuadColors();
         float[] brightnessArr = ((DefaultFluidRendererAccessor) (Object) this).getBrightness();
 
-        float opacity = KuudraConfig.getLavaOpacity();
         int alpha = Math.round(opacity * 255f) & 0xFF;
 
         for (int i = 0; i < 4; i++) {
             int abgr = quadColors[i];
 
-            if (KuudraConfig.isLavaColorOverride()) {
-                int userColor = KuudraConfig.getLavaColor();
+            if (colorOverride) {
                 int ur = (userColor >> 16) & 0xFF;
                 int ug = (userColor >>  8) & 0xFF;
                 int ub =  userColor        & 0xFF;
 
+                int sr =  abgr        & 0xFF;
+                int sg = (abgr >>  8) & 0xFF;
+                int sb = (abgr >> 16) & 0xFF;
+
                 int finalR, finalG, finalB;
 
-                if (!KuudraConfig.isLavaAsWater()) {
-                    int sr =  abgr        & 0xFF;
-                    int sg = (abgr >>  8) & 0xFF;
-                    int sb = (abgr >> 16) & 0xFF;
+                if (baseIsLavaTexture) {
                     int luma = Math.max(0, Math.min(255,
                             (int) Math.round(0.2126 * sr + 0.7152 * sg + 0.0722 * sb)));
                     finalR = (luma * ur) / 255;
                     finalG = (luma * ug) / 255;
                     finalB = (luma * ub) / 255;
                 } else {
-                    int sr =  abgr        & 0xFF;
-                    int sg = (abgr >>  8) & 0xFF;
-                    int sb = (abgr >> 16) & 0xFF;
                     finalR = (sr * ur) / 255;
                     finalG = (sg * ug) / 255;
                     finalB = (sb * ub) / 255;

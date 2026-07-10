@@ -49,6 +49,13 @@ public class KuudraConfig {
     private static boolean  lavaAsWater       = false;
     private static boolean  lavaColorOverride = false;
 
+    // ── Water ─────────────────────────────────────────────────────────────────
+
+    private static float    waterOpacity       = 1.0f;
+    private static int      waterColor         = 0xFF2244AA;
+    private static boolean  waterAsLava        = false;
+    private static boolean  waterColorOverride = false;
+
     // ── Misc ──────────────────────────────────────────────────────────────────
 
     private static boolean fastDpsWarning           = true;
@@ -375,6 +382,12 @@ public class KuudraConfig {
     public static boolean  isLavaAsWater()       { return lavaAsWater; }
     public static boolean  isLavaColorOverride() { return lavaColorOverride; }
 
+    // Water
+    public static float    getWaterOpacity()      { return waterOpacity; }
+    public static int      getWaterColor()        { return waterColor; }
+    public static boolean  isWaterAsLava()        { return waterAsLava; }
+    public static boolean  isWaterColorOverride() { return waterColorOverride; }
+
     // Misc
     public static boolean isFastDpsWarningEnabled()   { return fastDpsWarning; }
     public static boolean isChestTrackerVisible()     { return chestTrackerVisible; }
@@ -575,6 +588,12 @@ public class KuudraConfig {
     public static void setLavaColor(int c)             { lavaColor = c;            save(); rebuildChunks(); }
     public static void setLavaAsWater(boolean v)       { lavaAsWater = v;          save(); rebuildChunks(); }
     public static void setLavaColorOverride(boolean v) { lavaColorOverride = v;    save(); rebuildChunks(); }
+
+    // Water
+    public static void setWaterOpacity(float v)         { waterOpacity = clamp01(v); save(); rebuildChunks(); }
+    public static void setWaterColor(int c)              { waterColor = c;            save(); rebuildChunks(); }
+    public static void setWaterAsLava(boolean v)          { waterAsLava = v;           save(); rebuildChunks(); }
+    public static void setWaterColorOverride(boolean v)   { waterColorOverride = v;    save(); rebuildChunks(); }
 
     // Misc
     public static void setFastDpsWarningEnabled(boolean v)  { fastDpsWarning = v;           save(); }
@@ -862,6 +881,11 @@ public class KuudraConfig {
             lavaAsWater       = d.lavaAsWater;
             lavaColorOverride = d.lavaColorOverride;
 
+            waterOpacity       = clamp01(d.waterOpacity);
+            waterColor         = d.waterColor;
+            waterAsLava        = d.waterAsLava;
+            waterColorOverride = d.waterColorOverride;
+
             fastDpsWarning          = d.fastDpsWarning;
             chestTrackerVisible     = d.chestTrackerVisible;
             soloDetectorEnabled     = d.soloDetectorEnabled;
@@ -1115,6 +1139,11 @@ public class KuudraConfig {
         d.lavaColor         = lavaColor;
         d.lavaAsWater       = lavaAsWater;
         d.lavaColorOverride = lavaColorOverride;
+
+        d.waterOpacity       = waterOpacity;
+        d.waterColor         = waterColor;
+        d.waterAsLava        = waterAsLava;
+        d.waterColorOverride = waterColorOverride;
 
         d.fastDpsWarning          = fastDpsWarning;
         d.chestTrackerVisible     = chestTrackerVisible;
@@ -1439,6 +1468,11 @@ public class KuudraConfig {
         int     lavaColor         = 0xFFAA0000;
         boolean lavaAsWater       = false;
         boolean lavaColorOverride = false;
+
+        float   waterOpacity       = 1f;
+        int     waterColor         = 0xFF2244AA;
+        boolean waterAsLava        = false;
+        boolean waterColorOverride = false;
 
         boolean fastDpsWarning          = true;
         boolean chestTrackerVisible     = true;
