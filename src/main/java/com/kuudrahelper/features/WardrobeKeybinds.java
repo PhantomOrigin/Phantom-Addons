@@ -3,6 +3,7 @@ package com.kuudrahelper.features;
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.KuudraScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
@@ -28,13 +29,6 @@ public final class WardrobeKeybinds {
 
     private static final int     CLOSE_TIMEOUT_TICKS = 20;
     private static final long    SUPPRESS_REOPEN_MS  = 1000;
-
-    private static final int     LOADOUT_BOOTS_PREVIEW_SLOT = 38;
-    private static final int     BOOTS_WATCH_TIMEOUT_TICKS  = 40;
-
-    private static volatile boolean  watchingBootsChange = false;
-    private static volatile ItemStack watchedBootsStack   = ItemStack.EMPTY;
-    private static volatile int      bootsWatchTimeoutTicks = -1;
 
     private static final Pattern WARDROBE_TITLE_PATTERN =
             Pattern.compile("wardrobe|armor sets|equipment sets", Pattern.CASE_INSENSITIVE);
@@ -75,21 +69,6 @@ public final class WardrobeKeybinds {
                 }
             }
 
-            if (System.currentTimeMillis() < suppressReopenUntilMs
-                    && client.screen instanceof AbstractContainerScreen<?> reopened) {
-                String reopenedTitle = strip(reopened.getTitle().getString());
-                boolean isWardrobe = WARDROBE_TITLE_PATTERN.matcher(reopenedTitle).find();
-                boolean isLoadouts = KuudraConfig.isLoadoutsLegacyCloseEnabled()
-                        && LOADOUTS_TITLE_PATTERN.matcher(reopenedTitle).find();
-                if (isWardrobe || isLoadouts) {
-                    client.player.closeContainer();
-                }
-            }
-
-            if (watchingBootsChange) {
-                tickBootsWatch(client);
-            }
-
             boolean eligible = KuudraConfig.isWardrobeEnabled() && client.screen == null;
 
             long handle = GLFW.glfwGetCurrentContext();
@@ -98,6 +77,31 @@ public final class WardrobeKeybinds {
             checkOpenKey(client, handle, 2, KuudraConfig.getPetsOpenKey(),        "pets", eligible);
             checkOpenKey(client, handle, 3, KuudraConfig.getEqWardrobeOpenKey(),  "eq", eligible);
             checkOpenKey(client, handle, 4, KuudraConfig.getLoadoutsOpenKey(),    "loadouts", eligible);
+        });
+
+        // Hypixel briefly re-opens the wardrobe/loadouts screen server-side after an
+        // equip is actually processed (a "confirmation" push), then closes it itself a
+        // moment later. BEFORE_INIT fires synchronously the instant Minecraft#setScreen
+        // is called for it — before the screen has initialized or rendered a single
+        // frame — so closing it here (real close packet, then setScreen(null), same as
+        // the client's normal close flow) means it never actually appears at all.
+        ScreenEvents.BEFORE_INIT.register((client, screen, width, height) -> {
+            if (System.currentTimeMillis() >= suppressReopenUntilMs) return;
+            if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) return;
+            String title = strip(containerScreen.getTitle().getString());
+            if (WARDROBE_TITLE_PATTERN.matcher(title).find()
+                    || LOADOUTS_TITLE_PATTERN.matcher(title).find()) {
+                // BEFORE_INIT fires from inside the still-running Minecraft#setScreen(screen)
+                // call (screen.init() is on the stack). Calling closeContainer() -> setScreen(null)
+                // synchronously here would re-enter setScreen while it's already executing,
+                // which corrupts mouse-capture state (the outer call still grabs/releases the
+                // mouse for the screen it thinks it's opening). Deferring via client.execute()
+                // runs it on the next task-queue drain instead — still before the screen ever
+                // gets rendered, but outside the live setScreen call.
+                client.execute(() -> {
+                    if (client.player != null) client.player.closeContainer();
+                });
+            }
         });
     }
 
@@ -116,41 +120,6 @@ public final class WardrobeKeybinds {
             return GLFW.glfwGetMouseButton(handle, keyCode - KuudraScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS;
         }
         return GLFW.glfwGetKey(handle, keyCode) == GLFW.GLFW_PRESS;
-    }
-
-    private static void armBootsWatch(AbstractContainerMenu handler) {
-        if (!KuudraConfig.isWardrobeAutoCloseEnabled()) return;
-        if (LOADOUT_BOOTS_PREVIEW_SLOT >= handler.slots.size()) return;
-        watchedBootsStack   = handler.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem().copy();
-        watchingBootsChange = true;
-        bootsWatchTimeoutTicks = BOOTS_WATCH_TIMEOUT_TICKS;
-    }
-
-    private static void tickBootsWatch(Minecraft client) {
-        if (!(client.screen instanceof AbstractContainerScreen<?> screen)) {
-            watchingBootsChange = false;
-            return;
-        }
-
-        AbstractContainerMenu menu = screen.getMenu();
-        if (LOADOUT_BOOTS_PREVIEW_SLOT >= menu.slots.size()) {
-            watchingBootsChange = false;
-            closeContainerNow(client);
-            return;
-        }
-
-        ItemStack current = menu.slots.get(LOADOUT_BOOTS_PREVIEW_SLOT).getItem();
-        if (!ItemStack.matches(current, watchedBootsStack)) {
-            watchingBootsChange = false;
-            closeContainerNow(client);
-            return;
-        }
-
-        bootsWatchTimeoutTicks--;
-        if (bootsWatchTimeoutTicks <= 0) {
-            watchingBootsChange = false;
-            closeContainerNow(client);
-        }
     }
 
     private static void closeContainerNow(Minecraft client) {
@@ -248,12 +217,7 @@ public final class WardrobeKeybinds {
             if (slotKeys[i] > 0 && keyCode == slotKeys[i]) {
                 int containerSlot = LOADOUT_SLOTS[i];
                 if (containerSlot >= handler.slots.size()) return true;
-                if (KuudraConfig.isLoadoutsLegacyCloseEnabled()) {
-                    doClick(mc, handler, containerSlot, true, keyCode);
-                } else {
-                    doClick(mc, handler, containerSlot, false, keyCode);
-                    armBootsWatch(handler);
-                }
+                doClick(mc, handler, containerSlot, true, keyCode);
                 return true;
             }
         }

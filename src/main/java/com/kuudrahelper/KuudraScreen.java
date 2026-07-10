@@ -1327,8 +1327,6 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isWardrobeDisableUnequipEnabled, KuudraConfig::setWardrobeDisableUnequipEnabled)));
         wardrobe.add(leaf(new Toggle("Auto Close Wardrobe", T,
                 KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
-        wardrobe.add(leaf(new Toggle("Legacy Loadouts Close", T,
-                KuudraConfig::isLoadoutsLegacyCloseEnabled, KuudraConfig::setLoadoutsLegacyCloseEnabled)));
         roots.add(wardrobe);
 
         Group shitterList = group("Shitter List", T, null,

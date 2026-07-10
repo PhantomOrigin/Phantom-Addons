@@ -13,9 +13,11 @@ public final class AutoRequeue {
     private static final String REQUEUE_CONFIRM = "you have been re-queued!";
     private static final String REQUEUE_CLICK   = "click here to re-queue into kuudra's hollow!";
     private static final long BACKUP_REQUEUE_DELAY_MS = 1_500L;
+    private static final int  MAX_BACKUP_RETRIES  = 5;
 
     private static boolean requeued = false;
     private static long pendingBackupRequeueAtMs = -1L;
+    private static int  backupRetriesLeft = 0;
 
     private AutoRequeue() {}
 
@@ -23,6 +25,7 @@ public final class AutoRequeue {
         KuudraHelperMod.LOGGER.info("[AutoRequeue] reset() — requeued=false, backup timer cleared");
         requeued = false;
         pendingBackupRequeueAtMs = -1L;
+        backupRetriesLeft = 0;
     }
 
     public static void trigger() {
@@ -43,6 +46,7 @@ public final class AutoRequeue {
         KuudraHelperMod.LOGGER.info("[AutoRequeue] onServerJoin() — requeued=true, backup timer cleared");
         requeued = true;
         pendingBackupRequeueAtMs = -1L;
+        backupRetriesLeft = 0;
     }
 
     public static void register() {
@@ -56,14 +60,28 @@ public final class AutoRequeue {
             if (System.currentTimeMillis() < pendingBackupRequeueAtMs) return;
             if (client.player == null || client.getConnection() == null) return;
             pendingBackupRequeueAtMs = -1L;
-            KuudraHelperMod.LOGGER.info("[AutoRequeue] backup timer fired -> sending /instancerequeue");
+            // Dying/respawning can leave the player in spectator mode for longer than
+            // one backup delay, during which /instancerequeue gets rejected server-side
+            // with no confirmation message — so retry a few times instead of giving up
+            // after a single attempt.
+            if (backupRetriesLeft > 0) {
+                backupRetriesLeft--;
+                pendingBackupRequeueAtMs = System.currentTimeMillis() + BACKUP_REQUEUE_DELAY_MS;
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] backup timer fired -> sending /instancerequeue ({} retries left)", backupRetriesLeft);
+            } else {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] backup timer fired -> sending /instancerequeue (final attempt)");
+            }
             client.execute(() -> client.getConnection().sendCommand("instancerequeue"));
         });
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (!KuudraConfig.isAutoRequeueEnabled()) return;
 
-            String raw   = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            // Hypixel sometimes sends this message with raw '&' color codes instead of
+            // the usual '§' section-sign codes (seen on the post-respawn requeue prompt
+            // specifically) — strip both, otherwise codes embedded mid-phrase (e.g.
+            // "Click &e&lHERE &7to re-queue...") break the substring match below.
+            String raw   = message.getString().replaceAll("[§&][0-9a-fk-orA-FK-OR]", "").trim();
             String lower = raw.toLowerCase().trim();
 
             if (lower.equals(ELLE_FISHING)) {
@@ -75,15 +93,17 @@ public final class AutoRequeue {
             if (lower.contains(REQUEUE_CONFIRM)) {
                 KuudraHelperMod.LOGGER.info("[AutoRequeue] saw requeue confirmation -> requeued=true");
                 requeued = true;
+                pendingBackupRequeueAtMs = -1L;
+                backupRetriesLeft = 0;
                 return;
             }
 
             if (requeued) return;
 
-            if (lower.contains(REQUEUE_CLICK)) {
-                KuudraHelperMod.LOGGER.info("[AutoRequeue] saw 'click here to re-queue' line -> requeued=true, backup timer armed ({}ms)", BACKUP_REQUEUE_DELAY_MS);
-                requeued = true;
-                pendingBackupRequeueAtMs = System.currentTimeMillis();
+            if (lower.contains(REQUEUE_CLICK) && pendingBackupRequeueAtMs < 0) {
+                KuudraHelperMod.LOGGER.info("[AutoRequeue] saw 'click here to re-queue' line -> backup timer armed ({}ms, {} retries)", BACKUP_REQUEUE_DELAY_MS, MAX_BACKUP_RETRIES);
+                backupRetriesLeft = MAX_BACKUP_RETRIES;
+                pendingBackupRequeueAtMs = System.currentTimeMillis() + BACKUP_REQUEUE_DELAY_MS;
             }
         });
     }
