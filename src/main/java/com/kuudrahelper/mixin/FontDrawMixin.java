@@ -1,7 +1,7 @@
 package com.kuudrahelper.mixin;
 
-import com.kuudrahelper.features.ShitterList;
-import com.kuudrahelper.features.VisualWords;
+import com.kuudrahelper.features.misckuudra.ShitterList;
+import com.kuudrahelper.features.customisation.VisualWords;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;

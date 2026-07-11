@@ -1,7 +1,7 @@
 package com.kuudrahelper;
 
-import com.kuudrahelper.features.items.ItemCustomization;
-import com.kuudrahelper.features.items.ItemTransformSettings;
+import com.kuudrahelper.features.customisation.items.ItemCustomization;
+import com.kuudrahelper.features.customisation.items.ItemTransformSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -610,7 +610,7 @@ public class KuudraScreen extends Screen {
     private static class LavaPreview extends Feature {
         LavaPreview(Tab t) { super("Colour Preview", t); }
         @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-            int previewArgb = com.kuudrahelper.features.lava.ColorPreviewHelper.computePreviewColor();
+            int previewArgb = com.kuudrahelper.features.customisation.lava.ColorPreviewHelper.computePreviewColor();
             int sw = w - 16, swX = x + 8, swY = y + 4, sh = ROW_H - 8;
             ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
             ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
@@ -622,7 +622,7 @@ public class KuudraScreen extends Screen {
     private static class WaterPreview extends Feature {
         WaterPreview(Tab t) { super("Colour Preview", t); }
         @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-            int previewArgb = com.kuudrahelper.features.water.WaterColorPreviewHelper.computePreviewColor();
+            int previewArgb = com.kuudrahelper.features.customisation.water.WaterColorPreviewHelper.computePreviewColor();
             int sw = w - 16, swX = x + 8, swY = y + 4, sh = ROW_H - 8;
             ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
             ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
@@ -726,8 +726,8 @@ public class KuudraScreen extends Screen {
         String  draft = null;
         VisualWordEntry(int idx) { super("Visual Word", Tab.VISUAL_WORDS); this.idx = idx; }
 
-        private com.kuudrahelper.features.VisualWords.Rule rule() {
-            var rules = com.kuudrahelper.features.VisualWords.getRules();
+        private com.kuudrahelper.features.customisation.VisualWords.Rule rule() {
+            var rules = com.kuudrahelper.features.customisation.VisualWords.getRules();
             return idx >= 0 && idx < rules.size() ? rules.get(idx) : null;
         }
 
@@ -774,7 +774,7 @@ public class KuudraScreen extends Screen {
             int fy = y + 4, fh = ROW_H - 8, fw = fieldW(x, w);
             int rx = removeX(x, w);
             if (mx >= rx && mx <= rx + 14 && my >= fy && my <= fy + fh) {
-                com.kuudrahelper.features.VisualWords.removeRule(idx);
+                com.kuudrahelper.features.customisation.VisualWords.removeRule(idx);
                 buildFeatures();
                 return true;
             }
@@ -808,7 +808,7 @@ public class KuudraScreen extends Screen {
             var r = rule();
             if (r != null && draft != null && focus != 0) {
                 if (focus == 1) r.input = draft; else r.replacement = draft;
-                com.kuudrahelper.features.VisualWords.save();
+                com.kuudrahelper.features.customisation.VisualWords.save();
             }
             draft = null; focus = 0;
         }
@@ -1169,6 +1169,9 @@ public class KuudraScreen extends Screen {
 
         roots.add(wp);
 
+        roots.add(leaf(new Toggle("Smooth Crate Pickup", T,
+                KuudraConfig::isSmoothCratePickupEnabled, KuudraConfig::setSmoothCratePickupEnabled)));
+
         roots.add(leaf(new Cycle("Kuudra Talisman", T,
                 () -> switch (KuudraConfig.getKuudraTalisman()) {
                     case NONE   -> "None";   case KIDNEY -> "Kidney";
@@ -1208,6 +1211,12 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isRendDamageEnabled, KuudraConfig::setRendDamageEnabled)));
         roots.add(leaf(new Toggle("Rend Tracker", T,
                 KuudraConfig::isRendTrackerEnabled, KuudraConfig::setRendTrackerEnabled)));
+        Group backbone = group("Backbone Progress Bar", T, null,
+                KuudraConfig::isBackboneProgressBarEnabled, KuudraConfig::setBackboneProgressBarEnabled);
+        backbone.add(leaf(new Toggle("Work Outside Kuudra", T,
+                KuudraConfig::isBackboneProgressBarOutsideKuudraEnabled, KuudraConfig::setBackboneProgressBarOutsideKuudraEnabled)));
+        backbone.add(soundGroup(T, KuudraConfig.SOUND_BACKBONE_DONE));
+        roots.add(backbone);
 
         Group hl = group("Kuudra Highlight", T, null,
                 KuudraConfig::isKuudraHighlightEnabled, KuudraConfig::setKuudraHighlightEnabled);
@@ -1242,6 +1251,7 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isWardrobeDisableUnequipEnabled, KuudraConfig::setWardrobeDisableUnequipEnabled)));
         wardrobe.add(leaf(new Toggle("Auto Close Wardrobe", T,
                 KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        wardrobe.add(soundGroup(T, wardrobe.key, KuudraConfig.SOUND_WARDROBE_SWAP));
         roots.add(wardrobe);
 
         Group loadouts = group("Loadout Keybinds", T, null,
@@ -1257,6 +1267,7 @@ public class KuudraScreen extends Screen {
         loadouts.add(leaf(new KeyCapture("Prev Page", T, KuudraConfig::getWardrobePrevPageKey, KuudraConfig::setWardrobePrevPageKey)));
         loadouts.add(leaf(new Toggle("Auto Close Loadouts", T,
                 KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        loadouts.add(soundGroup(T, loadouts.key, KuudraConfig.SOUND_WARDROBE_SWAP));
         roots.add(loadouts);
     }
 
@@ -1398,11 +1409,11 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isChestTrackerVisible, KuudraConfig::setChestTrackerVisible)));
 
         Group shitterList = group("Shitter List", T, null,
-                com.kuudrahelper.features.ShitterList::isEnabled,
-                com.kuudrahelper.features.ShitterList::setEnabled);
+                com.kuudrahelper.features.misckuudra.ShitterList::isEnabled,
+                com.kuudrahelper.features.misckuudra.ShitterList::setEnabled);
         shitterList.add(leaf(new Toggle("Auto Kick Shitters", T,
-                com.kuudrahelper.features.ShitterList::isAutoKickEnabled,
-                com.kuudrahelper.features.ShitterList::setAutoKickEnabled)));
+                com.kuudrahelper.features.misckuudra.ShitterList::isAutoKickEnabled,
+                com.kuudrahelper.features.misckuudra.ShitterList::setAutoKickEnabled)));
         roots.add(shitterList);
 
         Group explosion = group("Exploison Hider", T, null,
@@ -1555,11 +1566,11 @@ public class KuudraScreen extends Screen {
         Tab T = Tab.VISUAL_WORDS;
 
         roots.add(leaf(new Toggle("Visual Words", T,
-                com.kuudrahelper.features.VisualWords::isEnabled,
-                com.kuudrahelper.features.VisualWords::setEnabled)));
+                com.kuudrahelper.features.customisation.VisualWords::isEnabled,
+                com.kuudrahelper.features.customisation.VisualWords::setEnabled)));
         roots.add(leaf(new Button("Add Word", T, "+ Add",
-                () -> { com.kuudrahelper.features.VisualWords.addRule(); buildFeatures(); })));
-        int vwCount = com.kuudrahelper.features.VisualWords.getRules().size();
+                () -> { com.kuudrahelper.features.customisation.VisualWords.addRule(); buildFeatures(); })));
+        int vwCount = com.kuudrahelper.features.customisation.VisualWords.getRules().size();
         for (int i = 0; i < vwCount; i++) roots.add(leaf(new VisualWordEntry(i)));
     }
 
@@ -1640,7 +1651,11 @@ public class KuudraScreen extends Screen {
     // ── Sound group helper ────────────────────────────────────────────────────
 
     private Group soundGroup(Tab tab, String soundKey) {
-        Group g = group("Sound", tab, null,
+        return soundGroup(tab, null, soundKey);
+    }
+
+    private Group soundGroup(Tab tab, String parentKey, String soundKey) {
+        Group g = group("Sound", tab, parentKey,
                 () -> KuudraConfig.isNotificationSoundEnabled(soundKey),
                 v  -> KuudraConfig.setNotificationSoundEnabled(soundKey, v));
         g.add(leaf(new TextInput("Sound ID", tab,

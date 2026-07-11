@@ -2,8 +2,8 @@ package com.kuudrahelper;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.kuudrahelper.features.items.ItemCustomization;
-import com.kuudrahelper.features.items.ItemTransformSettings;
+import com.kuudrahelper.features.customisation.items.ItemCustomization;
+import com.kuudrahelper.features.customisation.items.ItemTransformSettings;
 import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -206,6 +206,11 @@ public class KuudraConfig {
     private static boolean        elleHighlightEnabled       = false;
     private static boolean        rendDamageEnabled          = false;
     private static boolean        rendTrackerEnabled         = false;
+    private static boolean        backboneProgressBarEnabled = false;
+    private static boolean        backboneProgressBarOutsideKuudraEnabled = false;
+    private static float          backboneProgressBarHudX     = 0.5f;
+    private static float          backboneProgressBarHudY     = 0.6f;
+    private static float          backboneProgressBarHudScale = 1.0f;
     private static boolean        kuudraHighlightEnabled     = false;
     private static boolean        kuudraHighlightFilled      = false;
     private static boolean        etherwarpSlotBlockerEnabled = false;
@@ -245,6 +250,7 @@ public class KuudraConfig {
     private static float pearlTitleHudX    = 0.5f;
     private static float pearlTitleHudY    = 0.5f;
     private static float pearlTitleHudScale = 1.0f;
+    private static boolean smoothCratePickupEnabled = false;
     private static float supplyProgressHudX     = 0.5f;
     private static float supplyProgressHudY     = 0.35f;
     private static float supplyProgressHudScale = 1.0f;
@@ -461,6 +467,11 @@ public class KuudraConfig {
     public static boolean        isElleHighlightEnabled()        { return elleHighlightEnabled; }
     public static boolean        isRendDamageEnabled()           { return rendDamageEnabled; }
     public static boolean        isRendTrackerEnabled()          { return rendTrackerEnabled; }
+    public static boolean        isBackboneProgressBarEnabled()   { return backboneProgressBarEnabled; }
+    public static boolean        isBackboneProgressBarOutsideKuudraEnabled() { return backboneProgressBarOutsideKuudraEnabled; }
+    public static float          getBackboneProgressBarHudX()     { return backboneProgressBarHudX; }
+    public static float          getBackboneProgressBarHudY()     { return backboneProgressBarHudY; }
+    public static float          getBackboneProgressBarHudScale() { return backboneProgressBarHudScale; }
     public static boolean        isKuudraHighlightEnabled()      { return kuudraHighlightEnabled; }
     public static boolean        isKuudraHighlightFilled()       { return kuudraHighlightFilled; }
     public static boolean        isEtherwarpSlotBlockerEnabled()  { return etherwarpSlotBlockerEnabled; }
@@ -662,6 +673,11 @@ public class KuudraConfig {
     public static void setElleHighlightEnabled(boolean v)        { elleHighlightEnabled = v;          save(); }
     public static void setRendDamageEnabled(boolean v)           { rendDamageEnabled = v;             save(); }
     public static void setRendTrackerEnabled(boolean v)          { rendTrackerEnabled = v;            save(); }
+    public static void setBackboneProgressBarEnabled(boolean v)   { backboneProgressBarEnabled = v;    save(); }
+    public static void setBackboneProgressBarOutsideKuudraEnabled(boolean v) { backboneProgressBarOutsideKuudraEnabled = v; save(); }
+    public static void setBackboneProgressBarHudX(float v)        { backboneProgressBarHudX     = Math.max(0, Math.min(1, v)); }
+    public static void setBackboneProgressBarHudY(float v)        { backboneProgressBarHudY     = Math.max(0, Math.min(1, v)); }
+    public static void setBackboneProgressBarHudScale(float v)    { backboneProgressBarHudScale = Math.max(0.2f, Math.min(3f, v)); }
     public static void setKuudraHighlightEnabled(boolean v)     { kuudraHighlightEnabled = v;        save(); }
     public static void setKuudraHighlightFilled(boolean v)      { kuudraHighlightFilled = v;         save(); }
     public static void setEtherwarpSlotBlockerEnabled(boolean v) { etherwarpSlotBlockerEnabled = v; save(); }
@@ -713,6 +729,8 @@ public class KuudraConfig {
     public static void setPearlTitleHudX(float v)    { pearlTitleHudX    = Math.max(0, Math.min(1, v)); }
     public static void setPearlTitleHudY(float v)    { pearlTitleHudY    = Math.max(0, Math.min(1, v)); }
     public static void setPearlTitleHudScale(float v){ pearlTitleHudScale = Math.max(0.2f, Math.min(3f, v)); }
+    public static boolean isSmoothCratePickupEnabled()      { return smoothCratePickupEnabled; }
+    public static void setSmoothCratePickupEnabled(boolean v) { smoothCratePickupEnabled = v; save(); }
     public static float getSupplyProgressHudX()           { return supplyProgressHudX; }
     public static float getSupplyProgressHudY()           { return supplyProgressHudY; }
     public static float getSupplyProgressHudScale()       { return supplyProgressHudScale; }
@@ -954,6 +972,11 @@ public class KuudraConfig {
             elleHighlightEnabled       = d.elleHighlightEnabled;
             rendDamageEnabled          = d.rendDamageEnabled;
             rendTrackerEnabled         = d.rendTrackerEnabled;
+            backboneProgressBarEnabled = d.backboneProgressBarEnabled;
+            backboneProgressBarOutsideKuudraEnabled = d.backboneProgressBarOutsideKuudraEnabled;
+            backboneProgressBarHudX     = d.backboneProgressBarHudX;
+            backboneProgressBarHudY     = d.backboneProgressBarHudY;
+            backboneProgressBarHudScale = d.backboneProgressBarHudScale;
             kuudraHighlightEnabled     = d.kuudraHighlightEnabled;
             kuudraHighlightFilled      = d.kuudraHighlightFilled;
             etherwarpSlotBlockerEnabled = d.etherwarpSlotBlockerEnabled;
@@ -993,6 +1016,7 @@ public class KuudraConfig {
             pearlTitleHudX    = d.pearlTitleHudX;
             pearlTitleHudY    = d.pearlTitleHudY;
             pearlTitleHudScale = d.pearlTitleHudScale;
+            smoothCratePickupEnabled = d.smoothCratePickupEnabled;
             supplyProgressHudX     = d.supplyProgressHudX;
             supplyProgressHudY     = d.supplyProgressHudY;
             supplyProgressHudScale = d.supplyProgressHudScale;
@@ -1211,6 +1235,11 @@ public class KuudraConfig {
         d.elleHighlightEnabled       = elleHighlightEnabled;
         d.rendDamageEnabled          = rendDamageEnabled;
         d.rendTrackerEnabled         = rendTrackerEnabled;
+        d.backboneProgressBarEnabled = backboneProgressBarEnabled;
+        d.backboneProgressBarOutsideKuudraEnabled = backboneProgressBarOutsideKuudraEnabled;
+        d.backboneProgressBarHudX     = backboneProgressBarHudX;
+        d.backboneProgressBarHudY     = backboneProgressBarHudY;
+        d.backboneProgressBarHudScale = backboneProgressBarHudScale;
         d.kuudraHighlightEnabled     = kuudraHighlightEnabled;
         d.kuudraHighlightFilled      = kuudraHighlightFilled;
         d.etherwarpSlotBlockerEnabled = etherwarpSlotBlockerEnabled;
@@ -1249,6 +1278,7 @@ public class KuudraConfig {
         d.pearlTitleHudX    = pearlTitleHudX;
         d.pearlTitleHudY    = pearlTitleHudY;
         d.pearlTitleHudScale = pearlTitleHudScale;
+        d.smoothCratePickupEnabled = smoothCratePickupEnabled;
         d.supplyProgressHudX     = supplyProgressHudX;
         d.supplyProgressHudY     = supplyProgressHudY;
         d.supplyProgressHudScale = supplyProgressHudScale;
@@ -1399,6 +1429,8 @@ public class KuudraConfig {
     public static final String SOUND_KICKED          = "kicked";
     public static final String SOUND_SUPPLY_GRABBED  = "supply_grabbed";
     public static final String SOUND_SUPPLY_DROPPED  = "supply_dropped";
+    public static final String SOUND_WARDROBE_SWAP   = "wardrobe_swap";
+    public static final String SOUND_BACKBONE_DONE   = "backbone_done";
 
     public static class NotificationSound {
         public boolean enabled = false;
@@ -1419,6 +1451,10 @@ public class KuudraConfig {
             return new NotificationSound("minecraft:block.note_block.pling", 2.0f);
         if (SOUND_FAST_DPS.equals(key))
             return new NotificationSound("minecraft:entity.experience_orb.pickup", 2.0f);
+        if (SOUND_WARDROBE_SWAP.equals(key))
+            return new NotificationSound("minecraft:ui.button.click", 1.5f);
+        if (SOUND_BACKBONE_DONE.equals(key))
+            return new NotificationSound("minecraft:block.note_block.pling", 1.5f);
         return new NotificationSound("minecraft:entity.experience_orb.pickup", 1.0f);
     }
 
@@ -1538,6 +1574,11 @@ public class KuudraConfig {
         boolean elleHighlightEnabled       = false;
         boolean rendDamageEnabled          = false;
         boolean rendTrackerEnabled         = false;
+        boolean backboneProgressBarEnabled = false;
+        boolean backboneProgressBarOutsideKuudraEnabled = false;
+        float backboneProgressBarHudX     = 0.5f;
+        float backboneProgressBarHudY     = 0.6f;
+        float backboneProgressBarHudScale = 1.0f;
         boolean kuudraHighlightEnabled     = false;
         boolean kuudraHighlightFilled      = false;
         boolean etherwarpSlotBlockerEnabled = false;
@@ -1576,6 +1617,7 @@ public class KuudraConfig {
         float pearlTitleHudX    = 0.5f;
         float pearlTitleHudY    = 0.5f;
         float pearlTitleHudScale = 1.0f;
+        boolean smoothCratePickupEnabled = false;
         float supplyProgressHudX     = 0.5f;
         float supplyProgressHudY     = 0.35f;
         float supplyProgressHudScale = 1.0f;

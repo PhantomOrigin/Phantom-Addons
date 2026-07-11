@@ -1,7 +1,7 @@
 package com.kuudrahelper.features.supplies;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.NotificationHud;
+import com.kuudrahelper.features.misckuudra.NotificationHud;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;

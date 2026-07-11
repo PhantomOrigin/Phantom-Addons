@@ -1,7 +1,7 @@
 package com.kuudrahelper.features.supplies;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.pearls.PearlWaypointManager;
+import com.kuudrahelper.features.supplies.PearlWaypointManager;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;

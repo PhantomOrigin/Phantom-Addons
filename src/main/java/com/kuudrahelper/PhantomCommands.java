@@ -1,9 +1,9 @@
 package com.kuudrahelper;
 
-import com.kuudrahelper.features.ShitterList;
-import com.kuudrahelper.features.profile.KuudraProfileScreen;
-import com.kuudrahelper.features.profittracker.ProfitHud;
-import com.kuudrahelper.features.profittracker.ProfitStore;
+import com.kuudrahelper.features.misckuudra.ShitterList;
+import com.kuudrahelper.features.misckuudra.profile.KuudraProfileScreen;
+import com.kuudrahelper.features.misckuudra.profittracker.ProfitHud;
+import com.kuudrahelper.features.misckuudra.profittracker.ProfitStore;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;

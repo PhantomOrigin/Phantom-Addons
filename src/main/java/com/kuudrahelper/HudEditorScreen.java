@@ -9,20 +9,20 @@ import net.minecraft.network.chat.Component;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 10;
+    private static final int N = 11;
 
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Pearl Title",
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
-        "Profit Tracker", "Chest Value"
+        "Profit Tracker", "Chest Value", "Backbone Progress Bar"
     };
 
-    private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165, 135, 115 };
-    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  22, 115,  85 };
+    private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165, 135, 115, 150 };
+    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  22, 115,  85,  28 };
 
-    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.5f };
 
-    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true, false, false };
+    private static final boolean[] IS_CENTERED = { true, true, false, true, true, true, true, true, false, false, true };
 
     private final float[] px = new float[N];
     private final float[] py = new float[N];
@@ -92,6 +92,10 @@ public class HudEditorScreen extends Screen {
         px[9] = KuudraConfig.getChestValueHudX();
         py[9] = KuudraConfig.getChestValueHudY();
         ps[9] = KuudraConfig.getChestValueHudScale();
+
+        px[10] = KuudraConfig.getBackboneProgressBarHudX();
+        py[10] = KuudraConfig.getBackboneProgressBarHudY();
+        ps[10] = KuudraConfig.getBackboneProgressBarHudScale();
     }
 
     @Override
@@ -135,6 +139,10 @@ public class HudEditorScreen extends Screen {
         KuudraConfig.setChestValueHudX(px[9]);
         KuudraConfig.setChestValueHudY(py[9]);
         KuudraConfig.setChestValueHudScale(ps[9]);
+
+        KuudraConfig.setBackboneProgressBarHudX(px[10]);
+        KuudraConfig.setBackboneProgressBarHudY(py[10]);
+        KuudraConfig.setBackboneProgressBarHudScale(ps[10]);
 
         KuudraConfig.save();
         minecraft.setScreen(parent);
@@ -308,6 +316,12 @@ public class HudEditorScreen extends Screen {
                 int y = 0;
                 for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
             }
+            case 10 -> { // Backbone Progress Bar
+                m.translate(bx + bw / 2f, by + bh / 2f);
+                m.scale(s, s);
+                String txt = "§8[§6||||||||||||§f||||||||§8] §b60%";
+                ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
+            }
         }
 
         m.popMatrix();
@@ -407,6 +421,7 @@ public class HudEditorScreen extends Screen {
         px[7] = 0.5f;   py[7] = 0.07f; ps[7] = 1.0f;
         px[8] = 0.01f;  py[8] = 0.5f;  ps[8] = 1.0f;
         px[9] = 0.3f;   py[9] = 0.3f;  ps[9] = 1.0f;
+        px[10] = 0.5f;  py[10] = 0.6f; ps[10] = 1.0f;
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

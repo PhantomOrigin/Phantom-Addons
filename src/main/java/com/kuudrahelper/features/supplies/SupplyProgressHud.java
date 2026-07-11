@@ -1,6 +1,6 @@
 package com.kuudrahelper.features.supplies;
 
-import com.kuudrahelper.features.NotificationHud;
+import com.kuudrahelper.features.misckuudra.NotificationHud;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.scores.DisplaySlot;

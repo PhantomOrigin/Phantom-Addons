@@ -1,9 +1,9 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.items.ItemCustomization;
-import com.kuudrahelper.features.items.ItemRenderState;
-import com.kuudrahelper.features.items.ItemTransformSettings;
+import com.kuudrahelper.features.customisation.items.ItemCustomization;
+import com.kuudrahelper.features.customisation.items.ItemRenderState;
+import com.kuudrahelper.features.customisation.items.ItemTransformSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;

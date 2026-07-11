@@ -1,11 +1,11 @@
 package com.kuudrahelper.mixin;
 
-import com.kuudrahelper.features.EtherwarpPredictor;
-import com.kuudrahelper.features.PreventPlacingPlayerHeads;
-import com.kuudrahelper.features.PreventPlacingWeapons;
-import com.kuudrahelper.features.SlotBlocker;
+import com.kuudrahelper.features.misckuudra.EtherwarpPredictor;
+import com.kuudrahelper.features.miscskyblock.PreventPlacingPlayerHeads;
+import com.kuudrahelper.features.miscskyblock.PreventPlacingWeapons;
+import com.kuudrahelper.features.supplies.SlotBlocker;
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.PickoblockManager;
+import com.kuudrahelper.features.misckuudra.PickoblockManager;
 import com.kuudrahelper.features.supplies.EtherwarpWaypointManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -42,11 +42,11 @@ public class UseItemMixin {
             EtherwarpWaypointManager.onPearlThrow(client, player);
         }
 
-        // Rend Tracker: detect bonemerang throw
         if (hand == net.minecraft.world.InteractionHand.MAIN_HAND) {
             String itemName = stack.getHoverName().getString().toLowerCase();
             if (itemName.contains("bonemerang")) {
-                com.kuudrahelper.features.kuudra.RendTracker.onBonemerangThrow();
+                com.kuudrahelper.features.boss.RendTracker.onBonemerangThrow();
+                com.kuudrahelper.features.boss.BackboneProgressBar.onBonemerangThrow();
             }
         }
 

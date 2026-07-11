@@ -1,7 +1,7 @@
 package com.kuudrahelper.mixin;
 
-import com.kuudrahelper.features.items.ItemRenderState;
-import com.kuudrahelper.features.items.ItemTransformSettings;
+import com.kuudrahelper.features.customisation.items.ItemRenderState;
+import com.kuudrahelper.features.customisation.items.ItemTransformSettings;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import org.spongepowered.asm.mixin.Mixin;

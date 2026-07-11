@@ -1,16 +1,16 @@
 package com.kuudrahelper.mixin;
 
-import com.kuudrahelper.features.AnnounceFresh;
-import com.kuudrahelper.features.BuildBeaconRenderer;
-import com.kuudrahelper.features.ElleHighlightRenderer;
-import com.kuudrahelper.features.kuudra.KuudraHighlightRenderer;
+import com.kuudrahelper.features.build.AnnounceFresh;
+import com.kuudrahelper.features.build.BuildBeaconRenderer;
+import com.kuudrahelper.features.build.ElleHighlightRenderer;
+import com.kuudrahelper.features.boss.KuudraHighlightRenderer;
 import com.kuudrahelper.features.supplies.EtherwarpWaypointRenderer;
 import com.kuudrahelper.features.supplies.SupplyBeaconRenderer;
 import com.kuudrahelper.features.supplies.GiantHitboxOutline;
 import com.kuudrahelper.features.supplies.SupplyGiantHitbox;
 import com.kuudrahelper.features.supplies.SupplyRenderHelper;
-import com.kuudrahelper.features.pearls.PearlWaypointRenderer;
-import com.kuudrahelper.features.StunPreviewRenderer;
+import com.kuudrahelper.features.supplies.PearlWaypointRenderer;
+import com.kuudrahelper.features.stundps.StunPreviewRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;

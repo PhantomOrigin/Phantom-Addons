@@ -1,13 +1,13 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.ShopKeybinds;
-import com.kuudrahelper.features.SlotBinds;
-import com.kuudrahelper.features.WardrobeKeybinds;
-import com.kuudrahelper.features.profile.PartyFinderProfileHook;
-import com.kuudrahelper.features.profittracker.ChestValueOverlay;
-import com.kuudrahelper.features.profittracker.CroesusListener;
-import com.kuudrahelper.features.profittracker.ProfitHud;
+import com.kuudrahelper.features.misckuudra.ShopKeybinds;
+import com.kuudrahelper.features.miscskyblock.SlotBinds;
+import com.kuudrahelper.features.loadouts.WardrobeKeybinds;
+import com.kuudrahelper.features.misckuudra.profile.PartyFinderProfileHook;
+import com.kuudrahelper.features.misckuudra.profittracker.ChestValueOverlay;
+import com.kuudrahelper.features.misckuudra.profittracker.CroesusListener;
+import com.kuudrahelper.features.misckuudra.profittracker.ProfitHud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;

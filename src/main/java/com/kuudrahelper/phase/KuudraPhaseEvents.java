@@ -1,23 +1,23 @@
 package com.kuudrahelper.phase;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.AnnounceFresh;
-import com.kuudrahelper.features.AutoGFS;
-import com.kuudrahelper.features.BuildProgressHud;
-import com.kuudrahelper.features.BuildProgressTracker;
+import com.kuudrahelper.features.build.AnnounceFresh;
+import com.kuudrahelper.features.stundps.AutoGFS;
+import com.kuudrahelper.features.build.BuildProgressHud;
+import com.kuudrahelper.features.build.BuildProgressTracker;
 import com.kuudrahelper.features.supplies.EtherwarpWaypointManager;
 import com.kuudrahelper.features.supplies.NoPreAnnounce;
 import com.kuudrahelper.features.supplies.SupplyProgressHud;
 import com.kuudrahelper.features.supplies.SupplyWaypointTracker;
-import com.kuudrahelper.features.FastDpsWarning;
-import com.kuudrahelper.features.SoloDetector;
-import com.kuudrahelper.features.splits.KuudraSplitTimer;
-import com.kuudrahelper.features.pearls.PearlWaypointManager;
+import com.kuudrahelper.features.stundps.FastDpsWarning;
+import com.kuudrahelper.features.boss.SoloDetector;
+import com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer;
+import com.kuudrahelper.features.supplies.PearlWaypointManager;
 import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.utils.Phase2BuildTracker;
-import com.kuudrahelper.features.HideArmorStands;
-import com.kuudrahelper.features.kuudra.RendDamage;
-import com.kuudrahelper.features.kuudra.RendTracker;
+import com.kuudrahelper.features.render.HideArmorStands;
+import com.kuudrahelper.features.boss.RendDamage;
+import com.kuudrahelper.features.boss.RendTracker;
 import com.kuudrahelper.utils.KuudraTierDetector;
 import com.kuudrahelper.utils.RoleManager;
 import net.minecraft.client.Minecraft;
@@ -80,12 +80,14 @@ public final class KuudraPhaseEvents {
                 case STUN -> {
                     RendDamage.onKillPhaseStart();
                     RendTracker.onKillPhaseStart();
+                    com.kuudrahelper.features.boss.BackboneProgressBar.reset();
                     KuudraSplitTimer.onStunStart();
                 }
 
                 case DPS -> {
                     RendDamage.onKillPhaseStart();
                     RendTracker.onKillPhaseStart();
+                    com.kuudrahelper.features.boss.BackboneProgressBar.reset();
                     FastDpsWarning.onDpsStart();
                     KuudraSplitTimer.onDpsStart();
                 }
@@ -106,13 +108,15 @@ public final class KuudraPhaseEvents {
                 case BOSS -> {
                     RendDamage.onBossPhaseStart();
                     RendTracker.onBossPhaseStart();
+                    com.kuudrahelper.features.boss.BackboneProgressBar.reset();
                     KuudraSplitTimer.onBossStart();
                 }
 
                 case END -> {
-                    com.kuudrahelper.features.AutoRequeue.trigger();
+                    com.kuudrahelper.features.misckuudra.AutoRequeue.trigger();
                     RendDamage.reset();
-                    com.kuudrahelper.features.kuudra.RendTracker.reset();
+                    com.kuudrahelper.features.boss.RendTracker.reset();
+                    com.kuudrahelper.features.boss.BackboneProgressBar.reset();
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();

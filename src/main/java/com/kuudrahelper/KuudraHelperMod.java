@@ -1,32 +1,45 @@
 package com.kuudrahelper;
 
-import com.kuudrahelper.features.*;
-import com.kuudrahelper.features.NotificationHud;
-import com.kuudrahelper.features.splits.KuudraSplitTimer;
+import com.kuudrahelper.features.build.AnnounceFresh;
+import com.kuudrahelper.features.stundps.AutoGFS;
+import com.kuudrahelper.features.misckuudra.AutoRequeue;
+import com.kuudrahelper.features.build.BuildProgressHud;
+import com.kuudrahelper.features.build.BuildProgressTracker;
+import com.kuudrahelper.features.misckuudra.EtherwarpPredictor;
+import com.kuudrahelper.features.stundps.FastDpsWarning;
+import com.kuudrahelper.features.misckuudra.HollowWandAnnouncer;
+import com.kuudrahelper.features.stundps.MountTimerHud;
+import com.kuudrahelper.features.misckuudra.PartyCommands;
+import com.kuudrahelper.features.miscskyblock.PearlRefill;
+import com.kuudrahelper.features.misckuudra.PickoblockManager;
+import com.kuudrahelper.features.misckuudra.ShopKeybinds;
+import com.kuudrahelper.features.supplies.SlotBlocker;
+import com.kuudrahelper.features.misckuudra.NotificationHud;
+import com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer;
 import com.kuudrahelper.features.supplies.CratePriority;
 import com.kuudrahelper.features.supplies.NoPreAnnounce;
 import com.kuudrahelper.features.supplies.SupplyProgressHud;
 import com.kuudrahelper.features.supplies.SupplyWaypointTracker;
-import com.kuudrahelper.features.pearls.SupplyTracker;
-import com.kuudrahelper.features.pearls.PearlTitleHud;
-import com.kuudrahelper.features.pearls.PearlTitleListener;
+import com.kuudrahelper.features.supplies.SupplyTracker;
+import com.kuudrahelper.features.supplies.PearlTitleHud;
+import com.kuudrahelper.features.supplies.PearlTitleListener;
 import com.kuudrahelper.logging.GiantYLogger;
 import com.kuudrahelper.logging.PhaseLogAppender;
 import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.kuudrahelper.utils.Phase2BuildTracker;
 import com.kuudrahelper.utils.RoleManager;
-import com.kuudrahelper.features.lava.LavaRenderInit;
-import com.kuudrahelper.features.pearls.DoublePearlCoords;
-import com.kuudrahelper.features.pearls.NoPre;
-import com.kuudrahelper.features.pearls.PearlWaypointManager;
-import com.kuudrahelper.features.SoloDetector;
-import com.kuudrahelper.features.kuudra.KuudraDirectionHud;
-import com.kuudrahelper.features.kuudra.RendDamage;
-import com.kuudrahelper.features.CannonAutoClose;
-import com.kuudrahelper.features.WardrobeKeybinds;
+import com.kuudrahelper.features.customisation.lava.LavaRenderInit;
+import com.kuudrahelper.features.supplies.DoublePearlCoords;
+import com.kuudrahelper.features.supplies.NoPre;
+import com.kuudrahelper.features.supplies.PearlWaypointManager;
+import com.kuudrahelper.features.boss.SoloDetector;
+import com.kuudrahelper.features.boss.KuudraDirectionHud;
+import com.kuudrahelper.features.boss.RendDamage;
+import com.kuudrahelper.features.stundps.CannonAutoClose;
+import com.kuudrahelper.features.loadouts.WardrobeKeybinds;
 import com.kuudrahelper.utils.KuudraTierDetector;
-import com.kuudrahelper.features.ChestTracker;
+import com.kuudrahelper.features.misckuudra.ChestTracker;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -36,9 +49,9 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
-import com.kuudrahelper.features.TabListChestSync;
+import com.kuudrahelper.features.misckuudra.TabListChestSync;
 import com.kuudrahelper.features.dungeons.DungeonsGfs;
-import com.kuudrahelper.features.splits.SplitHud;
+import com.kuudrahelper.features.misckuudra.splits.SplitHud;
 import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
 import org.lwjgl.glfw.GLFW;
@@ -69,8 +82,8 @@ public class KuudraHelperMod implements ClientModInitializer {
 
         UpdateChecker.cleanupLeftoverJars();
         KuudraConfig.load();
-        com.kuudrahelper.features.VisualWords.load();
-        com.kuudrahelper.features.ShitterList.load();
+        com.kuudrahelper.features.customisation.VisualWords.load();
+        com.kuudrahelper.features.misckuudra.ShitterList.load();
         PickoblockManager.init();
         MountTimerHud.register();
 
@@ -85,7 +98,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             var nativeLava  = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.LAVA);
             var nativeWater = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.WATER);
             LavaRenderInit.init(nativeLava, nativeWater);
-            com.kuudrahelper.features.water.WaterRenderInit.init(nativeWater, nativeLava);
+            com.kuudrahelper.features.customisation.water.WaterRenderInit.init(nativeWater, nativeLava);
         }
         ChestTracker.init();
         TabListChestSync.init();
@@ -106,18 +119,20 @@ public class KuudraHelperMod implements ClientModInitializer {
         SlotBlocker.register();
         KuudraDirectionHud.register();
         PearlTitleHud.register();
+        com.kuudrahelper.features.supplies.SmoothCratePickupHud.register();
+        com.kuudrahelper.features.boss.BackboneProgressBarHud.register();
         com.kuudrahelper.features.supplies.DoublePearlWarningHud.register();
         BuildProgressTracker.register();
         RendDamage.register();
         SupplyProgressHud.register();
         BuildProgressHud.register();
         NotificationHud.register();
-        com.kuudrahelper.features.KickedTimerHud.register();
+        com.kuudrahelper.features.misckuudra.KickedTimerHud.register();
         CratePriority.register();
-        com.kuudrahelper.features.kuudra.KuudraHpHud.register();
+        com.kuudrahelper.features.boss.KuudraHpHud.register();
 
-        com.kuudrahelper.features.profittracker.ProfitStore.load();
-        com.kuudrahelper.features.profittracker.ProfitHud.register();
+        com.kuudrahelper.features.misckuudra.profittracker.ProfitStore.load();
+        com.kuudrahelper.features.misckuudra.profittracker.ProfitHud.register();
         registerProfitTrackerPhaseListener();
     }
 
@@ -125,8 +140,8 @@ public class KuudraHelperMod implements ClientModInitializer {
         // Track run start (used for duration) and fire price fetches on run end
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!KuudraConfig.isProfitTrackerEnabled()) return;
-            com.kuudrahelper.features.profittracker.PriceFetcher.fetchBazaarIfStale();
-            com.kuudrahelper.features.profittracker.PriceFetcher.fetchBinsIfStale();
+            com.kuudrahelper.features.misckuudra.profittracker.PriceFetcher.fetchBazaarIfStale();
+            com.kuudrahelper.features.misckuudra.profittracker.PriceFetcher.fetchBinsIfStale();
         });
     }
 
@@ -155,13 +170,13 @@ public class KuudraHelperMod implements ClientModInitializer {
             if (!overlay) AnnounceFresh.onChat(raw);
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) handleSupplyNotifications(clean);
-            if (!overlay) com.kuudrahelper.features.kuudra.ManaDrainAnnouncer.onChat(clean);
-            if (clean.contains("Used Extreme Focus!")) com.kuudrahelper.features.kuudra.RendTracker.onManaDrain();
-            com.kuudrahelper.features.HollowWandAnnouncer.onChat(clean);
+            if (!overlay) com.kuudrahelper.features.boss.ManaDrainAnnouncer.onChat(clean);
+            if (clean.contains("Used Extreme Focus!")) com.kuudrahelper.features.boss.RendTracker.onManaDrain();
+            com.kuudrahelper.features.misckuudra.HollowWandAnnouncer.onChat(clean);
             if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
                     && KuudraConfig.isKickedNotificationEnabled()) {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-                com.kuudrahelper.features.KickedTimerHud.onKicked();
+                com.kuudrahelper.features.misckuudra.KickedTimerHud.onKicked();
                 KuudraConfig.playNotificationSound(KuudraConfig.SOUND_KICKED);
                 if (mc.getConnection() != null)
                     mc.execute(() -> mc.getConnection().sendCommand("pc [Phantom] Kicked from Skyblock!"));
@@ -345,7 +360,7 @@ public class KuudraHelperMod implements ClientModInitializer {
 
     private static void resetAll() {
         KuudraPhaseTracker.reset();
-        com.kuudrahelper.features.HideArmorStands.deactivate();
+        com.kuudrahelper.features.render.HideArmorStands.deactivate();
         AutoGFS.stop();
         Phase2BuildTracker.stop();
         PhaseLogger.end();
@@ -367,8 +382,9 @@ public class KuudraHelperMod implements ClientModInitializer {
         AnnounceFresh.reset();
         PearlRefill.reset();
         RendDamage.reset();
-        com.kuudrahelper.features.kuudra.RendTracker.reset();
-        com.kuudrahelper.features.kuudra.KuudraHpHud.reset();
+        com.kuudrahelper.features.boss.RendTracker.reset();
+        com.kuudrahelper.features.boss.BackboneProgressBar.reset();
+        com.kuudrahelper.features.boss.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
         com.kuudrahelper.features.supplies.EtherwarpWaypointManager.reset();
@@ -414,7 +430,8 @@ public class KuudraHelperMod implements ClientModInitializer {
             com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
             com.kuudrahelper.features.supplies.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);
-            com.kuudrahelper.features.kuudra.RendTracker.tick();
+            com.kuudrahelper.features.boss.RendTracker.tick();
+            com.kuudrahelper.features.boss.BackboneProgressBar.tick();
 
             if (KuudraConfig.isAutoSprintEnabled() && client.player != null) {
                 client.player.setSprinting(true);
@@ -425,13 +442,13 @@ public class KuudraHelperMod implements ClientModInitializer {
     private static void handleSupplyNotifications(String clean) {
         if (KuudraConfig.isSupplyGrabbedNotifyEnabled()
                 && clean.contains("Someone else is currently trying to pick up these supplies")) {
-            com.kuudrahelper.features.NotificationHud.show("§cSupply already taken!", 3000);
+            com.kuudrahelper.features.misckuudra.NotificationHud.show("§cSupply already taken!", 3000);
             KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SUPPLY_GRABBED);
         }
 
         if (KuudraConfig.isSupplyDroppedNotifyEnabled()
                 && clean.contains("the Chest slipped out of your hands")) {
-            com.kuudrahelper.features.NotificationHud.show("§cYou dropped a supply!", 3000);
+            com.kuudrahelper.features.misckuudra.NotificationHud.show("§cYou dropped a supply!", 3000);
             KuudraConfig.playNotificationSound(KuudraConfig.SOUND_SUPPLY_DROPPED);
         }
     }

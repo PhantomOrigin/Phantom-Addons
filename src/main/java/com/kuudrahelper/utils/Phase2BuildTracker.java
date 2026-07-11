@@ -1,7 +1,7 @@
 package com.kuudrahelper.utils;
 
 import com.kuudrahelper.KuudraHelperMod;
-import com.kuudrahelper.features.MountTimerHud;
+import com.kuudrahelper.features.stundps.MountTimerHud;
 import net.minecraft.client.Minecraft;
 
 

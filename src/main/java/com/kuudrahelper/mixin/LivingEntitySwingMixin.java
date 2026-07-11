@@ -1,8 +1,8 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.items.ItemCustomization;
-import com.kuudrahelper.features.items.ItemTransformSettings;
+import com.kuudrahelper.features.customisation.items.ItemCustomization;
+import com.kuudrahelper.features.customisation.items.ItemTransformSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,7 +21,7 @@ public class LivingEntitySwingMixin {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.player != (Object) this) return;
         if (hand != InteractionHand.MAIN_HAND) return;
-        com.kuudrahelper.features.kuudra.RendTracker.onLeftClick(mc.player.getMainHandItem());
+        com.kuudrahelper.features.boss.RendTracker.onLeftClick(mc.player.getMainHandItem());
     }
 
     @Inject(method = "getCurrentSwingDuration", at = @At("RETURN"), cancellable = true)

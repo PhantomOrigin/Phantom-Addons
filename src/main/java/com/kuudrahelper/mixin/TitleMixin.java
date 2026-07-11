@@ -1,8 +1,8 @@
 package com.kuudrahelper.mixin;
 
 import com.kuudrahelper.KuudraConfig;
-import com.kuudrahelper.features.HollowWandAnnouncer;
-import com.kuudrahelper.features.pearls.PearlTitleListener;
+import com.kuudrahelper.features.misckuudra.HollowWandAnnouncer;
+import com.kuudrahelper.features.supplies.PearlTitleListener;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
