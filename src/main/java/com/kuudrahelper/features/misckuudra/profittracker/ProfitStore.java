@@ -24,12 +24,12 @@ public final class ProfitStore {
 
     public record Stats(
         long itemsValue, long attributeValue, long essenceValue,
-        long keyCost, long kismetCost,
+        long keyCost, long kismetCost, long wheelCost,
         int  runs,
         long totalDurationMs
     ) {
         public long totalGains()    { return itemsValue + attributeValue + essenceValue; }
-        public long totalExpenses() { return keyCost + kismetCost; }
+        public long totalExpenses() { return keyCost + kismetCost + wheelCost; }
         public long profit()        { return totalGains() - totalExpenses(); }
         public long profitPerRun()  { return runs > 0 ? profit() / runs : 0; }
     }
@@ -77,16 +77,17 @@ public final class ProfitStore {
     public static Stats getAllTimeStats()  { return compute(allTime); }
 
     private static Stats compute(List<ProfitRun> runs) {
-        long items = 0, attr = 0, ess = 0, keys = 0, kismets = 0, dur = 0;
+        long items = 0, attr = 0, ess = 0, keys = 0, kismets = 0, wheels = 0, dur = 0;
         for (ProfitRun r : runs) {
             items   += r.itemsValue;
             attr    += r.attributeValue;
             ess     += r.essenceValue;
             keys    += r.keyCost;
             kismets += r.kismetCost;
+            wheels  += r.wheelCost;
             dur     += r.durationMs;
         }
-        return new Stats(items, attr, ess, keys, kismets, runs.size(), dur);
+        return new Stats(items, attr, ess, keys, kismets, wheels, runs.size(), dur);
     }
 
     // ── Persistence ───────────────────────────────────────────────────────────────

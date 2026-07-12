@@ -38,8 +38,11 @@ public class UseItemMixin {
         ItemStack stack  = player.getItemInHand(hand);
         Minecraft client = Minecraft.getInstance();
 
-        if (KuudraConfig.isEtherwarpWaypointsEnabled() && stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
-            EtherwarpWaypointManager.onPearlThrow(client, player);
+        if (stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
+            if (KuudraConfig.isEtherwarpWaypointsEnabled()) {
+                EtherwarpWaypointManager.onPearlThrow(client, player);
+            }
+            com.kuudrahelper.features.supplies.WaypointLines.onPearlThrown();
         }
 
         if (hand == net.minecraft.world.InteractionHand.MAIN_HAND) {

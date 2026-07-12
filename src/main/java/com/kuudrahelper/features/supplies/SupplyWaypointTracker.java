@@ -4,6 +4,7 @@ import com.kuudrahelper.KuudraConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Giant;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -99,19 +100,44 @@ public final class SupplyWaypointTracker {
         if (KuudraConfig.isSupplyBeaconsEnabled()) validatePingBeacons(mc);
     }
 
+    private static final double ZOMBIE_MATCH_RANGE_SQ = 4.0;
+
     private static void updateClusters(Minecraft mc) {
         detectedClusters.clear();
+
+        List<Vec3> roughCenters = new ArrayList<>();
         for (Entity entity : mc.level.entitiesForRendering()) {
             if (!(entity instanceof Giant giant)) continue;
             if (giant.getY() >= 67.0) continue;
             double angle = (giant.getYRot() + 130.0) * Math.PI / 180.0;
-            Vec3 crate = new Vec3(
+            roughCenters.add(new Vec3(
                     giant.getX() + 0.5 + 3.7 * Math.cos(angle),
                     75.0,
                     giant.getZ() + 0.5 + 3.7 * Math.sin(angle)
-            );
-            detectedClusters.add(new SupplyCluster(List.of(crate)));
+            ));
         }
+        if (roughCenters.isEmpty()) return;
+
+        List<Zombie> zombies = new ArrayList<>();
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (entity instanceof Zombie z && z.isAlive()) zombies.add(z);
+        }
+
+        for (Vec3 rough : roughCenters) {
+            detectedClusters.add(new SupplyCluster(List.of(refinedCenter(rough, zombies))));
+        }
+    }
+
+    private static Vec3 refinedCenter(Vec3 rough, List<Zombie> zombies) {
+        double sx = 0, sy = 0, sz = 0;
+        int count = 0;
+        for (Zombie z : zombies) {
+            double dx = z.getX() - rough.x, dz = z.getZ() - rough.z;
+            if (dx * dx + dz * dz > ZOMBIE_MATCH_RANGE_SQ) continue;
+            sx += z.getX(); sy += z.getY(); sz += z.getZ();
+            count++;
+        }
+        return count > 0 ? new Vec3(sx / count, sy / count, sz / count) : rough;
     }
 
     private static void firePings(Minecraft mc) {

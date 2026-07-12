@@ -8,10 +8,11 @@ public class ProfitRun {
     public long essenceValue;   // coin value of Crimson Essence (from drops + salvaged armor)
     public long keyCost;        // coin cost of key(s) used this run
     public long kismetCost;     // coin cost of Kismet Feathers used this run (negative on HUD)
+    public long wheelCost;      // coin cost of Wheel of Fate used this run (negative on HUD)
 
     public ProfitRun() {}
 
     public long totalGains()    { return itemsValue + attributeValue + essenceValue; }
-    public long totalExpenses() { return keyCost + kismetCost; }
+    public long totalExpenses() { return keyCost + kismetCost + wheelCost; }
     public long profit()        { return totalGains() - totalExpenses(); }
 }

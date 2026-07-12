@@ -26,6 +26,7 @@ public class KuudraConfig {
     public enum RoleMode       { DPS, STUN, AUTO }
     public enum LavaMode       { DEFAULT, COLOURED }
     public enum WaypointType   { CIRCLE, SQUARE }
+    public enum SecondSupplyPreference { DOUBLE_PEARL, ETHERWARP }
     public enum KuudraTalisman { NONE, KIDNEY, LUNG, HEART }
 
     // ── General ───────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ public class KuudraConfig {
     private static int      dpsValue          = 40;
     private static int      stunValue         = 9;
     private static int      dpsRefillAmount   = 10;
+    private static int      autoGfsDisableHpPercent = 40;
     private static boolean  eatenTimerEnabled              = false;
     private static boolean  eatenTimerSubtractPingEnabled  = false;
     private static boolean  etherwarpLavaBlock = true;
@@ -90,6 +92,7 @@ public class KuudraConfig {
     private static boolean autoRequeueEnabled       = true;
     private static boolean autoRequeueMessageEnabled = true;
     private static boolean autoUpdatesEnabled       = true;
+    private static boolean developerFeaturesEnabled = false;
     private static boolean autoSprintEnabled        = false;
     private static boolean slotBindsEnabled         = false;
     private static int     slotBindSetKey           = -1;
@@ -185,8 +188,12 @@ public class KuudraConfig {
     private static boolean        waypointFill          = true;
     private static boolean        pearlTickUpdate       = true;
     private static boolean        dropLocationsEnabled  = true;
+    private static boolean        waypointLinesEnabled        = false;
+    private static boolean        waypointLinesSuppliesEnabled   = true;
+    private static boolean        waypointLinesFlatPearlsEnabled = true;
+    private static SecondSupplyPreference secondSupplyPreference = SecondSupplyPreference.DOUBLE_PEARL;
     private static boolean        pearlTimerEnabled     = true;
-    private static float          pearlTimerHeight      = 0.5f;
+    private static float          pearlTimerHeight      = 0.35f;
     private static float          pearlTimerSize        = 0.5f;
     private static float          pearlCircleSize       = 0.5f;
     private static KuudraTalisman kuudraTalisman        = KuudraTalisman.NONE;
@@ -373,6 +380,7 @@ public class KuudraConfig {
     public static boolean  isAutoMode()                  { return roleMode == RoleMode.AUTO; }
     public static int      getDpsValue()                 { return dpsValue; }
     public static int      getDpsRefillAmount()          { return dpsRefillAmount; }
+    public static int      getAutoGfsDisableHpPercent()  { return autoGfsDisableHpPercent; }
     public static int      getStunValue()                { return stunValue; }
     public static boolean  isEatenTimerEnabled()              { return eatenTimerEnabled; }
     public static boolean  isEatenTimerSubtractPingEnabled()  { return eatenTimerSubtractPingEnabled; }
@@ -426,6 +434,7 @@ public class KuudraConfig {
     public static boolean isAutoRequeueEnabled()      { return autoRequeueEnabled; }
     public static boolean isAutoRequeueMessageEnabled() { return autoRequeueMessageEnabled; }
     public static boolean isAutoUpdatesEnabled()      { return autoUpdatesEnabled; }
+    public static boolean isDeveloperFeaturesEnabled() { return developerFeaturesEnabled; }
     public static boolean isAutoSprintEnabled()       { return autoSprintEnabled; }
     public static boolean isSlotBindsEnabled()        { return slotBindsEnabled; }
     public static int     getSlotBindSetKey()          { return slotBindSetKey; }
@@ -446,6 +455,10 @@ public class KuudraConfig {
     public static boolean        isWaypointFillEnabled()   { return waypointFill; }
     public static boolean        isPearlTickUpdate()       { return pearlTickUpdate; }
     public static boolean        isDropLocationsEnabled()  { return dropLocationsEnabled; }
+    public static boolean        isWaypointLinesEnabled()            { return waypointLinesEnabled; }
+    public static boolean        isWaypointLinesSuppliesEnabled()    { return waypointLinesSuppliesEnabled; }
+    public static boolean        isWaypointLinesFlatPearlsEnabled()  { return waypointLinesFlatPearlsEnabled; }
+    public static SecondSupplyPreference getSecondSupplyPreference() { return secondSupplyPreference; }
     public static boolean        isPearlTimerEnabled()     { return pearlTimerEnabled; }
     public static float          getPearlTimerHeight()     { return pearlTimerHeight; }
     public static float          getPearlTimerSize()       { return pearlTimerSize; }
@@ -585,6 +598,7 @@ public class KuudraConfig {
     public static void setRoleMode(RoleMode m)          { roleMode = m;           save(); }
     public static void setDpsValue(int v)               { dpsValue = v;           save(); }
     public static void setDpsRefillAmount(int v)        { dpsRefillAmount = Math.max(4, v); save(); }
+    public static void setAutoGfsDisableHpPercent(int v) { autoGfsDisableHpPercent = Math.max(25, Math.min(100, v)); save(); }
     public static void setStunValue(int v)              { stunValue = v;          save(); }
     public static void setEatenTimerEnabled(boolean v)             { eatenTimerEnabled = v;             save(); }
     public static void setEatenTimerSubtractPingEnabled(boolean v) { eatenTimerSubtractPingEnabled = v;  save(); }
@@ -636,6 +650,7 @@ public class KuudraConfig {
     public static void setAutoRequeueEnabled(boolean v)     { autoRequeueEnabled = v;      save(); }
     public static void setAutoRequeueMessageEnabled(boolean v) { autoRequeueMessageEnabled = v; save(); }
     public static void setAutoUpdatesEnabled(boolean v)     { autoUpdatesEnabled = v;      save(); }
+    public static void setDeveloperFeaturesEnabled(boolean v) { developerFeaturesEnabled = v; save(); }
     public static void setAutoSprintEnabled(boolean v)      { autoSprintEnabled = v;       save(); }
     public static void setSlotBindsEnabled(boolean v)       { slotBindsEnabled = v;        save(); }
     public static void clearSlotBinding(int invSlot)        { slotBindings.remove(invSlot); save(); }
@@ -652,6 +667,10 @@ public class KuudraConfig {
     public static void setWaypointFillEnabled(boolean v)     { waypointFill = v;             save(); }
     public static void setPearlTickUpdate(boolean v)         { pearlTickUpdate = v;          save(); }
     public static void setDropLocationsEnabled(boolean v)    { dropLocationsEnabled = v;     save(); }
+    public static void setWaypointLinesEnabled(boolean v)           { waypointLinesEnabled = v;           save(); }
+    public static void setWaypointLinesSuppliesEnabled(boolean v)   { waypointLinesSuppliesEnabled = v;   save(); }
+    public static void setWaypointLinesFlatPearlsEnabled(boolean v) { waypointLinesFlatPearlsEnabled = v; save(); }
+    public static void setSecondSupplyPreference(SecondSupplyPreference p) { secondSupplyPreference = p; save(); }
     public static void setPearlTimerEnabled(boolean v)       { pearlTimerEnabled = v;        save(); }
     public static void setPearlTimerHeight(float v)          { pearlTimerHeight = v;         save(); }
     public static void setPearlTimerSize(float v)            { pearlTimerSize = v;           save(); }
@@ -885,6 +904,7 @@ public class KuudraConfig {
             roleMode           = safeEnum(RoleMode.class, d.roleMode, RoleMode.AUTO);
             dpsValue           = d.dpsValue;
             dpsRefillAmount    = Math.max(4, d.dpsRefillAmount);
+            autoGfsDisableHpPercent = d.autoGfsDisableHpPercent >= 25 ? Math.min(100, d.autoGfsDisableHpPercent) : 40;
             stunValue          = d.stunValue;
             eatenTimerEnabled             = d.eatenTimerEnabled;
             eatenTimerSubtractPingEnabled = d.eatenTimerSubtractPingEnabled;
@@ -931,6 +951,7 @@ public class KuudraConfig {
             autoRequeueEnabled      = d.autoRequeueEnabled;
             autoRequeueMessageEnabled = d.autoRequeueMessageEnabled;
             autoUpdatesEnabled      = d.autoUpdatesEnabled;
+            developerFeaturesEnabled = d.developerFeaturesEnabled;
             autoSprintEnabled       = d.autoSprintEnabled;
             slotBindsEnabled        = d.slotBindsEnabled;
             slotBindSetKey          = d.slotBindSetKey;
@@ -951,6 +972,10 @@ public class KuudraConfig {
             waypointFill          = d.waypointFill;
             pearlTickUpdate       = d.pearlTickUpdate;
             dropLocationsEnabled  = d.dropLocationsEnabled;
+            waypointLinesEnabled           = d.waypointLinesEnabled;
+            waypointLinesSuppliesEnabled   = d.waypointLinesSuppliesEnabled;
+            waypointLinesFlatPearlsEnabled = d.waypointLinesFlatPearlsEnabled;
+            secondSupplyPreference = safeEnum(SecondSupplyPreference.class, d.secondSupplyPreference, SecondSupplyPreference.DOUBLE_PEARL);
             pearlTimerEnabled     = d.pearlTimerEnabled;
             pearlTimerHeight      = clamp01(d.pearlTimerHeight);
             pearlTimerSize        = clamp01(d.pearlTimerSize);
@@ -1150,6 +1175,7 @@ public class KuudraConfig {
         d.roleMode           = roleMode.name();
         d.dpsValue           = dpsValue;
         d.dpsRefillAmount    = dpsRefillAmount;
+        d.autoGfsDisableHpPercent = autoGfsDisableHpPercent;
         d.stunValue          = stunValue;
         d.eatenTimerEnabled             = eatenTimerEnabled;
         d.eatenTimerSubtractPingEnabled = eatenTimerSubtractPingEnabled;
@@ -1196,6 +1222,7 @@ public class KuudraConfig {
         d.autoRequeueEnabled      = autoRequeueEnabled;
         d.autoRequeueMessageEnabled = autoRequeueMessageEnabled;
         d.autoUpdatesEnabled      = autoUpdatesEnabled;
+        d.developerFeaturesEnabled = developerFeaturesEnabled;
         d.autoSprintEnabled       = autoSprintEnabled;
         d.slotBindsEnabled        = slotBindsEnabled;
         d.slotBindSetKey          = slotBindSetKey;
@@ -1214,6 +1241,10 @@ public class KuudraConfig {
         d.waypointFill          = waypointFill;
         d.pearlTickUpdate       = pearlTickUpdate;
         d.dropLocationsEnabled  = dropLocationsEnabled;
+        d.waypointLinesEnabled           = waypointLinesEnabled;
+        d.waypointLinesSuppliesEnabled   = waypointLinesSuppliesEnabled;
+        d.waypointLinesFlatPearlsEnabled = waypointLinesFlatPearlsEnabled;
+        d.secondSupplyPreference = secondSupplyPreference.name();
         d.pearlTimerEnabled     = pearlTimerEnabled;
         d.pearlTimerHeight      = pearlTimerHeight;
         d.pearlTimerSize        = pearlTimerSize;
@@ -1491,6 +1522,7 @@ public class KuudraConfig {
         String  roleMode           = "AUTO";
         int     dpsValue           = 32;
         int     dpsRefillAmount    = 10;
+        int     autoGfsDisableHpPercent = 40;
         int     stunValue          = 9;
         boolean eatenTimerEnabled             = false;
         boolean eatenTimerSubtractPingEnabled = false;
@@ -1537,6 +1569,7 @@ public class KuudraConfig {
         boolean autoRequeueEnabled      = true;
         boolean autoRequeueMessageEnabled = true;
         boolean autoUpdatesEnabled      = true;
+        boolean developerFeaturesEnabled = false;
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
         int     slotBindSetKey          = -1;
@@ -1553,8 +1586,12 @@ public class KuudraConfig {
         boolean waypointFill          = true;
         boolean pearlTickUpdate       = true;
         boolean dropLocationsEnabled  = true;
+        boolean waypointLinesEnabled           = false;
+        boolean waypointLinesSuppliesEnabled   = true;
+        boolean waypointLinesFlatPearlsEnabled = true;
+        String  secondSupplyPreference = "DOUBLE_PEARL";
         boolean pearlTimerEnabled     = true;
-        float   pearlTimerHeight      = 0.5f;
+        float   pearlTimerHeight      = 0.35f;
         float   pearlTimerSize        = 0.5f;
         float   pearlCircleSize       = 0.5f;
         String  kuudraTalisman        = "HEART";

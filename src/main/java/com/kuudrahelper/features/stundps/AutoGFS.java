@@ -2,6 +2,7 @@ package com.kuudrahelper.features.stundps;
 
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.KuudraHelperMod;
+import com.kuudrahelper.features.boss.KuudraHpHud;
 import com.kuudrahelper.utils.RoleManager;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -97,6 +98,9 @@ public final class AutoGFS {
 
     private static void tryApplyArrow(Minecraft client) {
         if (client.player == null) return;
+
+        float hpPercent = KuudraHpHud.getHpPercent();
+        if (hpPercent >= 0 && hpPercent <= KuudraConfig.getAutoGfsDisableHpPercent()) return;
 
         boolean found = false;
 

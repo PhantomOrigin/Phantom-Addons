@@ -35,6 +35,7 @@ public final class PearlWaypointManager {
         if (!trackingPickup) {
             trackingPickup = true;
             pickupStartMs  = System.currentTimeMillis();
+            WaypointLines.resetPearlThrowCount();
             KuudraHelperMod.LOGGER.info("[PearlWaypoint] Pickup started ({}%)", percent);
         }
     }

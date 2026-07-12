@@ -50,6 +50,12 @@ public final class PhantomCommands {
 
     private PhantomCommands() {}
 
+    private static boolean requireDeveloperFeatures(com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> ctx) {
+        if (KuudraConfig.isDeveloperFeaturesEnabled()) return true;
+        ctx.getSource().sendFeedback(Component.literal(PREFIX + "§cDeveloper Features is disabled (About tab)."));
+        return false;
+    }
+
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
                 dispatcher.register(
@@ -58,6 +64,7 @@ public final class PhantomCommands {
                                         .then(ClientCommands.argument("number",
                                                         IntegerArgumentType.integer(0, 8))
                                                 .executes(ctx -> {
+                                                    if (!requireDeveloperFeatures(ctx)) return 0;
                                                     int n = IntegerArgumentType.getInteger(ctx, "number");
                                                     forcePhase(PHASE_BY_NUMBER[n]);
                                                     return 1;
@@ -65,6 +72,7 @@ public final class PhantomCommands {
                                         )
                                         .then(ClientCommands.literal("reset")
                                                 .executes(ctx -> {
+                                                    if (!requireDeveloperFeatures(ctx)) return 0;
                                                     forcePhase(KuudraPhaseTracker.Phase.NONE);
                                                     return 1;
                                                 })
@@ -89,6 +97,7 @@ public final class PhantomCommands {
                                 .then(ClientCommands.literal("force")
                                         .then(ClientCommands.literal("tracker")
                                                 .executes(ctx -> {
+                                                    if (!requireDeveloperFeatures(ctx)) return 0;
                                                     boolean on = KuudraConfig.toggleProfitTrackerForced();
                                                     Minecraft mc = Minecraft.getInstance();
                                                     if (mc.player != null) {

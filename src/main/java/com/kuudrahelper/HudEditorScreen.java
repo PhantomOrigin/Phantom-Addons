@@ -12,13 +12,13 @@ public class HudEditorScreen extends Screen {
     private static final int N = 11;
 
     private static final String[] LABELS = {
-        "Mount Timer", "Kuudra Direction", "Split Timer", "Pearl Title",
+        "Mount Timer", "Kuudra Direction", "Split Timer", "Crate Pickup Progress",
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
         "Profit Tracker", "Chest Value", "Backbone Progress Bar"
     };
 
     private static final int[] BASE_W = { 60, 130, 135, 130, 155, 160, 110, 165, 135, 115, 150 };
-    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  22, 115,  85,  28 };
+    private static final int[] BASE_H = { 30,  36,  95,  28,  28,  28,  18,  22, 125,  85,  28 };
 
     private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 1.5f, 1.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.5f };
 
@@ -293,6 +293,7 @@ public class HudEditorScreen extends Screen {
                     "§7  Essence: §f172M",
                     "§7  Keys: §c-180M",
                     "§7  Kismets: §c-45M",
+                    "§7  Wheel of Fate: §c-20M",
                     "§bAvg Time:§r §f1:00",
                     "§bTotal Profit:§r §a107M",
                     "§bTotal Runs:§r §f60",

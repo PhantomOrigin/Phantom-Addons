@@ -156,17 +156,14 @@ public final class UpdateChecker {
         }
     }
 
+    private static final String STAGING_PREFIX = ".phantomaddons_staging-";
+    private static final String STAGING_SUFFIX = ".jar";
+
     private static void downloadAndScheduleSwap() throws Exception {
         if (downloadUrl == null) throw new Exception("No .jar download URL found in release assets");
 
-        Path currentJar = FabricLoader.getInstance()
-                .getModContainer("phantomaddons")
-                .map(c -> c.getOrigin().getPaths().get(0))
-                .orElseThrow(() -> new Exception("Cannot locate current phantomaddons jar"));
-
-        Path modsDir  = FabricLoader.getInstance().getGameDir().resolve("mods");
-        Path staging  = modsDir.resolve(".phantomaddons_staging.jar");
-        Path finalJar = modsDir.resolve("phantomaddons-" + latestVersion + ".jar");
+        Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+        Path staging = modsDir.resolve(STAGING_PREFIX + latestVersion + STAGING_SUFFIX);
 
         KuudraHelperMod.LOGGER.info("[PhantomAddons] Downloading from {}", downloadUrl);
         URLConnection dl = new URL(downloadUrl).openConnection();
@@ -174,14 +171,36 @@ public final class UpdateChecker {
         dl.setConnectTimeout(10000);
         dl.setReadTimeout(120000);
 
+        long expectedLength = dl.getContentLengthLong();
+        long written;
         try (InputStream in = dl.getInputStream()) {
-            Files.copy(in, staging, StandardCopyOption.REPLACE_EXISTING);
+            written = Files.copy(in, staging, StandardCopyOption.REPLACE_EXISTING);
         }
+        if (expectedLength > 0 && written != expectedLength) {
+            Files.deleteIfExists(staging);
+            throw new Exception("Download incomplete (" + written + "/" + expectedLength + " bytes)");
+        }
+        if (written < 1024) {
+            Files.deleteIfExists(staging);
+            throw new Exception("Downloaded file is too small to be a valid jar (" + written + " bytes)");
+        }
+
+        scheduleSwap(staging, latestVersion);
+    }
+
+    private static void scheduleSwap(Path staging, String version) {
+        Path modsDir  = FabricLoader.getInstance().getGameDir().resolve("mods");
+        Path finalJar = modsDir.resolve("phantomaddons-" + version + ".jar");
+
+        Path currentJar = FabricLoader.getInstance()
+                .getModContainer("phantomaddons")
+                .map(c -> c.getOrigin().getPaths().get(0))
+                .orElse(null);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 Files.move(staging, finalJar, StandardCopyOption.REPLACE_EXISTING);
-                if (!currentJar.equals(finalJar)) {
+                if (currentJar != null && !currentJar.equals(finalJar)) {
                     removeOldJar(currentJar);
                 }
                 KuudraHelperMod.LOGGER.info("[PhantomAddons] Installed {}.", finalJar.getFileName());
@@ -192,15 +211,7 @@ public final class UpdateChecker {
         }, "PhantomAddons-UpdateSwap"));
     }
 
-    /**
-     * Deletes the old jar after an update. On Windows the JVM may still hold the file
-     * open (via a memory-mapped class-file), so direct deletion often fails. We fall back
-     * to renaming it with a ".disabled" suffix — renames succeed even on locked files
-     * because Windows opens JARs with FILE_SHARE_DELETE. The renamed file is cleaned up
-     * by cleanupLeftoverJars() on the next startup, when the old jar is no longer loaded.
-     */
     private static void removeOldJar(Path jar) {
-        // Try direct deletion first (works on Mac / Linux and sometimes on Windows).
         try {
             Files.deleteIfExists(jar);
             if (!Files.exists(jar)) {
@@ -209,8 +220,6 @@ public final class UpdateChecker {
             }
         } catch (Exception ignored) {}
 
-        // Fallback: rename to .disabled so Fabric ignores it on next load,
-        // and cleanupLeftoverJars() can delete it on the next startup.
         try {
             Path disabled = jar.resolveSibling(jar.getFileName() + ".disabled");
             Files.move(jar, disabled, StandardCopyOption.REPLACE_EXISTING);
@@ -222,21 +231,32 @@ public final class UpdateChecker {
         }
     }
 
-    /**
-     * Deletes any *.jar.disabled files left in the mods directory from a previous
-     * Windows update cycle. Call this early in onInitializeClient().
-     */
     public static void cleanupLeftoverJars() {
         try {
             Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
             try (var stream = Files.list(modsDir)) {
-                stream.filter(p -> p.getFileName().toString().endsWith(".jar.disabled"))
-                      .forEach(p -> {
-                          try {
-                              Files.deleteIfExists(p);
-                              KuudraHelperMod.LOGGER.info("[PhantomAddons] Cleaned up leftover: {}", p.getFileName());
-                          } catch (Exception ignored) {}
-                      });
+                stream.forEach(p -> {
+                    String name = p.getFileName().toString();
+                    if (name.endsWith(".jar.disabled")) {
+                        try {
+                            Files.deleteIfExists(p);
+                            KuudraHelperMod.LOGGER.info("[PhantomAddons] Cleaned up leftover: {}", p.getFileName());
+                        } catch (Exception ignored) {}
+                    } else if (name.startsWith(STAGING_PREFIX) && name.endsWith(STAGING_SUFFIX)) {
+                        String version = name.substring(STAGING_PREFIX.length(), name.length() - STAGING_SUFFIX.length());
+                        Path finalJar = modsDir.resolve("phantomaddons-" + version + ".jar");
+                        if (Files.exists(finalJar)) {
+                            try {
+                                Files.deleteIfExists(p);
+                            } catch (Exception ignored) {}
+                        } else {
+                            KuudraHelperMod.LOGGER.info(
+                                    "[PhantomAddons] Resuming interrupted update to {} left over from a previous session.",
+                                    version);
+                            scheduleSwap(p, version);
+                        }
+                    }
+                });
             }
         } catch (Exception ignored) {}
     }

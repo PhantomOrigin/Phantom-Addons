@@ -282,8 +282,8 @@ public final class PearlWaypointRenderer {
         else if (state.isMyTarget() && throwIn <= 0L) color = 0xFF33FF33;
         else                                          color = 0xFFFFAA00;
 
-        double heightOff = radius + 0.1 + KuudraConfig.getPearlTimerHeight() * 1.4;
-        float  scale     = 0.02f + KuudraConfig.getPearlTimerSize() * 0.1f;
+        double heightOff = radius + 0.1 + KuudraConfig.getPearlTimerHeight() * 4.0;
+        float  scale     = 0.02f + KuudraConfig.getPearlTimerSize() * 0.5f;
         Vec3   textPos   = wp.add(0, heightOff, 0);
 
         matrices.pushPose();

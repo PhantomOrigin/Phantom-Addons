@@ -16,7 +16,6 @@ public final class ChestValueOverlay {
     private static final int LINE_H = 10;
     private static final int INDENT = 8;
 
-    private static boolean kismetUsed      = false;
     private static boolean wheelUsed       = false;
     private static int     cachedTier      = 0;
     private static boolean hasCommitted    = false;
@@ -29,7 +28,6 @@ public final class ChestValueOverlay {
     public static boolean hasCommitted()  { return hasCommitted; }
 
     public static void onChestOpen(AbstractContainerScreen<?> screen) {
-        kismetUsed   = false;
         wheelUsed    = false;
         hasCommitted = false;
         chestIsOpen  = true;
@@ -38,7 +36,6 @@ public final class ChestValueOverlay {
     }
 
     public static void reset() {
-        kismetUsed      = false;
         wheelUsed       = false;
         hasCommitted    = false;
         chestIsOpen     = false;
@@ -78,8 +75,7 @@ public final class ChestValueOverlay {
 
     public static void onSlotClicked(int slotId, CroesusListener.ChestAnalysis analysis) {
         if (analysis == null) return;
-        if (slotId == analysis.rerollSlotIndex()) kismetUsed = true;
-        if (slotId == analysis.wheelSlotIndex())  wheelUsed  = true;
+        if (slotId == analysis.wheelSlotIndex()) wheelUsed = true;
     }
 
     public static void tryCommitRun(CroesusListener.ChestAnalysis a) {
@@ -97,8 +93,10 @@ public final class ChestValueOverlay {
         run.attributeValue = a.attributeValue();
         run.essenceValue   = a.essenceValue() + freeEssValue;
         run.keyCost        = freeChest ? 0 : CroesusListener.calculateKeyCost(cachedTier);
-        run.kismetCost     = (kismetUsed || a.kismetAlreadyUsed())
+        run.kismetCost     = a.kismetAlreadyUsed()
                 ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.KISMET_FEATHER) : 0;
+        run.wheelCost      = wheelUsed
+                ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE) : 0;
         run.durationMs     = 0;
         run.timestamp      = System.currentTimeMillis();
 
@@ -130,7 +128,7 @@ public final class ChestValueOverlay {
         long chestValue   = itemValue + essenceValue;
 
         long keyCost     = freeChest ? 0 : CroesusListener.calculateKeyCost(renderTier);
-        boolean kismetAny = kismetUsed || a.kismetAlreadyUsed();
+        boolean kismetAny = a.kismetAlreadyUsed();
         long kismetCost  = kismetAny ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.KISMET_FEATHER) : 0;
         long wheelCost   = wheelUsed  ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE)  : 0;
         long totalExp    = keyCost + kismetCost + wheelCost;

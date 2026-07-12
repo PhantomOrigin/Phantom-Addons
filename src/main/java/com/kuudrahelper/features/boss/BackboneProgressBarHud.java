@@ -4,6 +4,7 @@ import com.kuudrahelper.KuudraConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -17,40 +18,42 @@ public final class BackboneProgressBarHud {
     public static void register() {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("phantomaddons", "backbone_progress_bar"),
-                (drawContext, tickDelta) -> {
-            if (!BackboneProgressBar.isVisible()) return;
+                (drawContext, tickDelta) -> render(drawContext));
+    }
 
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.font == null) return;
+    public static void render(GuiGraphicsExtractor drawContext) {
+        if (!BackboneProgressBar.isVisible()) return;
 
-            float progress = BackboneProgressBar.getProgress();
-            int filled = Math.round(progress * BAR_SEGMENTS);
-            int percent = Math.round(progress * 100f);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.font == null) return;
 
-            String fillColor = progress > 0.85f ? "§a" : progress > 0.6f ? "§6" : "§c";
-            StringBuilder bar = new StringBuilder("§8[");
-            bar.append(fillColor).append("|".repeat(Math.max(0, filled)));
-            bar.append("§f").append("|".repeat(Math.max(0, BAR_SEGMENTS - filled)));
-            bar.append("§8] §b").append(percent).append('%');
+        float progress = BackboneProgressBar.getProgress();
+        int filled = Math.round(progress * BAR_SEGMENTS);
+        int percent = Math.round(progress * 100f);
 
-            Component comp = Component.literal(bar.toString());
+        String fillColor = progress > 0.85f ? "§a" : progress > 0.6f ? "§6" : "§c";
+        StringBuilder bar = new StringBuilder("§8[");
+        bar.append(fillColor).append("|".repeat(Math.max(0, filled)));
+        bar.append("§f").append("|".repeat(Math.max(0, BAR_SEGMENTS - filled)));
+        bar.append("§8] §b").append(percent).append('%');
 
-            int screenW = mc.getWindow().getGuiScaledWidth();
-            int screenH = mc.getWindow().getGuiScaledHeight();
+        Component comp = Component.literal(bar.toString());
 
-            float cx = KuudraConfig.getBackboneProgressBarHudX() * screenW;
-            float cy = KuudraConfig.getBackboneProgressBarHudY() * screenH;
-            float s  = BASE_SCALE * KuudraConfig.getBackboneProgressBarHudScale();
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int screenH = mc.getWindow().getGuiScaledHeight();
 
-            var matrices = drawContext.pose();
-            matrices.pushMatrix();
-            matrices.translate(cx, cy);
-            matrices.scale(s, s);
+        float cx = KuudraConfig.getBackboneProgressBarHudX() * screenW;
+        float cy = KuudraConfig.getBackboneProgressBarHudY() * screenH;
+        float s  = BASE_SCALE * KuudraConfig.getBackboneProgressBarHudScale();
 
-            int textWidth = mc.font.width(comp);
-            drawContext.text(mc.font, comp, -textWidth / 2, 0, 0xFFFFFFFF, true);
+        var matrices = drawContext.pose();
+        matrices.pushMatrix();
+        matrices.translate(cx, cy);
+        matrices.scale(s, s);
 
-            matrices.popMatrix();
-        });
+        int textWidth = mc.font.width(comp);
+        drawContext.text(mc.font, comp, -textWidth / 2, 0, 0xFFFFFFFF, true);
+
+        matrices.popMatrix();
     }
 }

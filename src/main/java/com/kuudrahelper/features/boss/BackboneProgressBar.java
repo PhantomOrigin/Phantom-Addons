@@ -15,9 +15,7 @@ public final class BackboneProgressBar {
     public static void onBonemerangThrow() {
         if (!KuudraConfig.isBackboneProgressBarEnabled()) return;
         if (!KuudraConfig.isBackboneProgressBarOutsideKuudraEnabled() && !isKillPhase()) return;
-        int pingTicks = (int) Math.round(KuudraConfig.getLowPing() / 50.0);
-        int hitTicks = Math.max(1, BASE_HIT_TICKS + pingTicks);
-        startingTicks  = hitTicks + 1;
+        startingTicks  = BASE_HIT_TICKS + 1;
         ticksRemaining = startingTicks;
     }
 

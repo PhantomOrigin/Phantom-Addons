@@ -10,6 +10,7 @@ import com.kuudrahelper.features.supplies.GiantHitboxOutline;
 import com.kuudrahelper.features.supplies.SupplyGiantHitbox;
 import com.kuudrahelper.features.supplies.SupplyRenderHelper;
 import com.kuudrahelper.features.supplies.PearlWaypointRenderer;
+import com.kuudrahelper.features.supplies.WaypointLinesRenderer;
 import com.kuudrahelper.features.stundps.StunPreviewRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
@@ -50,5 +51,6 @@ public abstract class WorldRendererMixin {
         AnnounceFresh.renderTimers(matrices, camera, tickDelta);
         SupplyGiantHitbox.render(matrices, camera, tickDelta);
         GiantHitboxOutline.render(matrices, camera, tickDelta);
+        WaypointLinesRenderer.render(matrices, camera, tickDelta);
     }
 }

@@ -46,6 +46,11 @@ public final class ProfitHud {
     }
 
     private static void render(GuiGraphicsExtractor ctx, DeltaTracker dt) {
+        if (Minecraft.getInstance().screen != null) return;
+        renderInScreen(ctx);
+    }
+
+    public static void renderInScreen(GuiGraphicsExtractor ctx) {
         if (!shouldShow()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
@@ -101,6 +106,8 @@ public final class ProfitHud {
         draw(ctx, mc, INDENT, y, "§7Keys: " + fmt(-s.keyCost()));
         y += LINE_H;
         draw(ctx, mc, INDENT, y, "§7Kismets: " + fmt(-s.kismetCost()));
+        y += LINE_H;
+        draw(ctx, mc, INDENT, y, "§7Wheel of Fate: " + fmt(-s.wheelCost()));
         y += LINE_H;
 
         long profit = s.profit();

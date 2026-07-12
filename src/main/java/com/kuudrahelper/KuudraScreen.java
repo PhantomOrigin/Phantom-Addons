@@ -1009,6 +1009,9 @@ public class KuudraScreen extends Screen {
         gfs.add(leaf(new IntInput("DPS Amount",  T, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue)));
         gfs.add(leaf(new IntInput("Stun Amount", T, KuudraConfig::getStunValue, KuudraConfig::setStunValue)));
         gfs.add(leaf(new IntInput("Refill Amount", T, KuudraConfig::getDpsRefillAmount, KuudraConfig::setDpsRefillAmount)));
+        gfs.add(leaf(new RangeSlider("Disable Refill Below HP", T, 25, 100, "%.0f%%",
+                () -> (float) KuudraConfig.getAutoGfsDisableHpPercent(),
+                v  -> KuudraConfig.setAutoGfsDisableHpPercent(Math.round(v)))));
         roots.add(gfs);
 
         roots.add(leaf(new Toggle("Pickobulus Blocker", T,
@@ -1168,6 +1171,21 @@ public class KuudraScreen extends Screen {
         wp.add(soundGroup(T, KuudraConfig.SOUND_PEARL_NOW));
 
         roots.add(wp);
+
+        Group wpLines = group("Waypoint Lines", T, null,
+                KuudraConfig::isWaypointLinesEnabled, KuudraConfig::setWaypointLinesEnabled);
+        wpLines.add(leaf(new Toggle("Flat Pearls", T,
+                KuudraConfig::isWaypointLinesFlatPearlsEnabled, KuudraConfig::setWaypointLinesFlatPearlsEnabled)));
+        wpLines.add(leaf(new Toggle("Supplies", T,
+                KuudraConfig::isWaypointLinesSuppliesEnabled, KuudraConfig::setWaypointLinesSuppliesEnabled)));
+        wpLines.add(leaf(new Cycle("Second Supply Preference", T,
+                () -> KuudraConfig.getSecondSupplyPreference() == KuudraConfig.SecondSupplyPreference.DOUBLE_PEARL
+                        ? "Double Pearls" : "Etherwarp Waypoints",
+                () -> KuudraConfig.setSecondSupplyPreference(
+                        KuudraConfig.getSecondSupplyPreference() == KuudraConfig.SecondSupplyPreference.DOUBLE_PEARL
+                                ? KuudraConfig.SecondSupplyPreference.ETHERWARP
+                                : KuudraConfig.SecondSupplyPreference.DOUBLE_PEARL))));
+        roots.add(wpLines);
 
         roots.add(leaf(new Toggle("Smooth Crate Pickup", T,
                 KuudraConfig::isSmoothCratePickupEnabled, KuudraConfig::setSmoothCratePickupEnabled)));
@@ -1640,6 +1658,8 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::getLowPing, KuudraConfig::setLowPing)));
         roots.add(leaf(new Toggle("Auto Updates", T,
                 KuudraConfig::isAutoUpdatesEnabled, KuudraConfig::setAutoUpdatesEnabled)));
+        roots.add(leaf(new Toggle("Developer Features", T,
+                KuudraConfig::isDeveloperFeaturesEnabled, KuudraConfig::setDeveloperFeaturesEnabled)));
         roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
                 () -> Minecraft.getInstance().setScreen(new HudEditorScreen(KuudraScreen.this)))));

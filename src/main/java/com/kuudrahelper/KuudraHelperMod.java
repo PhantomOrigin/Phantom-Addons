@@ -298,6 +298,10 @@ public class KuudraHelperMod implements ClientModInitializer {
 
             dispatcher.register(ClientCommands.literal("phaselog")
                     .executes(ctx -> {
+                        if (!KuudraConfig.isDeveloperFeaturesEnabled()) {
+                            ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                            return 0;
+                        }
                         boolean next = !PhaseLogger.isEnabled();
                         PhaseLogger.setEnabled(next);
                         ctx.getSource().sendFeedback(Component.literal("Phase logging: " + next));
@@ -307,6 +311,10 @@ public class KuudraHelperMod implements ClientModInitializer {
 
             dispatcher.register(ClientCommands.literal("giantlog")
                     .executes(ctx -> {
+                        if (!KuudraConfig.isDeveloperFeaturesEnabled()) {
+                            ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                            return 0;
+                        }
                         boolean next = !GiantYLogger.isEnabled();
                         GiantYLogger.setEnabled(next);
                         ctx.getSource().sendFeedback(Component.literal("Giant Y logging: " + next));
@@ -316,6 +324,10 @@ public class KuudraHelperMod implements ClientModInitializer {
 
             dispatcher.register(ClientCommands.literal("phantomdebug")
                     .executes(ctx -> {
+                        if (!KuudraConfig.isDeveloperFeaturesEnabled()) {
+                            ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                            return 0;
+                        }
                         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                         if (mc.level == null || mc.player == null) return 0;
                         var clusters = com.kuudrahelper.features.supplies.SupplyWaypointTracker.detectedClusters;

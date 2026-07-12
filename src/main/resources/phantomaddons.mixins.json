@@ -22,7 +22,8 @@
     "FishingHookRendererMixin",
     "EntityScaleMixin",
     "KuudraScaleMixin",
-    "EntityFireMixin"
+    "EntityFireMixin",
+    "ScreenHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1

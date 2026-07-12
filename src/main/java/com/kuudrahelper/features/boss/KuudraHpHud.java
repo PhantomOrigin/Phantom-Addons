@@ -154,6 +154,10 @@ public final class KuudraHpHud {
         }
     }
 
+    public static float getHpPercent() {
+        return lastProgress < 0 ? -1f : lastProgress * 100f;
+    }
+
     private static boolean isActivePhase() {
         KuudraPhaseTracker.Phase p = KuudraPhaseTracker.getPhase();
         return p == KuudraPhaseTracker.Phase.EATEN

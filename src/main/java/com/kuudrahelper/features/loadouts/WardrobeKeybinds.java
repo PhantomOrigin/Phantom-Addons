@@ -28,7 +28,7 @@ public final class WardrobeKeybinds {
     private static final int     CLOSE_DELAY_TICKS  = 1;
 
     private static final int     CLOSE_TIMEOUT_TICKS = 20;
-    private static final long    SUPPRESS_REOPEN_MS  = 1000;
+    private static final long    SUPPRESS_REOPEN_MS  = 350;
 
     private static final Pattern WARDROBE_TITLE_PATTERN =
             Pattern.compile("wardrobe|armor sets|equipment sets", Pattern.CASE_INSENSITIVE);
@@ -63,7 +63,7 @@ public final class WardrobeKeybinds {
                 if (!stillDown || pendingCloseTimeoutTicks <= 0) {
                     pendingCloseKeyCode = -1;
                     pendingCloseTimeoutTicks = -1;
-                    closeContainerNow(client);
+                    closeInTicks = CLOSE_DELAY_TICKS;
                 }
             }
 
