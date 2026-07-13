@@ -3,6 +3,9 @@ package com.kuudrahelper.features.dungeons;
 import com.kuudrahelper.KuudraConfig;
 import net.minecraft.client.Minecraft;
 
+/*
+This feature is excluded from the standard version of the mod
+ */
 public final class DungeonsGfs {
 
     private static final String TOXIC_TRIGGER =
@@ -13,6 +16,7 @@ public final class DungeonsGfs {
     private DungeonsGfs() {}
 
     public static void onChat(String raw) {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
 
         if (KuudraConfig.isAutoGfsToxicEnabled() && clean.equals(TOXIC_TRIGGER)) {

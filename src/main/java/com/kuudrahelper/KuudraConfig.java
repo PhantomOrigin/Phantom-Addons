@@ -17,8 +17,6 @@ import java.util.Map;
 
 public class KuudraConfig {
 
-    public static final boolean API_KEY_FEATURES_UNLOCKED = false; // Toggles the ability to use Hypixel API features. MEANS DONT TOUCH NERDS!
-
     private static final Gson GSON        = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance()
             .getConfigDir().resolve("phantomaddons.json");
@@ -51,13 +49,6 @@ public class KuudraConfig {
     private static boolean  lavaAsWater       = false;
     private static boolean  lavaColorOverride = false;
 
-    // ── Water ─────────────────────────────────────────────────────────────────
-
-    private static float    waterOpacity       = 1.0f;
-    private static int      waterColor         = 0xFF2244AA;
-    private static boolean  waterAsLava        = false;
-    private static boolean  waterColorOverride = false;
-
     // ── Misc ──────────────────────────────────────────────────────────────────
 
     private static boolean fastDpsWarning           = true;
@@ -65,6 +56,7 @@ public class KuudraConfig {
     private static boolean soloDetectorEnabled      = true;
     private static boolean cannonAutoClose          = false;
     private static boolean kuudraDirectionEnabled   = false;
+    private static boolean boneTimingAssistEnabled  = false;
     private static boolean shopKeybindsEnabled      = false;
     private static int     shopMainKey              = 49;
     private static int     shopCannonKey            = 50;
@@ -396,18 +388,13 @@ public class KuudraConfig {
     public static boolean  isLavaAsWater()       { return lavaAsWater; }
     public static boolean  isLavaColorOverride() { return lavaColorOverride; }
 
-    // Water
-    public static float    getWaterOpacity()      { return waterOpacity; }
-    public static int      getWaterColor()        { return waterColor; }
-    public static boolean  isWaterAsLava()        { return waterAsLava; }
-    public static boolean  isWaterColorOverride() { return waterColorOverride; }
-
     // Misc
     public static boolean isFastDpsWarningEnabled()   { return fastDpsWarning; }
     public static boolean isChestTrackerVisible()     { return chestTrackerVisible; }
     public static boolean isSoloDetectorEnabled()     { return soloDetectorEnabled; }
     public static boolean isCannonAutoCloseEnabled()  { return cannonAutoClose; }
     public static boolean isKuudraDirectionEnabled()   { return kuudraDirectionEnabled; }
+    public static boolean isBoneTimingAssistEnabled()  { return boneTimingAssistEnabled; }
     public static boolean isShopKeybindsEnabled()     { return shopKeybindsEnabled; }
     public static int     getShopMainKey()            { return shopMainKey; }
     public static int     getShopCannonKey()          { return shopCannonKey; }
@@ -418,8 +405,8 @@ public class KuudraConfig {
     public static float   getExplosionSizeRaw()       { return explosionSizeMultiplier; }
     public static boolean isChestAnnouncerEnabled()   { return chestAnnouncerEnabled; }
 
-    public static boolean isAutoKickEnabled()     { return API_KEY_FEATURES_UNLOCKED && autoKickEnabled; }
-    public static boolean isProfileViewerEnabled() { return API_KEY_FEATURES_UNLOCKED && profileViewerEnabled; }
+    public static boolean isAutoKickEnabled()     { return com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isEnabled() && autoKickEnabled; }
+    public static boolean isProfileViewerEnabled() { return com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isEnabled() && profileViewerEnabled; }
     public static int     getAkMinCatacombs()     { return akMinCatacombs; }
     public static int     getAkMinForaging()      { return akMinForaging; }
     public static int     getAkMinMagicalPower()  { return akMinMagicalPower; }
@@ -614,18 +601,13 @@ public class KuudraConfig {
     public static void setLavaAsWater(boolean v)       { lavaAsWater = v;          save(); rebuildChunks(); }
     public static void setLavaColorOverride(boolean v) { lavaColorOverride = v;    save(); rebuildChunks(); }
 
-    // Water
-    public static void setWaterOpacity(float v)         { waterOpacity = clamp01(v); save(); rebuildChunks(); }
-    public static void setWaterColor(int c)              { waterColor = c;            save(); rebuildChunks(); }
-    public static void setWaterAsLava(boolean v)          { waterAsLava = v;           save(); rebuildChunks(); }
-    public static void setWaterColorOverride(boolean v)   { waterColorOverride = v;    save(); rebuildChunks(); }
-
     // Misc
     public static void setFastDpsWarningEnabled(boolean v)  { fastDpsWarning = v;           save(); }
     public static void setChestTrackerVisible(boolean v)    { chestTrackerVisible = v;      save(); }
     public static void setSoloDetectorEnabled(boolean v)    { soloDetectorEnabled = v;      save(); }
     public static void setCannonAutoCloseEnabled(boolean v) { cannonAutoClose = v;          save(); }
     public static void setKuudraDirectionEnabled(boolean v) { kuudraDirectionEnabled = v;   save(); }
+    public static void setBoneTimingAssistEnabled(boolean v) { boneTimingAssistEnabled = v; save(); }
     public static void setShopKeybindsEnabled(boolean v)    { shopKeybindsEnabled = v;      save(); }
     public static void setShopMainKey(int v)                { shopMainKey = v;              save(); }
     public static void setShopCannonKey(int v)              { shopCannonKey = v;            save(); }
@@ -634,8 +616,8 @@ public class KuudraConfig {
     public static void setExplosionSizeMultiplier(float v)  { explosionSizeMultiplier = clamp01(v); save(); }
     public static void setChestAnnouncerEnabled(boolean v)  { chestAnnouncerEnabled = v;   save(); }
 
-    public static void setAutoKickEnabled(boolean v)   { if (API_KEY_FEATURES_UNLOCKED) { autoKickEnabled = v; save(); } }
-    public static void setProfileViewerEnabled(boolean v) { if (API_KEY_FEATURES_UNLOCKED) { profileViewerEnabled = v; save(); } }
+    public static void setAutoKickEnabled(boolean v)   { if (com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) { autoKickEnabled = v; save(); } }
+    public static void setProfileViewerEnabled(boolean v) { if (com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) { profileViewerEnabled = v; save(); } }
     public static void setAkMinCatacombs(int v)        { akMinCatacombs = v;    save(); }
     public static void setAkMinForaging(int v)         { akMinForaging = v;     save(); }
     public static void setAkMinMagicalPower(int v)     { akMinMagicalPower = v; save(); }
@@ -919,11 +901,6 @@ public class KuudraConfig {
             lavaAsWater       = d.lavaAsWater;
             lavaColorOverride = d.lavaColorOverride;
 
-            waterOpacity       = clamp01(d.waterOpacity);
-            waterColor         = d.waterColor;
-            waterAsLava        = d.waterAsLava;
-            waterColorOverride = d.waterColorOverride;
-
             fastDpsWarning          = d.fastDpsWarning;
             chestTrackerVisible     = d.chestTrackerVisible;
             soloDetectorEnabled     = d.soloDetectorEnabled;
@@ -1028,6 +1005,7 @@ public class KuudraConfig {
             giantHitboxFillOpacity                = clamp01(d.giantHitboxFillOpacity);
             giantHitboxColor                      = d.giantHitboxColor & 0xFFFFFF;
             kuudraDirectionEnabled = d.kuudraDirectionEnabled;
+            boneTimingAssistEnabled = d.boneTimingAssistEnabled;
 
             mountTimerHudX     = d.mountTimerHudX;
             mountTimerHudY     = d.mountTimerHudY;
@@ -1190,11 +1168,6 @@ public class KuudraConfig {
         d.lavaAsWater       = lavaAsWater;
         d.lavaColorOverride = lavaColorOverride;
 
-        d.waterOpacity       = waterOpacity;
-        d.waterColor         = waterColor;
-        d.waterAsLava        = waterAsLava;
-        d.waterColorOverride = waterColorOverride;
-
         d.fastDpsWarning          = fastDpsWarning;
         d.chestTrackerVisible     = chestTrackerVisible;
         d.soloDetectorEnabled     = soloDetectorEnabled;
@@ -1296,6 +1269,7 @@ public class KuudraConfig {
         d.giantHitboxFillOpacity                = giantHitboxFillOpacity;
         d.giantHitboxColor                      = giantHitboxColor;
         d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
+        d.boneTimingAssistEnabled = boneTimingAssistEnabled;
 
         d.mountTimerHudX     = mountTimerHudX;
         d.mountTimerHudY     = mountTimerHudY;
@@ -1537,11 +1511,6 @@ public class KuudraConfig {
         boolean lavaAsWater       = false;
         boolean lavaColorOverride = false;
 
-        float   waterOpacity       = 1f;
-        int     waterColor         = 0xFF2244AA;
-        boolean waterAsLava        = false;
-        boolean waterColorOverride = false;
-
         boolean fastDpsWarning          = true;
         boolean chestTrackerVisible     = true;
         boolean soloDetectorEnabled     = true;
@@ -1641,6 +1610,7 @@ public class KuudraConfig {
         float   giantHitboxFillOpacity                = 0.05f;
         int     giantHitboxColor                      = 0xFFFFFF;
         boolean kuudraDirectionEnabled  = false;
+        boolean boneTimingAssistEnabled = false;
 
         float mountTimerHudX     = 0.5f;
         float mountTimerHudY     = 0.56f;

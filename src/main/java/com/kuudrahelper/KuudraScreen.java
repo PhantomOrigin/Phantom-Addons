@@ -70,9 +70,9 @@ public class KuudraScreen extends Screen {
         BOSS(      "Kuudra", "Boss"),
         MISC_KUUDRA("Kuudra", "Misc"),
 
-        DUNGEONS_M7("Dungeons", "M7 AutoGFS"),
+        DUNGEONS_M7("Dungeons", "M7"),
 
-        FLUID_CUSTOM( "Customisation", "Lava & Water Customisation"),
+        FLUID_CUSTOM( "Customisation", "Lava Customisation"),
         ITEM_CUSTOM(  "Customisation", "Item Customisation"),
         VISUAL_WORDS( "Customisation", "Visual Words");
 
@@ -605,24 +605,12 @@ public class KuudraScreen extends Screen {
         }
     }
 
-    // ── LavaPreview / WaterPreview ────────────────────────────────────────────
+    // ── LavaPreview ─────────────────────────────────────────────────────────
 
     private static class LavaPreview extends Feature {
         LavaPreview(Tab t) { super("Colour Preview", t); }
         @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
             int previewArgb = com.kuudrahelper.features.customisation.lava.ColorPreviewHelper.computePreviewColor();
-            int sw = w - 16, swX = x + 8, swY = y + 4, sh = ROW_H - 8;
-            ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
-            ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
-            ctx.centeredText(s.font, Component.literal("Colour Preview"),
-                    swX + sw / 2, swY + (sh - s.font.lineHeight) / 2, 0xCCFFFFFF);
-        }
-    }
-
-    private static class WaterPreview extends Feature {
-        WaterPreview(Tab t) { super("Colour Preview", t); }
-        @Override void render(GuiGraphicsExtractor ctx, KuudraScreen s, int x, int y, int w, int mx, int my) {
-            int previewArgb = com.kuudrahelper.features.customisation.water.WaterColorPreviewHelper.computePreviewColor();
             int sw = w - 16, swX = x + 8, swY = y + 4, sh = ROW_H - 8;
             ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
             ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
@@ -986,7 +974,7 @@ public class KuudraScreen extends Screen {
         buildStunDpsTab();
         buildBossTab();
         buildMiscTab();
-        buildDungeonsTab();
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) buildDungeonsTab();
         buildFluidCustomTab();
         buildItemCustomTab();
         buildVisualWordsTab();
@@ -997,22 +985,24 @@ public class KuudraScreen extends Screen {
     private void buildStunDpsTab() {
         Tab T = Tab.STUN_DPS;
 
-        Group gfs = group("Auto GFS", T, null,
-                KuudraConfig::isAutoGfsEnabled, KuudraConfig::setAutoGfsEnabled);
-        gfs.add(leaf(new Cycle("Role Mode", T,
-                () -> KuudraConfig.getRoleMode().name(),
-                () -> KuudraConfig.setRoleMode(switch (KuudraConfig.getRoleMode()) {
-                    case DPS  -> KuudraConfig.RoleMode.STUN;
-                    case STUN -> KuudraConfig.RoleMode.AUTO;
-                    case AUTO -> KuudraConfig.RoleMode.DPS;
-                }))));
-        gfs.add(leaf(new IntInput("DPS Amount",  T, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue)));
-        gfs.add(leaf(new IntInput("Stun Amount", T, KuudraConfig::getStunValue, KuudraConfig::setStunValue)));
-        gfs.add(leaf(new IntInput("Refill Amount", T, KuudraConfig::getDpsRefillAmount, KuudraConfig::setDpsRefillAmount)));
-        gfs.add(leaf(new RangeSlider("Disable Refill Below HP", T, 25, 100, "%.0f%%",
-                () -> (float) KuudraConfig.getAutoGfsDisableHpPercent(),
-                v  -> KuudraConfig.setAutoGfsDisableHpPercent(Math.round(v)))));
-        roots.add(gfs);
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
+            Group gfs = group("Auto GFS", T, null,
+                    KuudraConfig::isAutoGfsEnabled, KuudraConfig::setAutoGfsEnabled);
+            gfs.add(leaf(new Cycle("Role Mode", T,
+                    () -> KuudraConfig.getRoleMode().name(),
+                    () -> KuudraConfig.setRoleMode(switch (KuudraConfig.getRoleMode()) {
+                        case DPS  -> KuudraConfig.RoleMode.STUN;
+                        case STUN -> KuudraConfig.RoleMode.AUTO;
+                        case AUTO -> KuudraConfig.RoleMode.DPS;
+                    }))));
+            gfs.add(leaf(new IntInput("DPS Amount",  T, KuudraConfig::getDpsValue,  KuudraConfig::setDpsValue)));
+            gfs.add(leaf(new IntInput("Stun Amount", T, KuudraConfig::getStunValue, KuudraConfig::setStunValue)));
+            gfs.add(leaf(new IntInput("Refill Amount", T, KuudraConfig::getDpsRefillAmount, KuudraConfig::setDpsRefillAmount)));
+            gfs.add(leaf(new RangeSlider("Disable Refill Below HP", T, 25, 100, "%.0f%%",
+                    () -> (float) KuudraConfig.getAutoGfsDisableHpPercent(),
+                    v  -> KuudraConfig.setAutoGfsDisableHpPercent(Math.round(v)))));
+            roots.add(gfs);
+        }
 
         roots.add(leaf(new Toggle("Pickobulus Blocker", T,
                 KuudraConfig::isPickoblockEnabled, KuudraConfig::setPickoblockEnabled)));
@@ -1023,8 +1013,10 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isEatenTimerSubtractPingEnabled, KuudraConfig::setEatenTimerSubtractPingEnabled)));
         roots.add(eaten);
 
-        roots.add(leaf(new Toggle("Cannon Auto Close", T,
-                KuudraConfig::isCannonAutoCloseEnabled, KuudraConfig::setCannonAutoCloseEnabled)));
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
+            roots.add(leaf(new Toggle("Cannon Auto Close", T,
+                    KuudraConfig::isCannonAutoCloseEnabled, KuudraConfig::setCannonAutoCloseEnabled)));
+        }
         roots.add(leaf(new Toggle("Stun Preview", T,
                 KuudraConfig::isStunPreviewEnabled, KuudraConfig::setStunPreviewEnabled)));
 
@@ -1229,6 +1221,10 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isRendDamageEnabled, KuudraConfig::setRendDamageEnabled)));
         roots.add(leaf(new Toggle("Rend Tracker", T,
                 KuudraConfig::isRendTrackerEnabled, KuudraConfig::setRendTrackerEnabled)));
+        if (!com.kuudrahelper.features.boss.BoneTimingAssist.isTempDisabled()) {
+            roots.add(leaf(new Toggle("Bone Timing Assist", T,
+                    KuudraConfig::isBoneTimingAssistEnabled, KuudraConfig::setBoneTimingAssistEnabled)));
+        }
         Group backbone = group("Backbone Progress Bar", T, null,
                 KuudraConfig::isBackboneProgressBarEnabled, KuudraConfig::setBackboneProgressBarEnabled);
         backbone.add(leaf(new Toggle("Work Outside Kuudra", T,
@@ -1267,8 +1263,10 @@ public class KuudraScreen extends Screen {
         wardrobe.add(leaf(new KeyCapture("Unequip",        T, KuudraConfig::getWardrobeUnequipKey,  KuudraConfig::setWardrobeUnequipKey)));
         wardrobe.add(leaf(new Toggle("Disable Unequip", T,
                 KuudraConfig::isWardrobeDisableUnequipEnabled, KuudraConfig::setWardrobeDisableUnequipEnabled)));
-        wardrobe.add(leaf(new Toggle("Auto Close Wardrobe", T,
-                KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
+            wardrobe.add(leaf(new Toggle("Auto Close Wardrobe", T,
+                    KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        }
         wardrobe.add(soundGroup(T, wardrobe.key, KuudraConfig.SOUND_WARDROBE_SWAP));
         roots.add(wardrobe);
 
@@ -1283,8 +1281,10 @@ public class KuudraScreen extends Screen {
         }
         loadouts.add(leaf(new KeyCapture("Next Page", T, KuudraConfig::getWardrobeNextPageKey, KuudraConfig::setWardrobeNextPageKey)));
         loadouts.add(leaf(new KeyCapture("Prev Page", T, KuudraConfig::getWardrobePrevPageKey, KuudraConfig::setWardrobePrevPageKey)));
-        loadouts.add(leaf(new Toggle("Auto Close Loadouts", T,
-                KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
+            loadouts.add(leaf(new Toggle("Auto Close Loadouts", T,
+                    KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+        }
         loadouts.add(soundGroup(T, loadouts.key, KuudraConfig.SOUND_WARDROBE_SWAP));
         roots.add(loadouts);
     }
@@ -1323,11 +1323,13 @@ public class KuudraScreen extends Screen {
     private void buildMiscSkyblockTab() {
         Tab T = Tab.MISC_SKYBLOCK;
 
-        Group pearlRefill = group("Pearl Refill", T, null,
-                KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled);
-        pearlRefill.add(leaf(new Toggle("Work Outside Kuudra", T,
-                KuudraConfig::isPearlRefillOutsideKuudraEnabled, KuudraConfig::setPearlRefillOutsideKuudraEnabled)));
-        roots.add(pearlRefill);
+        if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
+            Group pearlRefill = group("Pearl Refill", T, null,
+                    KuudraConfig::isPearlRefillEnabled, KuudraConfig::setPearlRefillEnabled);
+            pearlRefill.add(leaf(new Toggle("Work Outside Kuudra", T,
+                    KuudraConfig::isPearlRefillOutsideKuudraEnabled, KuudraConfig::setPearlRefillOutsideKuudraEnabled)));
+            roots.add(pearlRefill);
+        }
 
         roots.add(leaf(new Toggle("Auto Sprint", T,
                 KuudraConfig::isAutoSprintEnabled, KuudraConfig::setAutoSprintEnabled)));
@@ -1449,23 +1451,25 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isSupplyTimesEnabled, KuudraConfig::setSupplyTimesEnabled)));
         roots.add(split);
 
-        Group autoKick = group("Auto Kick" + (KuudraConfig.API_KEY_FEATURES_UNLOCKED ? "" : " (DISABLED)"), T, null,
-                KuudraConfig::isAutoKickEnabled, KuudraConfig::setAutoKickEnabled);
-        autoKick.add(leaf(new OptionalIntInput("Catacombs Level", T, KuudraConfig::getAkMinCatacombs, KuudraConfig::setAkMinCatacombs)));
-        autoKick.add(leaf(new OptionalIntInput("Foraging Level", T, KuudraConfig::getAkMinForaging, KuudraConfig::setAkMinForaging)));
-        autoKick.add(leaf(new OptionalIntInput("Magical Power", T, KuudraConfig::getAkMinMagicalPower, KuudraConfig::setAkMinMagicalPower)));
-        autoKick.add(leaf(new OptionalIntInput("Infernal Comps", T, KuudraConfig::getAkMinInfernal, KuudraConfig::setAkMinInfernal)));
-        autoKick.add(leaf(new OptionalIntInput("Fiery Comps", T, KuudraConfig::getAkMinFiery, KuudraConfig::setAkMinFiery)));
-        autoKick.add(leaf(new OptionalIntInput("Burning Comps", T, KuudraConfig::getAkMinBurning, KuudraConfig::setAkMinBurning)));
-        autoKick.add(leaf(new OptionalIntInput("Hot Comps", T, KuudraConfig::getAkMinHot, KuudraConfig::setAkMinHot)));
-        autoKick.add(leaf(new OptionalIntInput("Basic Comps", T, KuudraConfig::getAkMinBasic, KuudraConfig::setAkMinBasic)));
-        autoKick.add(leaf(new Toggle("Rend", T,
-                KuudraConfig::isAkRequireRend, KuudraConfig::setAkRequireRend)));
-        autoKick.add(leaf(new OptionalIntInput("Gdrag Level", T, KuudraConfig::getAkMinGdragLevel, KuudraConfig::setAkMinGdragLevel)));
-        roots.add(autoKick);
+        if (com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) {
+            Group autoKick = group("Auto Kick", T, null,
+                    KuudraConfig::isAutoKickEnabled, KuudraConfig::setAutoKickEnabled);
+            autoKick.add(leaf(new OptionalIntInput("Catacombs Level", T, KuudraConfig::getAkMinCatacombs, KuudraConfig::setAkMinCatacombs)));
+            autoKick.add(leaf(new OptionalIntInput("Foraging Level", T, KuudraConfig::getAkMinForaging, KuudraConfig::setAkMinForaging)));
+            autoKick.add(leaf(new OptionalIntInput("Magical Power", T, KuudraConfig::getAkMinMagicalPower, KuudraConfig::setAkMinMagicalPower)));
+            autoKick.add(leaf(new OptionalIntInput("Infernal Comps", T, KuudraConfig::getAkMinInfernal, KuudraConfig::setAkMinInfernal)));
+            autoKick.add(leaf(new OptionalIntInput("Fiery Comps", T, KuudraConfig::getAkMinFiery, KuudraConfig::setAkMinFiery)));
+            autoKick.add(leaf(new OptionalIntInput("Burning Comps", T, KuudraConfig::getAkMinBurning, KuudraConfig::setAkMinBurning)));
+            autoKick.add(leaf(new OptionalIntInput("Hot Comps", T, KuudraConfig::getAkMinHot, KuudraConfig::setAkMinHot)));
+            autoKick.add(leaf(new OptionalIntInput("Basic Comps", T, KuudraConfig::getAkMinBasic, KuudraConfig::setAkMinBasic)));
+            autoKick.add(leaf(new Toggle("Rend", T,
+                    KuudraConfig::isAkRequireRend, KuudraConfig::setAkRequireRend)));
+            autoKick.add(leaf(new OptionalIntInput("Gdrag Level", T, KuudraConfig::getAkMinGdragLevel, KuudraConfig::setAkMinGdragLevel)));
+            roots.add(autoKick);
 
-        roots.add(leaf(new Toggle("Profile Viewer" + (KuudraConfig.API_KEY_FEATURES_UNLOCKED ? "" : " (DISABLED)"), T,
-                KuudraConfig::isProfileViewerEnabled, KuudraConfig::setProfileViewerEnabled)));
+            roots.add(leaf(new Toggle("Profile Viewer", T,
+                    KuudraConfig::isProfileViewerEnabled, KuudraConfig::setProfileViewerEnabled)));
+        }
     }
 
     // ── Dungeons tab ────────────────────────────────────────────────────────────
@@ -1484,7 +1488,7 @@ public class KuudraScreen extends Screen {
         roots.add(m7twi);
     }
 
-    // ── Lava & Water Customisation tab ─────────────────────────────────────────
+    // ── Lava Customisation tab ─────────────────────────────────────────────────
 
     private void buildFluidCustomTab() {
         Tab T = Tab.FLUID_CUSTOM;
@@ -1501,19 +1505,6 @@ public class KuudraScreen extends Screen {
         lava.add(leaf(new ColorSlider("Blue",  T,  0, 0x4488FF, KuudraConfig::getLavaColor, KuudraConfig::setLavaColor)));
         lava.add(leaf(new LavaPreview(T)));
         roots.add(lava);
-
-        Group water = group("Water Tweaks", T, null, null, null);
-        water.add(leaf(new Toggle("Replace with Lava", T,
-                KuudraConfig::isWaterAsLava, KuudraConfig::setWaterAsLava)));
-        water.add(leaf(new Slider("Opacity", T,
-                KuudraConfig::getWaterOpacity, KuudraConfig::setWaterOpacity, "%")));
-        water.add(leaf(new Toggle("Colour Override", T,
-                KuudraConfig::isWaterColorOverride, KuudraConfig::setWaterColorOverride)));
-        water.add(leaf(new ColorSlider("Red",   T, 16, 0xFF4444, KuudraConfig::getWaterColor, KuudraConfig::setWaterColor)));
-        water.add(leaf(new ColorSlider("Green", T,  8, 0x44FF88, KuudraConfig::getWaterColor, KuudraConfig::setWaterColor)));
-        water.add(leaf(new ColorSlider("Blue",  T,  0, 0x4488FF, KuudraConfig::getWaterColor, KuudraConfig::setWaterColor)));
-        water.add(leaf(new WaterPreview(T)));
-        roots.add(water);
     }
 
     // ── Item Customisation tab ─────────────────────────────────────────────────
@@ -1656,15 +1647,19 @@ public class KuudraScreen extends Screen {
 
         roots.add(leaf(new IntInput("Ping (ms)", T,
                 KuudraConfig::getLowPing, KuudraConfig::setLowPing)));
-        roots.add(leaf(new Toggle("Auto Updates", T,
-                KuudraConfig::isAutoUpdatesEnabled, KuudraConfig::setAutoUpdatesEnabled)));
+        if (com.kuudrahelper.Edition.CURRENT.autoDownloadCapable) {
+            roots.add(leaf(new Toggle("Auto Updates", T,
+                    KuudraConfig::isAutoUpdatesEnabled, KuudraConfig::setAutoUpdatesEnabled)));
+        }
         roots.add(leaf(new Toggle("Developer Features", T,
                 KuudraConfig::isDeveloperFeaturesEnabled, KuudraConfig::setDeveloperFeaturesEnabled)));
         roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
                 () -> Minecraft.getInstance().setScreen(new HudEditorScreen(KuudraScreen.this)))));
         roots.add(leaf(new Button("Updates", T,
-                UpdateChecker.isDownloaded() ? "Restart to Install" : "Download Now",
+                com.kuudrahelper.Edition.CURRENT.autoDownloadCapable
+                        ? (UpdateChecker.isDownloaded() ? "Restart to Install" : "Download Now")
+                        : "Open Download Page",
                 UpdateChecker::downloadManually)));
     }
 

@@ -22,6 +22,7 @@ public class LivingEntitySwingMixin {
         if (mc.player == null || mc.player != (Object) this) return;
         if (hand != InteractionHand.MAIN_HAND) return;
         com.kuudrahelper.features.boss.RendTracker.onLeftClick(mc.player.getMainHandItem());
+        com.kuudrahelper.features.boss.BoneTimingAssist.onLeftClick(mc.player.getMainHandItem());
     }
 
     @Inject(method = "getCurrentSwingDuration", at = @At("RETURN"), cancellable = true)
@@ -37,7 +38,6 @@ public class LivingEntitySwingMixin {
         float speed = (s.swingSpeed > 0.001f) ? s.swingSpeed : 1f;
         if (Math.abs(speed - 1f) < 0.01f) return;
 
-        // Use vanilla base (6 ticks) so haste/fatigue don't affect the configured speed
         cir.setReturnValue(Math.max(1, Math.round(6f / speed)));
     }
 }

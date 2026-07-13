@@ -10,6 +10,9 @@ import net.minecraft.client.Minecraft;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
+/*
+This feature is excluded from the standard version of the mod
+ */
 public final class AutoGFS {
 
     private static boolean active     = false;
@@ -22,6 +25,7 @@ public final class AutoGFS {
     // ── Registration ─────────────────────────────────────────────────────────
 
     public static void register() {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         ClientReceiveMessageEvents.GAME.register((msg, overlay) -> {
             if (overlay || !active) return;
             String text = msg.getString()
@@ -43,6 +47,7 @@ public final class AutoGFS {
     // ── Public API ────────────────────────────────────────────────────────────
 
     public static void start(int arrowAmount) {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         if (!KuudraConfig.isAutoGfsEnabled()) {
             KuudraHelperMod.LOGGER.info("[PhantomAddons] AutoGFS disabled — skipping");
             return;
@@ -65,6 +70,7 @@ public final class AutoGFS {
     }
 
     public static void queueCommand() {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         if (!KuudraConfig.isAutoGfsEnabled()) return;
         KuudraConfig.RoleMode role = RoleManager.getActiveRole();
         if (role != KuudraConfig.RoleMode.DPS && role != KuudraConfig.RoleMode.STUN) return;

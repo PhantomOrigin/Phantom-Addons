@@ -24,6 +24,7 @@ import com.kuudrahelper.features.supplies.SupplyTracker;
 import com.kuudrahelper.features.supplies.PearlTitleHud;
 import com.kuudrahelper.features.supplies.PearlTitleListener;
 import com.kuudrahelper.logging.GiantYLogger;
+import com.kuudrahelper.logging.KuudraStationaryLogger;
 import com.kuudrahelper.logging.PhaseLogAppender;
 import com.kuudrahelper.logging.PhaseLogger;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
@@ -98,7 +99,6 @@ public class KuudraHelperMod implements ClientModInitializer {
             var nativeLava  = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.LAVA);
             var nativeWater = net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry.get(net.minecraft.world.level.material.Fluids.WATER);
             LavaRenderInit.init(nativeLava, nativeWater);
-            com.kuudrahelper.features.customisation.water.WaterRenderInit.init(nativeWater, nativeLava);
         }
         ChestTracker.init();
         TabListChestSync.init();
@@ -116,8 +116,10 @@ public class KuudraHelperMod implements ClientModInitializer {
         AutoGFS.register();
         UpdateChecker.register();
         UpdateChecker.checkOnStartup();
+        com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.checkOnStartup();
         SlotBlocker.register();
         KuudraDirectionHud.register();
+        com.kuudrahelper.features.boss.BoneTimingAssist.register();
         PearlTitleHud.register();
         com.kuudrahelper.features.supplies.SmoothCratePickupHud.register();
         com.kuudrahelper.features.boss.BackboneProgressBarHud.register();
@@ -322,6 +324,19 @@ public class KuudraHelperMod implements ClientModInitializer {
                         return 1;
                     }));
 
+            dispatcher.register(ClientCommands.literal("kuudrastationarylog")
+                    .executes(ctx -> {
+                        if (!KuudraConfig.isDeveloperFeaturesEnabled()) {
+                            ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                            return 0;
+                        }
+                        boolean next = !KuudraStationaryLogger.isEnabled();
+                        KuudraStationaryLogger.setEnabled(next);
+                        ctx.getSource().sendFeedback(Component.literal("Kuudra stationary logging: " + next));
+                        LOGGER.info("[PhantomAddons] Kuudra stationary logging = {}", next);
+                        return 1;
+                    }));
+
             dispatcher.register(ClientCommands.literal("phantomdebug")
                     .executes(ctx -> {
                         if (!KuudraConfig.isDeveloperFeaturesEnabled()) {
@@ -396,6 +411,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         RendDamage.reset();
         com.kuudrahelper.features.boss.RendTracker.reset();
         com.kuudrahelper.features.boss.BackboneProgressBar.reset();
+        com.kuudrahelper.features.boss.BoneTimingAssist.reset();
         com.kuudrahelper.features.boss.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
@@ -442,6 +458,7 @@ public class KuudraHelperMod implements ClientModInitializer {
             com.kuudrahelper.features.supplies.SupplyGiantHitbox.tick(client);
             com.kuudrahelper.features.supplies.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);
+            KuudraStationaryLogger.tick(client);
             com.kuudrahelper.features.boss.RendTracker.tick();
             com.kuudrahelper.features.boss.BackboneProgressBar.tick();
 

@@ -16,12 +16,11 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 )
 public class SodiumFluidRendererImplMixin {
 
-    // 0 = neither, 1 = lava, 2 = water
     @Unique
-    private static final ThreadLocal<Integer> kuudra$implFluidKind =
-            ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Boolean> kuudra$implIsLava =
+            ThreadLocal.withInitial(() -> false);
 
-    // ── Capture lava/water flag at render entry ──────────────────────────────
+    // ── Capture lava flag at render entry ────────────────────────────────────
 
     @ModifyVariable(
             method = "render",
@@ -31,13 +30,8 @@ public class SodiumFluidRendererImplMixin {
             remap = false
     )
     private FluidState kuudra$captureFluid(FluidState state) {
-        if (state != null && (state.getType() == Fluids.LAVA || state.getType() == Fluids.FLOWING_LAVA)) {
-            kuudra$implFluidKind.set(1);
-        } else if (state != null && (state.getType() == Fluids.WATER || state.getType() == Fluids.FLOWING_WATER)) {
-            kuudra$implFluidKind.set(2);
-        } else {
-            kuudra$implFluidKind.set(0);
-        }
+        kuudra$implIsLava.set(state != null
+                && (state.getType() == Fluids.LAVA || state.getType() == Fluids.FLOWING_LAVA));
         return state;
     }
 
@@ -49,11 +43,7 @@ public class SodiumFluidRendererImplMixin {
             remap = false
     )
     private Material kuudra$swapFluidMaterialInImpl(Material material) {
-        int kind = kuudra$implFluidKind.get();
-        if (kind == 1 && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
-            return DefaultMaterials.TRANSLUCENT;
-        }
-        if (kind == 2 && (KuudraConfig.getWaterOpacity() < 0.999f || KuudraConfig.isWaterAsLava())) {
+        if (kuudra$implIsLava.get() && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
             return DefaultMaterials.TRANSLUCENT;
         }
         return material;

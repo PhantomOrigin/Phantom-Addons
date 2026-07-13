@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.12   
+Latest Version: 1.6.13   
 Supported Minecraft Versions: 26.1.2  
 Discord Invite: https://discord.gg/6MquvmrXNP  
 
@@ -73,7 +73,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Held Item Animation / Position / Scale Customiser
 - Lava Texture Customisation
 - Water Texture Customisation
-- Automatic Updates
+- Auto Update
 - No Selfie Cam
 - Auto Sprint
 - Slot Binds

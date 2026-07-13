@@ -21,12 +21,11 @@ public class SodiumFluidRendererMixin {
     private static final boolean IRIS_LOADED =
             FabricLoader.getInstance().isModLoaded("iris");
 
-    // 0 = neither, 1 = lava, 2 = water
     @Unique
-    private static final ThreadLocal<Integer> kuudra$fluidKind =
-            ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Boolean> kuudra$isLava =
+            ThreadLocal.withInitial(() -> false);
 
-    // ── Detect lava/water ────────────────────────────────────────────────────
+    // ── Detect lava ───────────────────────────────────────────────────────────
 
     @ModifyVariable(
             method = "render",
@@ -36,13 +35,8 @@ public class SodiumFluidRendererMixin {
             remap = false
     )
     private FluidState kuudra$captureFluid(FluidState state) {
-        if (state != null && (state.getType() == Fluids.LAVA || state.getType() == Fluids.FLOWING_LAVA)) {
-            kuudra$fluidKind.set(1);
-        } else if (state != null && (state.getType() == Fluids.WATER || state.getType() == Fluids.FLOWING_WATER)) {
-            kuudra$fluidKind.set(2);
-        } else {
-            kuudra$fluidKind.set(0);
-        }
+        kuudra$isLava.set(state != null
+                && (state.getType() == Fluids.LAVA || state.getType() == Fluids.FLOWING_LAVA));
         return state;
     }
 
@@ -54,11 +48,7 @@ public class SodiumFluidRendererMixin {
             remap = false
     )
     private Material kuudra$swapMaterial(Material material) {
-        int kind = kuudra$fluidKind.get();
-        if (kind == 1 && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
-            return DefaultMaterials.TRANSLUCENT;
-        }
-        if (kind == 2 && (KuudraConfig.getWaterOpacity() < 0.999f || KuudraConfig.isWaterAsLava())) {
+        if (kuudra$isLava.get() && (KuudraConfig.getLavaOpacity() < 0.999f || KuudraConfig.isLavaAsWater())) {
             return DefaultMaterials.TRANSLUCENT;
         }
         return material;
@@ -72,16 +62,14 @@ public class SodiumFluidRendererMixin {
             remap = false
     )
     private void kuudra$applyFluidColor(CallbackInfo ci) {
-        int kind = kuudra$fluidKind.get();
-        if (kind == 0) return;
+        if (!kuudra$isLava.get()) return;
 
         if (IRIS_LOADED && kuudra$irisHasShadersActive()) return;
 
-        boolean isLava = kind == 1;
-        float   opacity        = isLava ? KuudraConfig.getLavaOpacity()      : KuudraConfig.getWaterOpacity();
-        boolean colorOverride  = isLava ? KuudraConfig.isLavaColorOverride() : KuudraConfig.isWaterColorOverride();
-        int     userColor      = isLava ? KuudraConfig.getLavaColor()       : KuudraConfig.getWaterColor();
-        boolean baseIsLavaTexture = isLava ? !KuudraConfig.isLavaAsWater() : KuudraConfig.isWaterAsLava();
+        float   opacity        = KuudraConfig.getLavaOpacity();
+        boolean colorOverride  = KuudraConfig.isLavaColorOverride();
+        int     userColor      = KuudraConfig.getLavaColor();
+        boolean baseIsLavaTexture = !KuudraConfig.isLavaAsWater();
 
         int[] quadColors = ((DefaultFluidRendererAccessor) (Object) this).getQuadColors();
         float[] brightnessArr = ((DefaultFluidRendererAccessor) (Object) this).getBrightness();

@@ -4,6 +4,7 @@
   "version": "${version}",
   "name": "PhantomAddons",
   "description": "Kuudra QOL features",
+  "icon": "assets/phantomaddons/icon.png",
   "authors": ["PhantomOrigin"],
   "license": "MIT",
   "environment": "client",

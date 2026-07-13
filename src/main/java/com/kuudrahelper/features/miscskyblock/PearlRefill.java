@@ -7,6 +7,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 
+/*
+This feature is excluded from the standard version of the mod
+ */
 public final class PearlRefill {
 
     private static final int  TICK_INTERVAL       = 3;
@@ -36,6 +39,7 @@ public final class PearlRefill {
     private PearlRefill() {}
 
     public static void register() {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
             if (!KuudraConfig.isPearlRefillEnabled()) return;
@@ -67,6 +71,7 @@ public final class PearlRefill {
     }
 
     public static void tick(Minecraft mc) {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         if (!KuudraConfig.isPearlRefillEnabled()) return;
         if (!KuudraConfig.isPearlRefillOutsideKuudraEnabled() && !KuudraPhaseTracker.isRunActive()) return;
         if (mc.player == null || mc.getConnection() == null) return;

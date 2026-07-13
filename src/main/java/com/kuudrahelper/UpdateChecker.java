@@ -5,9 +5,13 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
-import java.io.*;
-import java.net.*;
-import java.nio.file.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public final class UpdateChecker {
@@ -17,12 +21,19 @@ public final class UpdateChecker {
     private static final String GITHUB_URL =
             "https://github.com/PhantomOrigin/Phantom-Addons/releases/latest";
 
+    private static final String ARCHIVE_BASE_NAME = "PhantomAddons";
+    private static final String SUFFIX_FULL     = "full";
+    private static final String SUFFIX_NOAUTO   = "full-noautoupdate";
+    private static final String SUFFIX_STANDARD = ""; // Standard ships with no suffix: PhantomAddons-<version>.jar
+
     public enum State { IDLE, CHECKING, UP_TO_DATE, UPDATE_AVAILABLE, DOWNLOADING, DOWNLOADED, ERROR }
 
     private static volatile State   state               = State.IDLE;
     private static volatile String  latestVersion       = null;
     private static volatile String  downloadUrl         = null;
     private static          boolean notifiedThisSession = false;
+
+    private static final Map<String, String> releaseAssets = new HashMap<>();
 
     private UpdateChecker() {}
 
@@ -70,9 +81,9 @@ public final class UpdateChecker {
                 KuudraHelperMod.LOGGER.info("[PhantomAddons] Update available: {} → {}",
                         current, latestVersion);
 
-                if (KuudraConfig.isAutoUpdatesEnabled()) {
+                if (canAutoDownload()) {
                     state = State.DOWNLOADING;
-                    downloadAndScheduleSwap();
+                    invokeInstaller("downloadAndScheduleSwap", downloadUrl, latestVersion);
                     state = State.DOWNLOADED;
                     KuudraHelperMod.LOGGER.info("[PhantomAddons] {} downloaded — will install on restart.",
                             latestVersion);
@@ -88,11 +99,16 @@ public final class UpdateChecker {
 
     public static void downloadManually() {
         if (state == State.DOWNLOADING || state == State.DOWNLOADED) return;
+        if (!Edition.CURRENT.autoDownloadCapable) {
+            openReleasePage();
+            return;
+        }
         state = State.CHECKING;
         CompletableFuture.runAsync(() -> {
             try {
                 latestVersion = null;
                 downloadUrl   = null;
+                releaseAssets.clear();
                 fetchReleaseInfo();
 
                 if (latestVersion == null) throw new Exception("Could not fetch release info");
@@ -104,8 +120,15 @@ public final class UpdateChecker {
                     return;
                 }
 
+                if (!KuudraConfig.isAutoUpdatesEnabled() || !allEditionAssetsPresent()) {
+                    state = State.UPDATE_AVAILABLE;
+                    notifyChat("§eCan't auto-download right now — opening the release page instead.");
+                    openReleasePage();
+                    return;
+                }
+
                 state = State.DOWNLOADING;
-                downloadAndScheduleSwap();
+                invokeInstaller("downloadAndScheduleSwap", downloadUrl, latestVersion);
                 state = State.DOWNLOADED;
                 notifyChat("§a Version §e" + latestVersion
                         + "§a downloaded — restart the game to install it.");
@@ -115,6 +138,45 @@ public final class UpdateChecker {
                 KuudraHelperMod.LOGGER.warn("[PhantomAddons] Manual download failed: {}", e.getMessage());
             }
         });
+    }
+
+    private static boolean canAutoDownload() {
+        if (!Edition.CURRENT.autoDownloadCapable) return false;
+        if (!KuudraConfig.isAutoUpdatesEnabled()) return false;
+        if (!allEditionAssetsPresent()) {
+            KuudraHelperMod.LOGGER.warn(
+                    "[PhantomAddons] Release {} is missing one or more edition jars — "
+                            + "falling back to notify-only until all three are uploaded.",
+                    latestVersion);
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean allEditionAssetsPresent() {
+        return releaseAssets.containsKey(expectedAssetName(SUFFIX_FULL))
+                && releaseAssets.containsKey(expectedAssetName(SUFFIX_NOAUTO))
+                && releaseAssets.containsKey(expectedAssetName(SUFFIX_STANDARD));
+    }
+
+    private static String expectedAssetName(String suffix) {
+        return suffix.isEmpty()
+                ? ARCHIVE_BASE_NAME + "-" + latestVersion + ".jar"
+                : ARCHIVE_BASE_NAME + "-" + latestVersion + "-" + suffix + ".jar";
+    }
+
+    private static String ownEditionSuffix() {
+        return switch (Edition.CURRENT) {
+            case FULL                 -> SUFFIX_FULL;
+            case FULL_NO_AUTO_UPDATE  -> SUFFIX_NOAUTO;
+            case STANDARD             -> SUFFIX_STANDARD;
+        };
+    }
+
+    private static void openReleasePage() {
+        try {
+            net.minecraft.util.Util.getPlatform().openUri(GITHUB_URL);
+        } catch (Exception ignored) {}
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
@@ -145,120 +207,47 @@ public final class UpdateChecker {
             String tag = json.substring(s, json.indexOf('"', s));
             latestVersion = tag.startsWith("v") ? tag.substring(1) : tag;
         }
-        
+
+        releaseAssets.clear();
         int pos = 0;
         while ((pos = json.indexOf("browser_download_url", pos)) >= 0) {
             int s = json.indexOf('"', pos + 22) + 1;
             int e = json.indexOf('"', s);
             String url = json.substring(s, e);
-            if (url.endsWith(".jar")) { downloadUrl = url; break; }
+            if (url.endsWith(".jar")) {
+                int nameStart = url.lastIndexOf('/') + 1;
+                releaseAssets.put(url.substring(nameStart), url);
+            }
             pos = e;
         }
+
+        if (latestVersion != null) {
+            downloadUrl = releaseAssets.get(expectedAssetName(ownEditionSuffix()));
+        }
     }
 
-    private static final String STAGING_PREFIX = ".phantomaddons_staging-";
-    private static final String STAGING_SUFFIX = ".jar";
-
-    private static void downloadAndScheduleSwap() throws Exception {
-        if (downloadUrl == null) throw new Exception("No .jar download URL found in release assets");
-
-        Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
-        Path staging = modsDir.resolve(STAGING_PREFIX + latestVersion + STAGING_SUFFIX);
-
-        KuudraHelperMod.LOGGER.info("[PhantomAddons] Downloading from {}", downloadUrl);
-        URLConnection dl = new URL(downloadUrl).openConnection();
-        dl.setRequestProperty("User-Agent", "PhantomAddons-UpdateChecker");
-        dl.setConnectTimeout(10000);
-        dl.setReadTimeout(120000);
-
-        long expectedLength = dl.getContentLengthLong();
-        long written;
-        try (InputStream in = dl.getInputStream()) {
-            written = Files.copy(in, staging, StandardCopyOption.REPLACE_EXISTING);
-        }
-        if (expectedLength > 0 && written != expectedLength) {
-            Files.deleteIfExists(staging);
-            throw new Exception("Download incomplete (" + written + "/" + expectedLength + " bytes)");
-        }
-        if (written < 1024) {
-            Files.deleteIfExists(staging);
-            throw new Exception("Downloaded file is too small to be a valid jar (" + written + " bytes)");
-        }
-
-        scheduleSwap(staging, latestVersion);
-    }
-
-    private static void scheduleSwap(Path staging, String version) {
-        Path modsDir  = FabricLoader.getInstance().getGameDir().resolve("mods");
-        Path finalJar = modsDir.resolve("phantomaddons-" + version + ".jar");
-
-        Path currentJar = FabricLoader.getInstance()
-                .getModContainer("phantomaddons")
-                .map(c -> c.getOrigin().getPaths().get(0))
-                .orElse(null);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                Files.move(staging, finalJar, StandardCopyOption.REPLACE_EXISTING);
-                if (currentJar != null && !currentJar.equals(finalJar)) {
-                    removeOldJar(currentJar);
-                }
-                KuudraHelperMod.LOGGER.info("[PhantomAddons] Installed {}.", finalJar.getFileName());
-            } catch (Exception ex) {
-                KuudraHelperMod.LOGGER.error("[PhantomAddons] Failed to install update: {}",
-                        ex.getMessage());
-            }
-        }, "PhantomAddons-UpdateSwap"));
-    }
-
-    private static void removeOldJar(Path jar) {
+    private static void invokeInstaller(String methodName, String... args) throws Exception {
+        Class<?>[] types = new Class<?>[args.length];
+        java.util.Arrays.fill(types, String.class);
         try {
-            Files.deleteIfExists(jar);
-            if (!Files.exists(jar)) {
-                KuudraHelperMod.LOGGER.info("[PhantomAddons] Old jar deleted: {}", jar.getFileName());
-                return;
-            }
-        } catch (Exception ignored) {}
-
-        try {
-            Path disabled = jar.resolveSibling(jar.getFileName() + ".disabled");
-            Files.move(jar, disabled, StandardCopyOption.REPLACE_EXISTING);
-            KuudraHelperMod.LOGGER.info("[PhantomAddons] Old jar renamed to {} (will be removed on next startup).",
-                    disabled.getFileName());
-        } catch (Exception ex) {
-            KuudraHelperMod.LOGGER.error("[PhantomAddons] Could not remove old jar {}: {}",
-                    jar.getFileName(), ex.getMessage());
+            Class<?> cls = Class.forName("com.kuudrahelper.UpdateInstaller");
+            cls.getMethod(methodName, types).invoke(null, (Object[]) args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception ex) throw ex;
+            throw e;
+        } catch (ReflectiveOperationException e) {
+            throw new Exception("Auto-download isn't available in this edition", e);
         }
     }
 
     public static void cleanupLeftoverJars() {
+        if (!Edition.CURRENT.autoDownloadCapable) return;
         try {
-            Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
-            try (var stream = Files.list(modsDir)) {
-                stream.forEach(p -> {
-                    String name = p.getFileName().toString();
-                    if (name.endsWith(".jar.disabled")) {
-                        try {
-                            Files.deleteIfExists(p);
-                            KuudraHelperMod.LOGGER.info("[PhantomAddons] Cleaned up leftover: {}", p.getFileName());
-                        } catch (Exception ignored) {}
-                    } else if (name.startsWith(STAGING_PREFIX) && name.endsWith(STAGING_SUFFIX)) {
-                        String version = name.substring(STAGING_PREFIX.length(), name.length() - STAGING_SUFFIX.length());
-                        Path finalJar = modsDir.resolve("phantomaddons-" + version + ".jar");
-                        if (Files.exists(finalJar)) {
-                            try {
-                                Files.deleteIfExists(p);
-                            } catch (Exception ignored) {}
-                        } else {
-                            KuudraHelperMod.LOGGER.info(
-                                    "[PhantomAddons] Resuming interrupted update to {} left over from a previous session.",
-                                    version);
-                            scheduleSwap(p, version);
-                        }
-                    }
-                });
-            }
-        } catch (Exception ignored) {}
+            invokeInstaller("cleanupLeftoverJars");
+        } catch (Exception e) {
+            KuudraHelperMod.LOGGER.error("[PhantomAddons] Cleanup failed: {}", e.getMessage());
+        }
     }
 
     public static String currentVersion() {

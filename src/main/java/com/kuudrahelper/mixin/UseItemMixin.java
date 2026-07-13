@@ -50,6 +50,7 @@ public class UseItemMixin {
             if (itemName.contains("bonemerang")) {
                 com.kuudrahelper.features.boss.RendTracker.onBonemerangThrow();
                 com.kuudrahelper.features.boss.BackboneProgressBar.onBonemerangThrow();
+                com.kuudrahelper.features.boss.BoneTimingAssist.onBonemerangThrow();
             }
         }
 

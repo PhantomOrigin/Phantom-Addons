@@ -6,6 +6,9 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 
+/*
+This feature is excluded from the standard version of the mod
+ */
 public final class CannonAutoClose {
 
     private static final String TRIGGER    = "You purchased Human Cannonball!";
@@ -18,6 +21,7 @@ public final class CannonAutoClose {
     private CannonAutoClose() {}
 
     public static void register() {
+        if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay || !KuudraConfig.isCannonAutoCloseEnabled()) return;
             String text = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
