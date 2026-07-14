@@ -62,7 +62,8 @@ public final class CroesusListener {
         boolean wheelOfFate,       // true if Wheel of Fate on an item is recommended
         int rerollSlotIndex,       // GUI slot index of the kismet feather (or -1)
         int wheelSlotIndex,        // GUI slot index of the wheel-of-fate item (or -1)
-        boolean kismetAlreadyUsed, // chest lore says "already rerolled"
+        boolean kismetAlreadyUsed, // chest lore says "already rerolled this chest"
+        boolean wheelAlreadyUsed,  // chest lore says "already rerolled this shard"
         int detectedTier           // tier read from "Cost: X Kuudra Key" lore (0 if not found)
     ) {}
 
@@ -76,6 +77,7 @@ public final class CroesusListener {
         long essenceValue   = 0;
         boolean canReroll          = false;
         boolean kismetAlreadyUsed  = false;
+        boolean wheelAlreadyUsed  = false;
         int rerollSlot             = -1;
         int wheelSlot              = -1;
         int detectedTier           = 0;
@@ -93,11 +95,13 @@ public final class CroesusListener {
                 canReroll = true;
                 for (String l : lore) {
                     String sl = stripColor(l).toLowerCase();
-                    if (sl.contains("already been rerolled") || sl.contains("cannot be rerolled")
-                        || sl.contains("already rerolled")) {
+                    if (sl.contains("already rerolled this shard") || sl.contains("already had its shards rerolled")) {
+                        canReroll = false;
+                        wheelAlreadyUsed = true;
+                    }
+                    if (sl.contains("cannot be rerolled") || sl.contains("already rerolled this chest")) {
                         canReroll = false;
                         kismetAlreadyUsed = true;
-                        break;
                     }
                 }
             } else if (name.contains("wheel of fate") || (name.contains("wheel") && name.contains("fate"))) {
@@ -222,7 +226,7 @@ public final class CroesusListener {
         return new ChestAnalysis(
             itemsValue, attributeValue, essenceValue, totalValue,
             canReroll, rerollProfit, useWheel, rerollSlot, wheelSlot,
-            kismetAlreadyUsed, detectedTier
+            kismetAlreadyUsed, wheelAlreadyUsed, detectedTier
         );
     }
 

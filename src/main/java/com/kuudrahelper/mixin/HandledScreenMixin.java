@@ -97,7 +97,6 @@ public class HandledScreenMixin {
 
         // Track kismet / wheel-of-fate usage in chest overlay
         if (KuudraConfig.isProfitTrackerEnabled() && CroesusListener.isKuudraChest(self)) {
-            ChestValueOverlay.onSlotClicked(slotId, kuudrahelper$cachedAnalysis);
             // Invalidate cached analysis so we re-read the new slot contents next frame
             kuudrahelper$cachedAnalysis = null;
         }
