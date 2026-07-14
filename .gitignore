@@ -1,20 +1,13 @@
-# Build output
+
 build/
 
-# Gradle cache
 .gradle/
 
-# Minecraft run directory (logs, world saves, etc.)
 run/
 
-# Local jar dependencies
-libs/
-
-# IDE files
 .idea/
 *.iml
 .vscode/
 
-# OS files
 .DS_Store
 Thumbs.db
