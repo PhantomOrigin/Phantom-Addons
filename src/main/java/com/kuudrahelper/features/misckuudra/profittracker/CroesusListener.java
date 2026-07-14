@@ -215,7 +215,7 @@ public final class CroesusListener {
 
         boolean useWheel = false;
         if (wheelSlot >= 0 && attributeValue > 0) {
-            double wheelCost = bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE);
+            double wheelCost = PriceCache.getBin(KuudraDrops.WHEEL_OF_FATE);
             useWheel = wheelCost > 0 && attributeValue < wheelCost * 2;
         }
 

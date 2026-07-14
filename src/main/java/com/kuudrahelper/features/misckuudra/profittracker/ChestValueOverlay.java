@@ -130,7 +130,7 @@ public final class ChestValueOverlay {
         long keyCost     = freeChest ? 0 : CroesusListener.calculateKeyCost(renderTier);
         boolean kismetAny = a.kismetAlreadyUsed();
         long kismetCost  = kismetAny ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.KISMET_FEATHER) : 0;
-        long wheelCost   = wheelUsed  ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE)  : 0;
+        long wheelCost   = wheelUsed  ? (long) PriceCache.getBin(KuudraDrops.WHEEL_OF_FATE) : 0;
         long totalExp    = keyCost + kismetCost + wheelCost;
         long profit      = chestValue - totalExp;
 

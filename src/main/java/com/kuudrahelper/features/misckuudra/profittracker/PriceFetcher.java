@@ -71,6 +71,18 @@ public final class PriceFetcher {
                         fail++;
                     }
                 }
+                for (String id : KuudraDrops.AH_LOWEST_BIN_ITEM_IDS) {
+                    try {
+                        String json  = get(COFLNET_URL + id + "/bin");
+                        JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+                        double price = obj.has("lowest") ? obj.get("lowest").getAsDouble() : -1;
+                        if (price > 0) { PriceCache.putBin(id, price); ok++; }
+                        else fail++;
+                    } catch (Exception e) {
+                        KuudraHelperMod.LOGGER.warn("[PriceFetcher] BIN fetch failed for {}: {}", id, e.getMessage());
+                        fail++;
+                    }
+                }
                 KuudraHelperMod.LOGGER.info("[PriceFetcher] BINs loaded: {}/{} items", ok, ok + fail);
             } finally {
                 binsFetching.set(false);
