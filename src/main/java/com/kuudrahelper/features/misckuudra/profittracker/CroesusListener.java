@@ -37,16 +37,19 @@ public final class CroesusListener {
         if (stack == null || stack.isEmpty()) return false;
 
         String name = stripColor(stack.getDisplayName().getString()).toLowerCase();
-        if (!name.contains("chest")) return false;
+        if (!name.contains("kuudra's hollow")) return false;
 
         List<String> lore = getLore(stack);
         for (String line : lore) {
             String l = stripColor(line).toLowerCase();
-            if (l.contains("already opened") || l.contains("not yet opened") && l.contains("false"))
+            if (l.contains("no more chests to open!"))
                 return false;
-            if (l.contains("not opened") || l.contains("not yet opened")) return true;
+            if (l.contains("chests expire in"))
+                return true;
         }
-        return stack.getItem() == Items.CHEST || stack.getItem() == Items.TRAPPED_CHEST;
+        KuudraHelperMod.LOGGER.warn("[PhantomAddons] Reached end of `isUnopenedChest` without knowing if the chest can still be open. Please report this as a bug.");
+        KuudraHelperMod.LOGGER.warn("[PhantomAddons] name = {name}, lore: {lore}");
+        return false;
     }
 
     public record ChestAnalysis(
