@@ -57,6 +57,11 @@ public class KuudraConfig {
     private static boolean cannonAutoClose          = false;
     private static boolean kuudraDirectionEnabled   = false;
     private static boolean boneTimingAssistEnabled  = false;
+    private static float   boneTimingAssistOffset   = 0f; // blocks; -3.00 (early) to +1.00 (late), Kuudra-hitbox only
+    private static boolean boneTimingHitboxOutlineEnabled = false;
+    private static boolean boneTimingHitboxOutlineFilled  = true;
+    private static int     boneTimingHitboxOutlineColor   = 0x00FFFF; // aqua
+    private static boolean boneTimingHitboxOutlineOnlyCurrentDirection = false;
     private static boolean shopKeybindsEnabled      = false;
     private static int     shopMainKey              = 49;
     private static int     shopCannonKey            = 50;
@@ -325,6 +330,7 @@ public class KuudraConfig {
     private static int     wardrobeUnequipKey   = 85;  // GLFW_KEY_U
     private static boolean wardrobeDisableUnequipEnabled = true;
     private static boolean wardrobeAutoCloseEnabled      = true;
+    private static int     wardrobeExtraAutoCloseMs      = 0;
     private static int     lastEquippedWardrobeSlot      = -1;
 
     private static boolean autoGfsToxic    = false;
@@ -395,6 +401,11 @@ public class KuudraConfig {
     public static boolean isCannonAutoCloseEnabled()  { return cannonAutoClose; }
     public static boolean isKuudraDirectionEnabled()   { return kuudraDirectionEnabled; }
     public static boolean isBoneTimingAssistEnabled()  { return boneTimingAssistEnabled; }
+    public static float   getBoneTimingAssistOffset()  { return boneTimingAssistOffset; }
+    public static boolean isBoneTimingHitboxOutlineEnabled() { return boneTimingHitboxOutlineEnabled; }
+    public static boolean isBoneTimingHitboxOutlineFilled()  { return boneTimingHitboxOutlineFilled; }
+    public static int     getBoneTimingHitboxOutlineColor()  { return boneTimingHitboxOutlineColor; }
+    public static boolean isBoneTimingHitboxOutlineOnlyCurrentDirection() { return boneTimingHitboxOutlineOnlyCurrentDirection; }
     public static boolean isShopKeybindsEnabled()     { return shopKeybindsEnabled; }
     public static int     getShopMainKey()            { return shopMainKey; }
     public static int     getShopCannonKey()          { return shopCannonKey; }
@@ -608,6 +619,11 @@ public class KuudraConfig {
     public static void setCannonAutoCloseEnabled(boolean v) { cannonAutoClose = v;          save(); }
     public static void setKuudraDirectionEnabled(boolean v) { kuudraDirectionEnabled = v;   save(); }
     public static void setBoneTimingAssistEnabled(boolean v) { boneTimingAssistEnabled = v; save(); }
+    public static void setBoneTimingAssistOffset(float v) { boneTimingAssistOffset = Math.clamp(v, -3.0f, 1.0f); save(); }
+    public static void setBoneTimingHitboxOutlineEnabled(boolean v) { boneTimingHitboxOutlineEnabled = v; save(); }
+    public static void setBoneTimingHitboxOutlineFilled(boolean v)  { boneTimingHitboxOutlineFilled = v;  save(); }
+    public static void setBoneTimingHitboxOutlineColor(int v)       { boneTimingHitboxOutlineColor = v & 0xFFFFFF; save(); }
+    public static void setBoneTimingHitboxOutlineOnlyCurrentDirection(boolean v) { boneTimingHitboxOutlineOnlyCurrentDirection = v; save(); }
     public static void setShopKeybindsEnabled(boolean v)    { shopKeybindsEnabled = v;      save(); }
     public static void setShopMainKey(int v)                { shopMainKey = v;              save(); }
     public static void setShopCannonKey(int v)              { shopCannonKey = v;            save(); }
@@ -854,6 +870,8 @@ public class KuudraConfig {
     public static void setWardrobeDisableUnequipEnabled(boolean v) { wardrobeDisableUnequipEnabled = v; save(); }
     public static boolean isWardrobeAutoCloseEnabled()           { return wardrobeAutoCloseEnabled; }
     public static void setWardrobeAutoCloseEnabled(boolean v)    { wardrobeAutoCloseEnabled = v; save(); }
+    public static int     getWardrobeExtraAutoCloseMs()          { return wardrobeExtraAutoCloseMs; }
+    public static void setWardrobeExtraAutoCloseMs(int v)        { wardrobeExtraAutoCloseMs = Math.max(0, v); save(); }
     public static int  getLastEquippedWardrobeSlot()          { return lastEquippedWardrobeSlot; }
     public static void setLastEquippedWardrobeSlot(int v)     { lastEquippedWardrobeSlot = v; save(); }
 
@@ -1006,6 +1024,11 @@ public class KuudraConfig {
             giantHitboxColor                      = d.giantHitboxColor & 0xFFFFFF;
             kuudraDirectionEnabled = d.kuudraDirectionEnabled;
             boneTimingAssistEnabled = d.boneTimingAssistEnabled;
+            boneTimingAssistOffset = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
+            boneTimingHitboxOutlineEnabled = d.boneTimingHitboxOutlineEnabled;
+            boneTimingHitboxOutlineFilled  = d.boneTimingHitboxOutlineFilled;
+            boneTimingHitboxOutlineColor   = d.boneTimingHitboxOutlineColor & 0xFFFFFF;
+            boneTimingHitboxOutlineOnlyCurrentDirection = d.boneTimingHitboxOutlineOnlyCurrentDirection;
 
             mountTimerHudX     = d.mountTimerHudX;
             mountTimerHudY     = d.mountTimerHudY;
@@ -1083,6 +1106,7 @@ public class KuudraConfig {
             wardrobeUnequipKey  = d.wardrobeUnequipKey;
             wardrobeDisableUnequipEnabled = d.wardrobeDisableUnequipEnabled;
             wardrobeAutoCloseEnabled      = d.wardrobeAutoCloseEnabled;
+            wardrobeExtraAutoCloseMs      = Math.max(0, d.wardrobeExtraAutoCloseMs);
             lastEquippedWardrobeSlot      = d.lastEquippedWardrobeSlot;
 
             autoGfsToxic    = d.autoGfsToxic;
@@ -1270,6 +1294,11 @@ public class KuudraConfig {
         d.giantHitboxColor                      = giantHitboxColor;
         d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
         d.boneTimingAssistEnabled = boneTimingAssistEnabled;
+        d.boneTimingAssistOffset = boneTimingAssistOffset;
+        d.boneTimingHitboxOutlineEnabled = boneTimingHitboxOutlineEnabled;
+        d.boneTimingHitboxOutlineFilled  = boneTimingHitboxOutlineFilled;
+        d.boneTimingHitboxOutlineColor   = boneTimingHitboxOutlineColor;
+        d.boneTimingHitboxOutlineOnlyCurrentDirection = boneTimingHitboxOutlineOnlyCurrentDirection;
 
         d.mountTimerHudX     = mountTimerHudX;
         d.mountTimerHudY     = mountTimerHudY;
@@ -1345,6 +1374,7 @@ public class KuudraConfig {
         d.wardrobeUnequipKey  = wardrobeUnequipKey;
         d.wardrobeDisableUnequipEnabled = wardrobeDisableUnequipEnabled;
         d.wardrobeAutoCloseEnabled      = wardrobeAutoCloseEnabled;
+        d.wardrobeExtraAutoCloseMs      = wardrobeExtraAutoCloseMs;
         d.lastEquippedWardrobeSlot      = lastEquippedWardrobeSlot;
 
         d.autoGfsToxic    = autoGfsToxic;
@@ -1611,6 +1641,11 @@ public class KuudraConfig {
         int     giantHitboxColor                      = 0xFFFFFF;
         boolean kuudraDirectionEnabled  = false;
         boolean boneTimingAssistEnabled = false;
+        float   boneTimingAssistOffset = 0f;
+        boolean boneTimingHitboxOutlineEnabled = false;
+        boolean boneTimingHitboxOutlineFilled  = true;
+        int     boneTimingHitboxOutlineColor   = 0x00FFFF;
+        boolean boneTimingHitboxOutlineOnlyCurrentDirection = false;
 
         float mountTimerHudX     = 0.5f;
         float mountTimerHudY     = 0.56f;
@@ -1686,6 +1721,7 @@ public class KuudraConfig {
         int     wardrobeUnequipKey  = 85;
         boolean wardrobeDisableUnequipEnabled = true;
         boolean wardrobeAutoCloseEnabled      = true;
+        int     wardrobeExtraAutoCloseMs      = 0;
         int     lastEquippedWardrobeSlot      = -1;
 
         boolean autoGfsToxic    = false;

@@ -173,6 +173,8 @@ public class KuudraHelperMod implements ClientModInitializer {
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) handleSupplyNotifications(clean);
             if (!overlay) com.kuudrahelper.features.boss.ManaDrainAnnouncer.onChat(clean);
+            // Action bar (overlay) text carries the live "current/max✎" mana readout.
+            if (overlay) com.kuudrahelper.features.boss.ManaTracker.onChat(clean);
             if (clean.contains("Used Extreme Focus!")) com.kuudrahelper.features.boss.RendTracker.onManaDrain();
             com.kuudrahelper.features.misckuudra.HollowWandAnnouncer.onChat(clean);
             if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")

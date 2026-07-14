@@ -18,25 +18,30 @@ public final class RendDamage {
     private static final int  MIN_PULL_DIFF  = 1_666;
     private static final int  HP_MULTIPLIER  = 9_600;
 
-    private static int  lastHp       = KUUDRA_MAX_HP;
+    // -1 means "not yet baselined this cycle" — rather than assuming Kuudra's true
+    // starting HP is always exactly KUUDRA_MAX_HP, the first real reading after a reset
+    // just becomes the baseline with no diff reported. Different HP display formats
+    // (e.g. the "240M" format) don't necessarily start at the same raw value, and
+    // assuming a fixed ceiling caused a spurious huge "pull" the instant the real first
+    // reading came in lower than that assumption.
+    private static int  lastHp       = -1;
     private static long phaseStartMs = -1L;
 
     private RendDamage() {}
 
     public static void onKillPhaseStart() {
         if (phaseStartMs >= 0) return; // already started — keep original timestamp and lastHp
-        lastHp       = KUUDRA_MAX_HP;
+        lastHp       = -1;
         phaseStartMs = System.currentTimeMillis();
     }
 
-    /** Called specifically when BOSS phase starts; always resets so timing is from BOSS, not STUN. */
     public static void onBossPhaseStart() {
-        lastHp       = KUUDRA_MAX_HP;
+        lastHp       = -1;
         phaseStartMs = System.currentTimeMillis();
     }
 
     public static void reset() {
-        lastHp       = KUUDRA_MAX_HP;
+        lastHp       = -1;
         phaseStartMs = -1L;
     }
 
@@ -56,12 +61,17 @@ public final class RendDamage {
             int hp = Math.min((int) kuudra.getHealth(), KUUDRA_MAX_HP);
             if (hp <= 0) { reset(); return; }
 
+            if (lastHp < 0) { lastHp = hp; return; } // first reading this cycle — baseline only, no diff yet
+
             int diff = lastHp - hp;
             lastHp = hp;
 
             if (diff >= MIN_PULL_DIFF) {
                 long damage  = (long) diff * HP_MULTIPLIER;
-                long elapsed = phaseStartMs >= 0 ? System.currentTimeMillis() - phaseStartMs : 0;
+                long pingAdjustMs = KuudraConfig.getLowPing() / 2L;
+                long elapsed = phaseStartMs >= 0
+                        ? Math.max(0L, System.currentTimeMillis() - phaseStartMs - pingAdjustMs)
+                        : 0;
 
                 client.player.sendSystemMessage(Component.literal(
                         String.format("§f[PhantomAddons]§r §fSomeone pulled for %s%s §fdamage at §a%s§f.",

@@ -19,23 +19,30 @@ import net.minecraft.world.phys.Vec3;
 
 public final class BoneTimingAssist {
 
-    // TEMP: still waiting on KUUDRA_STATIONARY_HITBOXES data — force-disabled across all
-    // editions so it doesn't ship half-finished. Flip back to false once that's filled in.
-    private static final boolean TEMP_DISABLED = true;
-    public static boolean isTempDisabled() { return TEMP_DISABLED; }
+    private static final double THROW_RANGE   = 14.0;
 
-    private static final double RAYCAST_RANGE = 14.0;
+    private static final double DISPLAY_RANGE = 18.0;
 
     private static final int BRACKET_MAX_OFFSET_PX = 60;
-    private static final int WHITE_ROW_Y_OFFSET     = 0;
-    private static final int RED_ROW_Y_OFFSET        = 12;
 
-    private static final AABB[] KUUDRA_STATIONARY_HITBOXES = {
-        // TODO: new AABB(minX, minY, minZ, maxX, maxY, maxZ),
+    static final AABB[] KUUDRA_LOGGED_HITBOXES = {
+        new AABB(-112.7999997138977, 11.0, -84.7999997138977, -97.2000002861023, 26.59999942779541, -69.2000002861023),
+        new AABB(-82.7999997138977, 12.0, -111.7999997138977, -67.2000002861023, 27.59999942779541, -96.2000002861023),
+        new AABB(-105.7999997138977, 13.0, -143.7999997138977, -90.2000002861023, 28.59999942779541, -128.2000002861023),
+        new AABB(-139.7999997138977, 9.0, -112.7999997138977, -124.2000002861023, 24.59999942779541, -97.2000002861023),
     };
 
-    // No arena-bounds placeholder needed anymore — the wall check is a real block
-    // raycast against the world (see wallHitDistance), since the room isn't a clean box.
+    private static final double DETECTION_INFLATE = 3.0;
+
+    private static final AABB[] KUUDRA_STATIONARY_HITBOXES = buildDetectionHitboxes();
+
+    private static AABB[] buildDetectionHitboxes() {
+        AABB[] result = new AABB[KUUDRA_LOGGED_HITBOXES.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = KUUDRA_LOGGED_HITBOXES[i].inflate(DETECTION_INFLATE);
+        }
+        return result;
+    }
 
     private static volatile boolean hidden = false;
 
@@ -66,14 +73,12 @@ public final class BoneTimingAssist {
     }
 
     public static void register() {
-        if (TEMP_DISABLED) return;
         HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR,
                 Identifier.fromNamespaceAndPath("phantomaddons", "bone_timing_assist"),
                 (ctx, tickCounter) -> render(ctx));
     }
 
     private static void render(GuiGraphicsExtractor ctx) {
-        if (TEMP_DISABLED) return;
         if (!KuudraConfig.isBoneTimingAssistEnabled()) return;
         if (hidden) return;
         if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.BOSS) return;
@@ -85,49 +90,50 @@ public final class BoneTimingAssist {
         Vec3 look = mc.player.getLookAngle();
 
         AABB kuudraBox = findAimedStationaryHitbox(eye, look);
-        if (kuudraBox == null) return; // not looking at a known Kuudra spot (or no data logged yet)
+        if (kuudraBox == null) return;
 
-        double distToKuudra = rayEntryDistance(eye, look, kuudraBox, RAYCAST_RANGE);
-        double distToWall   = wallHitDistance(mc, eye, look, RAYCAST_RANGE);
+        double distToKuudra = rayEntryDistance(eye, look, kuudraBox, DISPLAY_RANGE)
+                + KuudraConfig.getBoneTimingAssistOffset();
 
         int screenW = mc.getWindow().getGuiScaledWidth();
         int screenH = mc.getWindow().getGuiScaledHeight();
         int cx = screenW / 2;
         int cy = screenH / 2;
 
-        drawBracketPair(ctx, mc, cx, cy + WHITE_ROW_Y_OFFSET, distToKuudra, 0xFFFFFFFF);
-        drawBracketPair(ctx, mc, cx, cy + RED_ROW_Y_OFFSET, distToWall, 0xFFFF3333);
+        drawBracketPair(ctx, mc, cx, cy, distToKuudra, THROW_RANGE, 0xFFFFFFFF);
+
+        Double distToWall = wallHitDistance(mc, eye, look, DISPLAY_RANGE);
+        if (distToWall != null) {
+            drawBracketPair(ctx, mc, cx, cy, distToWall, THROW_RANGE, 0xFFFF3333);
+        }
     }
 
-    /**
-     * Distance along the ray (capped at {@code range}) to the first non-air/liquid block
-     * it actually hits — a real raycast against the world rather than a single bounding
-     * box, since the arena's walls aren't flat.
-     */
-    private static double wallHitDistance(Minecraft mc, Vec3 origin, Vec3 dir, double range) {
-        if (mc.level == null) return range;
+    private static Double wallHitDistance(Minecraft mc, Vec3 origin, Vec3 dir, double range) {
+        if (mc.level == null) return null;
         Vec3 far = origin.add(dir.scale(range));
         BlockHitResult hit = mc.level.clip(new ClipContext(
                 origin, far,
                 ClipContext.Block.COLLIDER,
                 ClipContext.Fluid.ANY,
                 mc.player));
-        if (hit.getType() != HitResult.Type.BLOCK) return range;
+        if (hit.getType() != HitResult.Type.BLOCK) return null;
         return Math.min(range, origin.distanceTo(hit.getLocation()));
     }
 
     private static AABB findAimedStationaryHitbox(Vec3 eye, Vec3 look) {
-        for (AABB box : KUUDRA_STATIONARY_HITBOXES) {
-            if (rayExitDistance(eye, look, box, RAYCAST_RANGE) != null) return box;
+        for (int i = 0; i < KUUDRA_STATIONARY_HITBOXES.length; i++) {
+            if (rayExitDistance(eye, look, KUUDRA_STATIONARY_HITBOXES[i], DISPLAY_RANGE) != null) {
+                return KUUDRA_LOGGED_HITBOXES[i];
+            }
         }
         return null;
     }
 
     private static void drawBracketPair(GuiGraphicsExtractor ctx, Minecraft mc,
-                                        int cx, int cy, double distance, int color) {
-        double frac   = Math.max(0.0, Math.min(1.0, distance / RAYCAST_RANGE));
+                                        int cx, int cy, double distance, double closeAt, int color) {
+        double frac   = Math.max(0.0, Math.min(1.0, (distance - closeAt) / (DISPLAY_RANGE - closeAt)));
         int    offset = (int) Math.round(BRACKET_MAX_OFFSET_PX * frac);
-        if (offset <= 0) return; // fully closed — hide entirely per spec
+        if (offset <= 0) return;
 
         String left  = "[";
         String right = "]";
@@ -138,7 +144,7 @@ public final class BoneTimingAssist {
     private static double rayEntryDistance(Vec3 origin, Vec3 dir, AABB box, double range) {
         double[] t = rayBoxSlabs(origin, dir, box);
         if (t == null || t[0] > range || t[1] < 0) return range;
-        return Math.max(0.0, t[0]);
+        return t[0];
     }
 
     private static Double rayExitDistance(Vec3 origin, Vec3 dir, AABB box, double range) {

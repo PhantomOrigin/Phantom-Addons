@@ -52,6 +52,7 @@ public class UseItemMixin {
                 com.kuudrahelper.features.boss.BackboneProgressBar.onBonemerangThrow();
                 com.kuudrahelper.features.boss.BoneTimingAssist.onBonemerangThrow();
             }
+            com.kuudrahelper.features.boss.RendTracker.onEndstoneSwordUse(stack);
         }
 
         if (EtherwarpPredictor.isEtherTransmissionItem(stack)) {

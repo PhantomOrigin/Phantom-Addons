@@ -158,6 +158,13 @@ public final class KuudraHpHud {
         return lastProgress < 0 ? -1f : lastProgress * 100f;
     }
 
+    public static float getTrueHpPercent() {
+        if (cachedKuudra == null) return -1f;
+        float hp = cachedKuudra.getHealth();
+        if (hp <= 0) return -1f;
+        return Math.min(hp / KUUDRA_RAW_MAX, 1f) * 100f;
+    }
+
     private static boolean isActivePhase() {
         KuudraPhaseTracker.Phase p = KuudraPhaseTracker.getPhase();
         return p == KuudraPhaseTracker.Phase.EATEN

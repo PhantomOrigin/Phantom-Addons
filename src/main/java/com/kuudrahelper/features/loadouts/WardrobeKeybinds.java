@@ -116,7 +116,7 @@ public final class WardrobeKeybinds {
     private static void scheduleCloseAfterRelease(int keyCode) {
         if (!com.kuudrahelper.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         if (!KuudraConfig.isWardrobeAutoCloseEnabled()) return;
-        suppressReopenUntilMs = System.currentTimeMillis() + SUPPRESS_REOPEN_MS;
+        suppressReopenUntilMs = System.currentTimeMillis() + SUPPRESS_REOPEN_MS + KuudraConfig.getWardrobeExtraAutoCloseMs();
         if (keyCode < 0) { closeInTicks = CLOSE_DELAY_TICKS; return; }
         pendingCloseKeyCode = keyCode;
         pendingCloseTimeoutTicks = CLOSE_TIMEOUT_TICKS;

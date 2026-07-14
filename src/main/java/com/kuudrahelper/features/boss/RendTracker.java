@@ -21,7 +21,6 @@ public final class RendTracker {
     private static ItemStack heldAtBackbone    = null;
     private static long manaDrainMs            = -1;
 
-    // Buffered pull — stored when the player clicks before backbone hit registers
     private static long      pendingPullMs   = -1;
     private static ItemStack pendingPullItem = null;
     private static final long PULL_BUFFER_MS = 400;
@@ -34,7 +33,6 @@ public final class RendTracker {
         clearCycle();
     }
 
-    /** Called specifically when BOSS phase starts; always resets so timing is from BOSS, not STUN. */
     public static void onBossPhaseStart() {
         killPhaseStartMs = System.currentTimeMillis();
         clearCycle();
@@ -60,14 +58,35 @@ public final class RendTracker {
         if (!isKillPhase()) return;
         if (killPhaseStartMs < 0) return;
         clearCycle();
-        int pingTicks = (int) Math.round(KuudraConfig.getLowPing() / 50.0);
-        backboneTicksRemaining = Math.max(1, BACKBONE_BASE_TICKS + pingTicks);
+        backboneTicksRemaining = BACKBONE_BASE_TICKS;
     }
 
     public static void onManaDrain() {
+        if (!com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) return;
         if (!isKillPhase()) return;
         if (backboneHitMs < 0) return;
         if (manaDrainMs < 0) manaDrainMs = System.currentTimeMillis();
+    }
+
+    public static void onEndstoneSwordUse(ItemStack item) {
+        if (!com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) return;
+        if (!isKillPhase()) return;
+        if (manaDrainMs >= 0) return;
+        if (!hasEndstoneSwordInItem(item)) return;
+        if (ManaTracker.getCurrentMana() <= 0) return; // nothing to drain, ability can't have triggered
+        manaDrainMs = System.currentTimeMillis();
+    }
+
+    private static boolean hasEndstoneSwordInItem(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (stack.getHoverName().getString().toLowerCase().contains("end stone sword")) return true;
+        net.minecraft.world.item.component.ItemLore lore =
+                stack.get(net.minecraft.core.component.DataComponents.LORE);
+        if (lore == null) return false;
+        for (net.minecraft.network.chat.Component line : lore.lines()) {
+            if (line.getString().toLowerCase().contains("end stone sword")) return true;
+        }
+        return false;
     }
 
     public static void onLeftClick(ItemStack item) {
@@ -79,7 +98,6 @@ public final class RendTracker {
             printOutput(item.copy(), pullMs);
             clearCycle();
         } else {
-            // Backbone hit not yet registered — buffer the pull and resolve in tick()
             pendingPullMs   = pullMs;
             pendingPullItem = item.copy();
         }
@@ -100,7 +118,6 @@ public final class RendTracker {
     public static void tick() {
         if (!isKillPhase()) return;
 
-        // Expire a buffered pull that never got a backbone hit
         if (pendingPullMs >= 0 && System.currentTimeMillis() - pendingPullMs > PULL_BUFFER_MS) {
             pendingPullMs   = -1;
             pendingPullItem = null;
@@ -115,7 +132,6 @@ public final class RendTracker {
                 helmetAtBackbone = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).copy();
                 heldAtBackbone   = mc.player.getMainHandItem().copy();
             }
-            // If the player already clicked the pull item before backbone hit was registered, fire now
             if (pendingPullMs >= 0) {
                 printOutput(pendingPullItem, pendingPullMs);
                 clearCycle();
@@ -142,11 +158,13 @@ public final class RendTracker {
         mc.player.sendSystemMessage(buildItemLine("§fWearing: ", helmetAtBackbone));
         mc.player.sendSystemMessage(buildItemLine("§fHolding: ", heldAtBackbone));
 
-        if (manaDrainMs > 0) {
-            double drainTime = (manaDrainMs - killPhaseStartMs) / 1000.0;
-            mc.player.sendSystemMessage(Component.literal(String.format("§fMana Drain at §b%.2fs", drainTime)));
-        } else {
-            mc.player.sendSystemMessage(Component.literal("§cNo Mana Drain!"));
+        if (com.kuudrahelper.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) {
+            if (manaDrainMs > 0) {
+                double drainTime = (manaDrainMs - killPhaseStartMs) / 1000.0;
+                mc.player.sendSystemMessage(Component.literal(String.format("§fMana Drain at §b%.2fs", drainTime)));
+            } else {
+                mc.player.sendSystemMessage(Component.literal("§cNo Mana Drain!"));
+            }
         }
 
         MutableComponent pullLine = Component.literal(String.format("§fPulled At §a%.2fs §fwith ", pullTime));

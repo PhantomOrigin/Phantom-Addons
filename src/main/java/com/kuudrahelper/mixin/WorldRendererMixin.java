@@ -4,6 +4,7 @@ import com.kuudrahelper.features.build.AnnounceFresh;
 import com.kuudrahelper.features.build.BuildBeaconRenderer;
 import com.kuudrahelper.features.build.ElleHighlightRenderer;
 import com.kuudrahelper.features.boss.KuudraHighlightRenderer;
+import com.kuudrahelper.features.boss.BoneTimingHitboxOutline;
 import com.kuudrahelper.features.supplies.EtherwarpWaypointRenderer;
 import com.kuudrahelper.features.supplies.SupplyBeaconRenderer;
 import com.kuudrahelper.features.supplies.GiantHitboxOutline;
@@ -52,5 +53,6 @@ public abstract class WorldRendererMixin {
         SupplyGiantHitbox.render(matrices, camera, tickDelta);
         GiantHitboxOutline.render(matrices, camera, tickDelta);
         WaypointLinesRenderer.render(matrices, camera, tickDelta);
+        BoneTimingHitboxOutline.render(matrices, camera, tickDelta);
     }
 }

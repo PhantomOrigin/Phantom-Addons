@@ -105,7 +105,7 @@ public final class AutoGFS {
     private static void tryApplyArrow(Minecraft client) {
         if (client.player == null) return;
 
-        float hpPercent = KuudraHpHud.getHpPercent();
+        float hpPercent = KuudraHpHud.getTrueHpPercent();
         if (hpPercent >= 0 && hpPercent <= KuudraConfig.getAutoGfsDisableHpPercent()) return;
 
         boolean found = false;

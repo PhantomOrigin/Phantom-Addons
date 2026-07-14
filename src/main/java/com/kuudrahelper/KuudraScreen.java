@@ -1221,10 +1221,20 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isRendDamageEnabled, KuudraConfig::setRendDamageEnabled)));
         roots.add(leaf(new Toggle("Rend Tracker", T,
                 KuudraConfig::isRendTrackerEnabled, KuudraConfig::setRendTrackerEnabled)));
-        if (!com.kuudrahelper.features.boss.BoneTimingAssist.isTempDisabled()) {
-            roots.add(leaf(new Toggle("Bone Timing Assist", T,
-                    KuudraConfig::isBoneTimingAssistEnabled, KuudraConfig::setBoneTimingAssistEnabled)));
-        }
+        Group boneTiming = group("Bone Timing Assist", T, null,
+                KuudraConfig::isBoneTimingAssistEnabled, KuudraConfig::setBoneTimingAssistEnabled);
+        boneTiming.add(leaf(new RangeSlider("Kuudra Timing Offset", T, -3.0f, 1.0f, "%.2f",
+                KuudraConfig::getBoneTimingAssistOffset, KuudraConfig::setBoneTimingAssistOffset)));
+        roots.add(boneTiming);
+        Group hitboxOutline = group("Bone Timing Hitbox Outline", T, null,
+                KuudraConfig::isBoneTimingHitboxOutlineEnabled, KuudraConfig::setBoneTimingHitboxOutlineEnabled);
+        hitboxOutline.add(leaf(new Toggle("Filled", T,
+                KuudraConfig::isBoneTimingHitboxOutlineFilled, KuudraConfig::setBoneTimingHitboxOutlineFilled)));
+        hitboxOutline.add(leaf(new RgbInput("Colour", T,
+                KuudraConfig::getBoneTimingHitboxOutlineColor, KuudraConfig::setBoneTimingHitboxOutlineColor)));
+        hitboxOutline.add(leaf(new Toggle("Only Kuudra Direction", T,
+                KuudraConfig::isBoneTimingHitboxOutlineOnlyCurrentDirection, KuudraConfig::setBoneTimingHitboxOutlineOnlyCurrentDirection)));
+        roots.add(hitboxOutline);
         Group backbone = group("Backbone Progress Bar", T, null,
                 KuudraConfig::isBackboneProgressBarEnabled, KuudraConfig::setBackboneProgressBarEnabled);
         backbone.add(leaf(new Toggle("Work Outside Kuudra", T,
@@ -1284,6 +1294,8 @@ public class KuudraScreen extends Screen {
         if (com.kuudrahelper.Edition.CURRENT.fullFeatureSet) {
             loadouts.add(leaf(new Toggle("Auto Close Loadouts", T,
                     KuudraConfig::isWardrobeAutoCloseEnabled, KuudraConfig::setWardrobeAutoCloseEnabled)));
+            loadouts.add(leaf(new IntInput("Extra Auto Close Ms", T,
+                    KuudraConfig::getWardrobeExtraAutoCloseMs, KuudraConfig::setWardrobeExtraAutoCloseMs)));
         }
         loadouts.add(soundGroup(T, loadouts.key, KuudraConfig.SOUND_WARDROBE_SWAP));
         roots.add(loadouts);

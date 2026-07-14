@@ -5,6 +5,7 @@ import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 
 public final class KuudraPhaseTracker {
 
@@ -120,9 +121,15 @@ public final class KuudraPhaseTracker {
     private static void checkBossYTransition() {
         if (currentPhase != Phase.SKIP) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        if (mc.player.getY() < 10.0) {
-            setPhase(Phase.BOSS);
+        if (mc.level == null) return;
+        // Any player (not just the local one) dropping below y10 during SKIP should
+        // trigger BOSS instantly — previously only checked the local player, so a run
+        // where someone else fell first (while you stayed up) never transitioned at all.
+        for (Player p : mc.level.players()) {
+            if (p.getY() < 10.0) {
+                setPhase(Phase.BOSS);
+                return;
+            }
         }
     }
 

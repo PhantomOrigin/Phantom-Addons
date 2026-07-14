@@ -34,11 +34,20 @@ public final class RemoteFeatureGate {
     private static volatile boolean enabled = false;
     private static volatile boolean checked = false;
 
+    // Separate concern from the API-key gate above: whether mana-drain tracking/display
+    // in the Rend Tracker report should still run. Endstone Sword (the mana-drain source)
+    // is due to be nerfed out of relevance, at which point this can be flipped off from
+    // the worker without shipping a new build. Unlike the API-key gate, this fails OPEN
+    // (defaults true) — it's an accuracy toggle, not a security/legal one, so a failed
+    // check shouldn't silently break an otherwise-working display.
+    private static volatile boolean manaDrainTrackingEnabled = true;
+
     private RemoteFeatureGate() {}
 
     public static boolean isEnabled() { return enabled; }
     /** Whether the startup check has completed (success or failure) — for UI "checking..." states. */
     public static boolean hasChecked() { return checked; }
+    public static boolean isManaDrainTrackingEnabled() { return manaDrainTrackingEnabled; }
 
     public static void checkOnStartup() {
         CompletableFuture.runAsync(() -> {
@@ -57,7 +66,10 @@ public final class RemoteFeatureGate {
 
                 JsonObject root = JsonParser.parseString(body).getAsJsonObject();
                 enabled = root.has("apiKeyFeaturesEnabled") && root.get("apiKeyFeaturesEnabled").getAsBoolean();
-                KuudraHelperMod.LOGGER.info("[PhantomAddons] API-key features: {}", enabled ? "enabled" : "disabled");
+                manaDrainTrackingEnabled = !root.has("manaDrainTrackingEnabled")
+                        || root.get("manaDrainTrackingEnabled").getAsBoolean();
+                KuudraHelperMod.LOGGER.info("[PhantomAddons] API-key features: {}, mana drain tracking: {}",
+                        enabled ? "enabled" : "disabled", manaDrainTrackingEnabled ? "enabled" : "disabled");
             } catch (Exception e) {
                 enabled = false;
                 KuudraHelperMod.LOGGER.warn("[PhantomAddons] Could not check API-key feature status ({}) — leaving disabled",
