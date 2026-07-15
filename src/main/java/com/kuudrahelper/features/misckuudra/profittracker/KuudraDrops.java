@@ -63,10 +63,15 @@ public final class KuudraDrops {
         AH_ITEM_IDS = Collections.unmodifiableSet(ids);
     }
 
+    public static final String TENTACLE_DYE = "TENTACLE_DYE";
+    public static final String DUSTY_TRAVEL_SCROLL = "NETHER_FORTRESS_BOSS_TRAVEL_SCROLL";
+
     public static final Set<String> AH_LOWEST_BIN_ITEM_IDS;
     static {
         Set<String> ids = new java.util.LinkedHashSet<>();
         ids.add(KuudraDrops.WHEEL_OF_FATE);
+        ids.add(TENTACLE_DYE);
+        ids.add(DUSTY_TRAVEL_SCROLL);
         AH_LOWEST_BIN_ITEM_IDS = Collections.unmodifiableSet(ids);
     }
 
@@ -152,7 +157,16 @@ public final class KuudraDrops {
             BASE_SALVAGE.put("HOLLOW_"  + slot, 100);
             BASE_SALVAGE.put("TERROR_"  + slot, 200);
         }
+        BASE_SALVAGE.put("AURORA_STAFF",    600);
+        BASE_SALVAGE.put("MOLTEN_NECKLACE", 600);
+        BASE_SALVAGE.put("MOLTEN_CLOAK",    600);
+        BASE_SALVAGE.put("MOLTEN_BELT",     600);
+        BASE_SALVAGE.put("MOLTEN_BRACELET", 600);
     }
+
+    public static final Set<String> SALVAGEABLE_WEAPON_IDS = Set.of(
+        "AURORA_STAFF", "MOLTEN_NECKLACE", "MOLTEN_CLOAK", "MOLTEN_BELT", "MOLTEN_BRACELET"
+    );
 
     public static int salvageEssence(String itemId, int stars) {
         int base = BASE_SALVAGE.getOrDefault(itemId.toUpperCase(), 0);

@@ -2,6 +2,7 @@ package com.kuudrahelper.features.boss;
 
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
+import com.kuudrahelper.utils.KuudraTierDetector;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
@@ -140,6 +141,7 @@ public final class RendTracker {
     }
 
     private static boolean isKillPhase() {
+        if (KuudraTierDetector.getTier() != 5) return false;
         KuudraPhaseTracker.Phase p = KuudraPhaseTracker.getPhase();
         return p == KuudraPhaseTracker.Phase.STUN
             || p == KuudraPhaseTracker.Phase.DPS

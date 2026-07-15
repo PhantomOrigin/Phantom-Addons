@@ -31,6 +31,8 @@ import java.util.Map;
 @Mixin(AbstractContainerScreen.class)
 public class HandledScreenMixin {
 
+    private static final int LIME_GREEN_HIGHLIGHT = 0x6632CD32;
+
     @Shadow protected Slot hoveredSlot;
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
@@ -94,10 +96,23 @@ public class HandledScreenMixin {
     private void kuudrahelper$slotBindsClick(Slot slot, int slotId, int mouseButton,
                                              ContainerInput clickType, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        boolean isKuudraChest = KuudraConfig.isProfitTrackerEnabled() && CroesusListener.isKuudraChest(self);
 
-        // Track kismet / wheel-of-fate usage in chest overlay
-        if (KuudraConfig.isProfitTrackerEnabled() && CroesusListener.isKuudraChest(self)) {
-            // Invalidate cached analysis so we re-read the new slot contents next frame
+        if (isKuudraChest && KuudraConfig.isBlockExpensiveRerollEnabled()
+                && kuudrahelper$cachedAnalysis != null
+                && slotId == kuudrahelper$cachedAnalysis.rerollSlotIndex()
+                && !isControlDown()
+                && CroesusListener.hasExpensiveRerollBlockItem(self)) {
+            ci.cancel();
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                mc.player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "§cBlocked Reroll - Expensive Item Detected - Hold CTRL to override"));
+            }
+            return;
+        }
+
+        if (isKuudraChest) {
             kuudrahelper$cachedAnalysis = null;
         }
 
@@ -147,7 +162,6 @@ public class HandledScreenMixin {
             if (!ChestValueOverlay.isChestOpen()) {
                 ChestValueOverlay.onChestOpen(self);
             }
-            // Re-analyse every frame so prices update as the bazaar/BIN cache populates.
             if (ChestValueOverlay.areSlotsReady(self)) {
                 kuudrahelper$cachedAnalysis = CroesusListener.analyseChest(self);
                 ChestValueOverlay.updatePending(kuudrahelper$cachedAnalysis);
@@ -159,16 +173,15 @@ public class HandledScreenMixin {
             ChestValueOverlay.render(ctx, a);
 
             if (a != null && KuudraConfig.isProfitRerollCalc()) {
-                if (a.rerollSlotIndex() >= 0 && a.rerollSlotIndex() < menu.slots.size()) {
+                if (a.rerollProfit() && a.rerollSlotIndex() >= 0 && a.rerollSlotIndex() < menu.slots.size()) {
                     Slot rs = menu.slots.get(a.rerollSlotIndex());
-                    int color = a.rerollProfit() ? 0x6600FF44 : 0x66FF4444;
                     ctx.fill(leftPos + rs.x - 1, topPos + rs.y - 1,
-                             leftPos + rs.x + 17, topPos + rs.y + 17, color);
+                             leftPos + rs.x + 17, topPos + rs.y + 17, LIME_GREEN_HIGHLIGHT);
                 }
                 if (a.wheelOfFate() && a.wheelSlotIndex() >= 0 && a.wheelSlotIndex() < menu.slots.size()) {
                     Slot ws = menu.slots.get(a.wheelSlotIndex());
                     ctx.fill(leftPos + ws.x - 1, topPos + ws.y - 1,
-                             leftPos + ws.x + 17, topPos + ws.y + 17, 0x6600FF44);
+                             leftPos + ws.x + 17, topPos + ws.y + 17, LIME_GREEN_HIGHLIGHT);
                 }
             }
             return;
@@ -236,6 +249,12 @@ public class HandledScreenMixin {
             ctx.fill(lx - 2, ly - 1, lx + mc.font.width(label) + 2, ly + mc.font.lineHeight + 1, 0xBB000000);
             ctx.text(mc.font, label, lx, ly, 0xFFFFFFFF, true);
         }
+    }
+
+    private static boolean isControlDown() {
+        com.mojang.blaze3d.platform.Window window = Minecraft.getInstance().getWindow();
+        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL)
+                || com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL);
     }
 
     private static boolean isShowBindsKeyHeld() {

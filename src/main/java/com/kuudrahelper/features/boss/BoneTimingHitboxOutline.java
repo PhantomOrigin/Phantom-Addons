@@ -32,13 +32,16 @@ public final class BoneTimingHitboxOutline {
         AABB[] boxes = BoneTimingAssist.KUUDRA_LOGGED_HITBOXES;
         if (KuudraConfig.isBoneTimingHitboxOutlineOnlyCurrentDirection()) {
             AABB current = closestToLiveKuudra(mc);
-            if (current == null) return; // no live Kuudra found — nothing to narrow down to
+            if (current == null) return;
             boxes = new AABB[]{current};
         }
 
-        int col = KuudraConfig.getBoneTimingHitboxOutlineColor();
-        int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+        int defaultCol = KuudraConfig.getBoneTimingHitboxOutlineColor();
         boolean filled = KuudraConfig.isBoneTimingHitboxOutlineFilled();
+
+        boolean highlightEnabled = KuudraConfig.isBoneTimingHitboxHighlightInRangeEnabled();
+        int aimedIndex = BoneTimingAssist.getAimedHitboxIndex();
+        AABB aimedBox = (highlightEnabled && aimedIndex >= 0) ? BoneTimingAssist.KUUDRA_LOGGED_HITBOXES[aimedIndex] : null;
 
         Vec3     cam = camera.position();
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
@@ -47,6 +50,16 @@ public final class BoneTimingHitboxOutline {
         MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
         for (AABB box : boxes) {
+            int col;
+            if (box == aimedBox) {
+                col = BoneTimingAssist.isAimedWallBlocking() ? 0xFF3333
+                    : BoneTimingAssist.isAimedInThrowRange()  ? 0x32CD32
+                    : defaultCol;
+            } else {
+                col = defaultCol;
+            }
+            int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+
             double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
             double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
 

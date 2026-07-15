@@ -1225,8 +1225,9 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isBoneTimingAssistEnabled, KuudraConfig::setBoneTimingAssistEnabled);
         boneTiming.add(leaf(new RangeSlider("Kuudra Timing Offset", T, -3.0f, 1.0f, "%.2f",
                 KuudraConfig::getBoneTimingAssistOffset, KuudraConfig::setBoneTimingAssistOffset)));
+        boneTiming.add(soundGroup(T, KuudraConfig.SOUND_BONE_THROW_NOW));
         roots.add(boneTiming);
-        Group hitboxOutline = group("Bone Timing Hitbox Outline", T, null,
+        Group hitboxOutline = group("Predicted Hitbox Location", T, null,
                 KuudraConfig::isBoneTimingHitboxOutlineEnabled, KuudraConfig::setBoneTimingHitboxOutlineEnabled);
         hitboxOutline.add(leaf(new Toggle("Filled", T,
                 KuudraConfig::isBoneTimingHitboxOutlineFilled, KuudraConfig::setBoneTimingHitboxOutlineFilled)));
@@ -1234,6 +1235,8 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::getBoneTimingHitboxOutlineColor, KuudraConfig::setBoneTimingHitboxOutlineColor)));
         hitboxOutline.add(leaf(new Toggle("Only Kuudra Direction", T,
                 KuudraConfig::isBoneTimingHitboxOutlineOnlyCurrentDirection, KuudraConfig::setBoneTimingHitboxOutlineOnlyCurrentDirection)));
+        hitboxOutline.add(leaf(new Toggle("Highlight In Range", T,
+                KuudraConfig::isBoneTimingHitboxHighlightInRangeEnabled, KuudraConfig::setBoneTimingHitboxHighlightInRange)));
         roots.add(hitboxOutline);
         Group backbone = group("Backbone Progress Bar", T, null,
                 KuudraConfig::isBackboneProgressBarEnabled, KuudraConfig::setBackboneProgressBarEnabled);
@@ -1371,6 +1374,8 @@ public class KuudraScreen extends Screen {
 
         roots.add(leaf(rs(T, "Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
                 KuudraConfig::getKuudraSizeScale, KuudraConfig::setKuudraSizeScale)));
+        roots.add(leaf(new Toggle("Tuxedo Warning", T,
+                KuudraConfig::isTuxedoWarningEnabled, KuudraConfig::setTuxedoWarningEnabled)));
 
         Group shop = group("Shop Keybinds", T, null,
                 KuudraConfig::isShopKeybindsEnabled, KuudraConfig::setShopKeybindsEnabled);
@@ -1392,6 +1397,8 @@ public class KuudraScreen extends Screen {
                 KuudraConfig::isProfitHighlightChests, KuudraConfig::setProfitHighlightChests)));
         profit.add(leaf(new Toggle("Reroll Calculator", T,
                 KuudraConfig::isProfitRerollCalc, KuudraConfig::setProfitRerollCalc)));
+        profit.add(leaf(new Toggle("Block Reroll On Expensive Items", T,
+                KuudraConfig::isBlockExpensiveRerollEnabled, KuudraConfig::setBlockExpensiveRerollEnabled)));
         profit.add(leaf(new Cycle("Bazaar Sell", T,
                 () -> KuudraConfig.isProfitBazaarInstaSell() ? "Instasell" : "Sell Order",
                 () -> KuudraConfig.setProfitBazaarInstaSell(!KuudraConfig.isProfitBazaarInstaSell()))));

@@ -3,6 +3,7 @@ package com.kuudrahelper.features.boss;
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.phase.KuudraPhaseTracker;
 import com.kuudrahelper.phase.KuudraPhaseTracker.Phase;
+import com.kuudrahelper.utils.KuudraTierDetector;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
@@ -18,12 +19,6 @@ public final class RendDamage {
     private static final int  MIN_PULL_DIFF  = 1_666;
     private static final int  HP_MULTIPLIER  = 9_600;
 
-    // -1 means "not yet baselined this cycle" — rather than assuming Kuudra's true
-    // starting HP is always exactly KUUDRA_MAX_HP, the first real reading after a reset
-    // just becomes the baseline with no diff reported. Different HP display formats
-    // (e.g. the "240M" format) don't necessarily start at the same raw value, and
-    // assuming a fixed ceiling caused a spurious huge "pull" the instant the real first
-    // reading came in lower than that assumption.
     private static int  lastHp       = -1;
     private static long phaseStartMs = -1L;
 
@@ -49,6 +44,7 @@ public final class RendDamage {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!KuudraConfig.isRendDamageEnabled()) return;
             if (client.level == null || client.player == null) return;
+            if (KuudraTierDetector.getTier() != 5) return;
 
             Phase phase = KuudraPhaseTracker.getPhase();
             if (phase == Phase.SUPPLIES || phase == Phase.BUILD
@@ -61,7 +57,7 @@ public final class RendDamage {
             int hp = Math.min((int) kuudra.getHealth(), KUUDRA_MAX_HP);
             if (hp <= 0) { reset(); return; }
 
-            if (lastHp < 0) { lastHp = hp; return; } // first reading this cycle — baseline only, no diff yet
+            if (lastHp < 0) { lastHp = hp; return; }
 
             int diff = lastHp - hp;
             lastHp = hp;

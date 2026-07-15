@@ -129,6 +129,7 @@ public class KuudraHelperMod implements ClientModInitializer {
         SupplyProgressHud.register();
         BuildProgressHud.register();
         NotificationHud.register();
+        com.kuudrahelper.features.misckuudra.TuxedoWarning.register();
         com.kuudrahelper.features.misckuudra.KickedTimerHud.register();
         CratePriority.register();
         com.kuudrahelper.features.boss.KuudraHpHud.register();

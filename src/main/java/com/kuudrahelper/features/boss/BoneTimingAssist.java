@@ -46,7 +46,17 @@ public final class BoneTimingAssist {
 
     private static volatile boolean hidden = false;
 
+    private static volatile int     aimedHitboxIndex  = -1;
+    private static volatile boolean aimedInThrowRange = false;
+    private static volatile boolean aimedWallBlocking = false;
+
+    private static volatile boolean throwNowSoundArmed = true;
+
     private BoneTimingAssist() {}
+
+    public static int     getAimedHitboxIndex()  { return aimedHitboxIndex; }
+    public static boolean isAimedInThrowRange()   { return aimedInThrowRange; }
+    public static boolean isAimedWallBlocking()   { return aimedWallBlocking; }
 
     public static void onBonemerangThrow() {
         hidden = true;
@@ -79,21 +89,27 @@ public final class BoneTimingAssist {
     }
 
     private static void render(GuiGraphicsExtractor ctx) {
-        if (!KuudraConfig.isBoneTimingAssistEnabled()) return;
-        if (hidden) return;
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.BOSS) return;
+        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.BOSS) { clearAimState(); return; }
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.font == null) return;
+        if (mc.player == null || mc.font == null) { clearAimState(); return; }
 
         Vec3 eye  = mc.player.getEyePosition(1.0f);
         Vec3 look = mc.player.getLookAngle();
 
-        AABB kuudraBox = findAimedStationaryHitbox(eye, look);
-        if (kuudraBox == null) return;
+        int aimedIndex = findAimedStationaryHitboxIndex(eye, look);
+        if (aimedIndex < 0) { clearAimState(); return; }
+        AABB kuudraBox = KUUDRA_LOGGED_HITBOXES[aimedIndex];
 
         double distToKuudra = rayEntryDistance(eye, look, kuudraBox, DISPLAY_RANGE)
                 + KuudraConfig.getBoneTimingAssistOffset();
+        Double distToWall = wallHitDistance(mc, eye, look, DISPLAY_RANGE);
+
+        aimedHitboxIndex  = aimedIndex;
+        aimedInThrowRange = distToKuudra <= THROW_RANGE;
+        aimedWallBlocking = distToWall != null && distToWall <= THROW_RANGE;
+
+        if (!KuudraConfig.isBoneTimingAssistEnabled() || hidden) { throwNowSoundArmed = true; return; }
 
         int screenW = mc.getWindow().getGuiScaledWidth();
         int screenH = mc.getWindow().getGuiScaledHeight();
@@ -101,32 +117,47 @@ public final class BoneTimingAssist {
         int cy = screenH / 2;
 
         drawBracketPair(ctx, mc, cx, cy, distToKuudra, THROW_RANGE, 0xFFFFFFFF);
-
-        Double distToWall = wallHitDistance(mc, eye, look, DISPLAY_RANGE);
         if (distToWall != null) {
             drawBracketPair(ctx, mc, cx, cy, distToWall, THROW_RANGE, 0xFFFF3333);
         }
+
+        if (aimedInThrowRange) {
+            if (throwNowSoundArmed) {
+                KuudraConfig.playNotificationSound(KuudraConfig.SOUND_BONE_THROW_NOW);
+                throwNowSoundArmed = false;
+            }
+        } else {
+            throwNowSoundArmed = true;
+        }
+    }
+
+    private static void clearAimState() {
+        aimedHitboxIndex  = -1;
+        aimedInThrowRange = false;
+        aimedWallBlocking = false;
+        throwNowSoundArmed = true;
     }
 
     private static Double wallHitDistance(Minecraft mc, Vec3 origin, Vec3 dir, double range) {
         if (mc.level == null) return null;
         Vec3 far = origin.add(dir.scale(range));
+
         BlockHitResult hit = mc.level.clip(new ClipContext(
                 origin, far,
                 ClipContext.Block.COLLIDER,
-                ClipContext.Fluid.ANY,
+                ClipContext.Fluid.NONE,
                 mc.player));
         if (hit.getType() != HitResult.Type.BLOCK) return null;
         return Math.min(range, origin.distanceTo(hit.getLocation()));
     }
 
-    private static AABB findAimedStationaryHitbox(Vec3 eye, Vec3 look) {
+    private static int findAimedStationaryHitboxIndex(Vec3 eye, Vec3 look) {
         for (int i = 0; i < KUUDRA_STATIONARY_HITBOXES.length; i++) {
             if (rayExitDistance(eye, look, KUUDRA_STATIONARY_HITBOXES[i], DISPLAY_RANGE) != null) {
-                return KUUDRA_LOGGED_HITBOXES[i];
+                return i;
             }
         }
-        return null;
+        return -1;
     }
 
     private static void drawBracketPair(GuiGraphicsExtractor ctx, Minecraft mc,

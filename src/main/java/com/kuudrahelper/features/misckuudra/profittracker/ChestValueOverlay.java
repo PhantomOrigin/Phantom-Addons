@@ -75,15 +75,10 @@ public final class ChestValueOverlay {
 
         if (a.detectedTier() > 0) cachedTier = a.detectedTier();
 
-        int freeEssAmt = (cachedTier >= 1 && cachedTier <= 5) ? KuudraDrops.FREE_CHEST_ESSENCE[cachedTier] : 0;
-        double petMult  = KuudraConfig.getKuudraPetEssenceMultiplier();
-        double essPrice = CroesusListener.bazaarSellPrice(KuudraDrops.CRIMSON_ESSENCE);
-        long freeEssValue = (long)(freeEssAmt * petMult * essPrice);
-
         ProfitRun run = new ProfitRun();
         run.itemsValue     = a.itemsValue();
         run.attributeValue = a.attributeValue();
-        run.essenceValue   = a.essenceValue() + freeEssValue;
+        run.essenceValue   = a.essenceValue(); // already includes the per-tier free essence bonus
         run.keyCost        = freeChest ? 0 : CroesusListener.calculateKeyCost(cachedTier);
         run.kismetCost     = a.kismetAlreadyUsed()
                 ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.KISMET_FEATHER) : 0;
@@ -112,12 +107,8 @@ public final class ChestValueOverlay {
         int renderTier = a.detectedTier() > 0 ? a.detectedTier() : cachedTier;
 
         long itemValue    = a.itemsValue() + a.attributeValue();
-        int freeEssAmt = (renderTier >= 1 && renderTier <= 5) ? KuudraDrops.FREE_CHEST_ESSENCE[renderTier] : 0;
-        double petMult  = KuudraConfig.getKuudraPetEssenceMultiplier();
-        double essPrice = CroesusListener.bazaarSellPrice(KuudraDrops.CRIMSON_ESSENCE);
-        long freeEssValue = (long)(freeEssAmt * petMult * essPrice);
-        long essenceValue = a.essenceValue() + freeEssValue;
-        long chestValue   = itemValue + essenceValue;
+        long essenceValue = a.essenceValue(); // already includes the per-tier free essence bonus
+        long chestValue   = a.totalValue();
 
         long keyCost     = freeChest ? 0 : CroesusListener.calculateKeyCost(renderTier);
         boolean kismetAny = a.kismetAlreadyUsed();

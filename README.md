@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.15   
+Latest Version: 1.6.16   
 Supported Minecraft Versions: 26.1.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
@@ -73,6 +73,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Moveable Crate Pickup Progress Bar
 - Kuudra Mob Scale
 - Shitter List with auto kick
+- Tux Warning
 ### Other Features
 - M7 Dragons Auto GFS Poisons
 - Held Item Animation / Position / Scale Customiser

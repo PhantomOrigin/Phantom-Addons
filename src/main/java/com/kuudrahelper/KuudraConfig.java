@@ -56,12 +56,14 @@ public class KuudraConfig {
     private static boolean soloDetectorEnabled      = true;
     private static boolean cannonAutoClose          = false;
     private static boolean kuudraDirectionEnabled   = false;
+    private static boolean tuxedoWarningEnabled     = true;
     private static boolean boneTimingAssistEnabled  = false;
     private static float   boneTimingAssistOffset   = 0f; // blocks; -3.00 (early) to +1.00 (late), Kuudra-hitbox only
     private static boolean boneTimingHitboxOutlineEnabled = false;
     private static boolean boneTimingHitboxOutlineFilled  = true;
     private static int     boneTimingHitboxOutlineColor   = 0x00FFFF; // aqua
     private static boolean boneTimingHitboxOutlineOnlyCurrentDirection = false;
+    private static boolean boneTimingHitboxHighlightInRange = false;
     private static boolean shopKeybindsEnabled      = false;
     private static int     shopMainKey              = 49;
     private static int     shopCannonKey            = 50;
@@ -117,6 +119,7 @@ public class KuudraConfig {
     private static boolean         profitFactionMage      = true;  // true = mage (mycelium), false = barbarian (red sand)
     private static boolean         profitHighlightChests  = true;
     private static boolean         profitRerollCalc       = true;
+    private static boolean         blockExpensiveReroll   = true;
     private static boolean         profitBazaarInstaSell  = true;  // sell items: instasell vs sell order
     private static boolean         profitBazaarInstaBuy   = false; // buy items: instabuy vs buy order (false = buy order = cheaper)
     private static float           profitHudX             = 0.01f;
@@ -138,6 +141,7 @@ public class KuudraConfig {
     public static boolean         isProfitFactionMage()       { return profitFactionMage; }
     public static boolean         isProfitHighlightChests()   { return profitHighlightChests; }
     public static boolean         isProfitRerollCalc()        { return profitRerollCalc; }
+    public static boolean         isBlockExpensiveRerollEnabled() { return blockExpensiveReroll; }
     public static boolean         isProfitBazaarInstaSell()   { return profitBazaarInstaSell; }
     public static boolean         isProfitBazaarInstaBuy()    { return profitBazaarInstaBuy; }
     public static float           getProfitHudX()             { return profitHudX; }
@@ -155,6 +159,7 @@ public class KuudraConfig {
     public static void setProfitFactionMage(boolean v)          { profitFactionMage     = v; save(); }
     public static void setProfitHighlightChests(boolean v)      { profitHighlightChests = v; save(); }
     public static void setProfitRerollCalc(boolean v)           { profitRerollCalc      = v; save(); }
+    public static void setBlockExpensiveRerollEnabled(boolean v) { blockExpensiveReroll = v; save(); }
     public static void setProfitBazaarInstaSell(boolean v)      { profitBazaarInstaSell = v; save(); }
     public static void setProfitBazaarInstaBuy(boolean v)       { profitBazaarInstaBuy  = v; save(); }
     public static void setProfitHudX(float v)                   { profitHudX    = v; save(); }
@@ -400,12 +405,14 @@ public class KuudraConfig {
     public static boolean isSoloDetectorEnabled()     { return soloDetectorEnabled; }
     public static boolean isCannonAutoCloseEnabled()  { return cannonAutoClose; }
     public static boolean isKuudraDirectionEnabled()   { return kuudraDirectionEnabled; }
+    public static boolean isTuxedoWarningEnabled()     { return tuxedoWarningEnabled; }
     public static boolean isBoneTimingAssistEnabled()  { return boneTimingAssistEnabled; }
     public static float   getBoneTimingAssistOffset()  { return boneTimingAssistOffset; }
     public static boolean isBoneTimingHitboxOutlineEnabled() { return boneTimingHitboxOutlineEnabled; }
     public static boolean isBoneTimingHitboxOutlineFilled()  { return boneTimingHitboxOutlineFilled; }
     public static int     getBoneTimingHitboxOutlineColor()  { return boneTimingHitboxOutlineColor; }
     public static boolean isBoneTimingHitboxOutlineOnlyCurrentDirection() { return boneTimingHitboxOutlineOnlyCurrentDirection; }
+    public static boolean isBoneTimingHitboxHighlightInRangeEnabled() { return boneTimingHitboxHighlightInRange; }
     public static boolean isShopKeybindsEnabled()     { return shopKeybindsEnabled; }
     public static int     getShopMainKey()            { return shopMainKey; }
     public static int     getShopCannonKey()          { return shopCannonKey; }
@@ -618,12 +625,14 @@ public class KuudraConfig {
     public static void setSoloDetectorEnabled(boolean v)    { soloDetectorEnabled = v;      save(); }
     public static void setCannonAutoCloseEnabled(boolean v) { cannonAutoClose = v;          save(); }
     public static void setKuudraDirectionEnabled(boolean v) { kuudraDirectionEnabled = v;   save(); }
+    public static void setTuxedoWarningEnabled(boolean v)   { tuxedoWarningEnabled = v;     save(); }
     public static void setBoneTimingAssistEnabled(boolean v) { boneTimingAssistEnabled = v; save(); }
     public static void setBoneTimingAssistOffset(float v) { boneTimingAssistOffset = Math.clamp(v, -3.0f, 1.0f); save(); }
     public static void setBoneTimingHitboxOutlineEnabled(boolean v) { boneTimingHitboxOutlineEnabled = v; save(); }
     public static void setBoneTimingHitboxOutlineFilled(boolean v)  { boneTimingHitboxOutlineFilled = v;  save(); }
     public static void setBoneTimingHitboxOutlineColor(int v)       { boneTimingHitboxOutlineColor = v & 0xFFFFFF; save(); }
     public static void setBoneTimingHitboxOutlineOnlyCurrentDirection(boolean v) { boneTimingHitboxOutlineOnlyCurrentDirection = v; save(); }
+    public static void setBoneTimingHitboxHighlightInRange(boolean v) { boneTimingHitboxHighlightInRange = v; save(); }
     public static void setShopKeybindsEnabled(boolean v)    { shopKeybindsEnabled = v;      save(); }
     public static void setShopMainKey(int v)                { shopMainKey = v;              save(); }
     public static void setShopCannonKey(int v)              { shopCannonKey = v;            save(); }
@@ -1023,12 +1032,14 @@ public class KuudraConfig {
             giantHitboxFillOpacity                = clamp01(d.giantHitboxFillOpacity);
             giantHitboxColor                      = d.giantHitboxColor & 0xFFFFFF;
             kuudraDirectionEnabled = d.kuudraDirectionEnabled;
+            tuxedoWarningEnabled   = d.tuxedoWarningEnabled;
             boneTimingAssistEnabled = d.boneTimingAssistEnabled;
             boneTimingAssistOffset = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
             boneTimingHitboxOutlineEnabled = d.boneTimingHitboxOutlineEnabled;
             boneTimingHitboxOutlineFilled  = d.boneTimingHitboxOutlineFilled;
             boneTimingHitboxOutlineColor   = d.boneTimingHitboxOutlineColor & 0xFFFFFF;
             boneTimingHitboxOutlineOnlyCurrentDirection = d.boneTimingHitboxOutlineOnlyCurrentDirection;
+            boneTimingHitboxHighlightInRange = d.boneTimingHitboxHighlightInRange;
 
             mountTimerHudX     = d.mountTimerHudX;
             mountTimerHudY     = d.mountTimerHudY;
@@ -1145,6 +1156,7 @@ public class KuudraConfig {
             profitFactionMage     = d.profitFactionMage;
             profitHighlightChests = d.profitHighlightChests;
             profitRerollCalc      = d.profitRerollCalc;
+            blockExpensiveReroll  = d.blockExpensiveReroll;
             profitBazaarInstaSell = d.profitBazaarInstaSell;
             profitBazaarInstaBuy  = d.profitBazaarInstaBuy;
             profitHudX            = d.profitHudX;
@@ -1293,12 +1305,14 @@ public class KuudraConfig {
         d.giantHitboxFillOpacity                = giantHitboxFillOpacity;
         d.giantHitboxColor                      = giantHitboxColor;
         d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
+        d.tuxedoWarningEnabled    = tuxedoWarningEnabled;
         d.boneTimingAssistEnabled = boneTimingAssistEnabled;
         d.boneTimingAssistOffset = boneTimingAssistOffset;
         d.boneTimingHitboxOutlineEnabled = boneTimingHitboxOutlineEnabled;
         d.boneTimingHitboxOutlineFilled  = boneTimingHitboxOutlineFilled;
         d.boneTimingHitboxOutlineColor   = boneTimingHitboxOutlineColor;
         d.boneTimingHitboxOutlineOnlyCurrentDirection = boneTimingHitboxOutlineOnlyCurrentDirection;
+        d.boneTimingHitboxHighlightInRange = boneTimingHitboxHighlightInRange;
 
         d.mountTimerHudX     = mountTimerHudX;
         d.mountTimerHudY     = mountTimerHudY;
@@ -1398,6 +1412,7 @@ public class KuudraConfig {
         d.profitFactionMage     = profitFactionMage;
         d.profitHighlightChests = profitHighlightChests;
         d.profitRerollCalc      = profitRerollCalc;
+        d.blockExpensiveReroll  = blockExpensiveReroll;
         d.profitBazaarInstaSell = profitBazaarInstaSell;
         d.profitBazaarInstaBuy  = profitBazaarInstaBuy;
         d.profitHudX            = profitHudX;
@@ -1466,6 +1481,7 @@ public class KuudraConfig {
     public static final String SOUND_SUPPLY_DROPPED  = "supply_dropped";
     public static final String SOUND_WARDROBE_SWAP   = "wardrobe_swap";
     public static final String SOUND_BACKBONE_DONE   = "backbone_done";
+    public static final String SOUND_BONE_THROW_NOW  = "bone_throw_now";
 
     public static class NotificationSound {
         public boolean enabled = false;
@@ -1490,6 +1506,8 @@ public class KuudraConfig {
             return new NotificationSound("minecraft:ui.button.click", 1.5f);
         if (SOUND_BACKBONE_DONE.equals(key))
             return new NotificationSound("minecraft:block.note_block.pling", 1.5f);
+        if (SOUND_BONE_THROW_NOW.equals(key))
+            return new NotificationSound("minecraft:block.note_block.pling", 2.0f);
         return new NotificationSound("minecraft:entity.experience_orb.pickup", 1.0f);
     }
 
@@ -1640,12 +1658,14 @@ public class KuudraConfig {
         float   giantHitboxFillOpacity                = 0.05f;
         int     giantHitboxColor                      = 0xFFFFFF;
         boolean kuudraDirectionEnabled  = false;
+        boolean tuxedoWarningEnabled    = true;
         boolean boneTimingAssistEnabled = false;
         float   boneTimingAssistOffset = 0f;
         boolean boneTimingHitboxOutlineEnabled = false;
         boolean boneTimingHitboxOutlineFilled  = true;
         int     boneTimingHitboxOutlineColor   = 0x00FFFF;
         boolean boneTimingHitboxOutlineOnlyCurrentDirection = false;
+        boolean boneTimingHitboxHighlightInRange = false;
 
         float mountTimerHudX     = 0.5f;
         float mountTimerHudY     = 0.56f;
@@ -1739,6 +1759,7 @@ public class KuudraConfig {
         boolean profitFactionMage      = true;
         boolean profitHighlightChests  = true;
         boolean profitRerollCalc       = true;
+        boolean blockExpensiveReroll   = true;
         boolean profitBazaarInstaSell  = true;
         boolean profitBazaarInstaBuy   = false;
         float   profitHudX             = 0.01f;

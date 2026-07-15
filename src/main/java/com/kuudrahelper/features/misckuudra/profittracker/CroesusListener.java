@@ -33,6 +33,32 @@ public final class CroesusListener {
     private static final int AQUA_HIGHLIGHT  = 0x6600FFFF;
     private static final int GREEN_HIGHLIGHT = 0x6600FF44;
 
+    private static final String[] EXPENSIVE_REROLL_ITEM_NAMES = {
+        "tentacle dye", "hellstorm wand", "tormentor", "ananke feather", "burning kuudra core"
+    };
+
+    public static boolean hasExpensiveRerollBlockItem(AbstractContainerScreen<?> screen) {
+        var slots = screen.getMenu().slots;
+        for (int i = REWARD_SLOT_START; i <= REWARD_SLOT_END && i < slots.size(); i++) {
+            ItemStack stack = slots.get(i).getItem();
+            if (stack.isEmpty()) continue;
+            String name = stripColor(stack.getDisplayName().getString()).toLowerCase();
+
+            for (String key : EXPENSIVE_REROLL_ITEM_NAMES) {
+                if (name.contains(key)) return true;
+            }
+            if (name.contains("crimson essence") && (name.contains("10,000") || name.contains("10000"))) {
+                return true;
+            }
+            if (name.contains("enchanted book")) {
+                for (String l : getLore(stack)) {
+                    if (stripColor(l).toLowerCase().contains("fatal tempo")) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static boolean isUnopenedChest(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
 
@@ -75,6 +101,7 @@ public final class CroesusListener {
         long itemsValue     = 0;
         long attributeValue = 0;
         long essenceValue   = 0;
+        long rerollableAttributeValue = 0;
         boolean canReroll          = false;
         boolean kismetAlreadyUsed  = false;
         boolean wheelAlreadyUsed  = false;
@@ -82,30 +109,33 @@ public final class CroesusListener {
         int wheelSlot              = -1;
         int detectedTier           = 0;
 
-        // Scan chest slots only (excluding player inventory) to find action buttons
         int chestSlots = Math.max(0, slots.size() - 36);
+
+        int bottomRowStart = Math.max(0, chestSlots - 9);
         for (int i = 0; i < chestSlots; i++) {
             ItemStack stack = slots.get(i).getItem();
             if (stack.isEmpty()) continue;
             String name = stripColor(stack.getDisplayName().getString()).toLowerCase();
             List<String> lore = getLore(stack);
 
-            if (name.contains("kismet") || name.contains("reroll")) {
-                rerollSlot = i;
-                canReroll = true;
-                for (String l : lore) {
-                    String sl = stripColor(l).toLowerCase();
-                    if (sl.contains("already rerolled this shard") || sl.contains("already had its shards rerolled")) {
-                        canReroll = false;
-                        wheelAlreadyUsed = true;
+            if (i >= bottomRowStart) {
+                if (name.contains("kismet") || name.contains("reroll")) {
+                    rerollSlot = i;
+                    canReroll = true;
+                    for (String l : lore) {
+                        String sl = stripColor(l).toLowerCase();
+                        if (sl.contains("already rerolled this shard") || sl.contains("already had its shards rerolled")) {
+                            canReroll = false;
+                            wheelAlreadyUsed = true;
+                        }
+                        if (sl.contains("cannot be rerolled") || sl.contains("already rerolled this chest")) {
+                            canReroll = false;
+                            kismetAlreadyUsed = true;
+                        }
                     }
-                    if (sl.contains("cannot be rerolled") || sl.contains("already rerolled this chest")) {
-                        canReroll = false;
-                        kismetAlreadyUsed = true;
-                    }
+                } else if (name.contains("wheel of fate") || (name.contains("wheel") && name.contains("fate"))) {
+                    wheelSlot = i;
                 }
-            } else if (name.contains("wheel of fate") || (name.contains("wheel") && name.contains("fate"))) {
-                wheelSlot = i;
             }
 
             if (detectedTier == 0) {
@@ -144,13 +174,16 @@ public final class CroesusListener {
             String weaponId = KuudraDrops.weaponIdForName(name);
             if (weaponId != null) {
                 double price;
-                String priceSource;
-                if (KuudraDrops.AH_WEAPON_IDS.contains(weaponId)) {
+                if (KuudraConfig.isProfitArmorSalvage() && KuudraDrops.SALVAGEABLE_WEAPON_IDS.contains(weaponId)) {
+                    int stars   = KuudraDrops.countStars(rawName);
+                    int essence = KuudraDrops.salvageEssence(weaponId, stars);
+                    double essencePrice = bazaarSellPrice(KuudraDrops.CRIMSON_ESSENCE);
+                    double petMult = KuudraConfig.getKuudraPetEssenceMultiplier();
+                    price = essence * essencePrice * petMult;
+                } else if (KuudraDrops.AH_WEAPON_IDS.contains(weaponId)) {
                     price = PriceCache.getBin(weaponId);
-                    priceSource = "bin";
                 } else {
                     price = bazaarSellPrice(weaponId);
-                    priceSource = "bazaar";
                 }
                 if (price > 0) itemsValue += (long)price;
                 continue;
@@ -160,7 +193,12 @@ public final class CroesusListener {
                 String shardId = KuudraDrops.attributeShardId(rawName, lore);
                 if (shardId != null) {
                     double price = bazaarSellPrice(shardId);
-                    if (price > 0) attributeValue += (long)price;
+                    if (price > 0) {
+                        attributeValue += (long) price;
+                        if (i == REWARD_SLOT_START || i == REWARD_SLOT_START + 1) {
+                            rerollableAttributeValue += (long) price;
+                        }
+                    }
                 }
                 continue;
             }
@@ -207,20 +245,33 @@ public final class CroesusListener {
                 if (price > 0) essenceValue += val;
                 continue;
             }
+
+            if (name.contains("wheel of fate") || (name.contains("wheel") && name.contains("fate"))) {
+                int count = stack.getCount();
+                double price = PriceCache.getBin(KuudraDrops.WHEEL_OF_FATE);
+                long val = price > 0 ? (long)(count * price) : 0;
+                if (price > 0) itemsValue += val;
+                continue;
+            }
         }
 
         long totalValue = itemsValue + attributeValue + essenceValue;
 
         boolean rerollProfit = false;
-        if (canReroll) {
+        if (canReroll && detectedTier >= 1 && detectedTier <= 5) {
             double kismetCost = bazaarBuyPrice(KuudraDrops.KISMET_FEATHER);
-            rerollProfit = kismetCost > 0 && totalValue < kismetCost * 0.5;
+            double expectedChestValue = KuudraLootTables.expectedChestValue(detectedTier);
+            rerollProfit = kismetCost > 0 && expectedChestValue > 0
+                    && expectedChestValue > totalValue + kismetCost;
+            logRerollDebug(expectedChestValue, kismetCost, totalValue, rerollProfit);
         }
 
         boolean useWheel = false;
-        if (wheelSlot >= 0 && attributeValue > 0) {
+        if (!rerollProfit && wheelSlot >= 0 && rerollableAttributeValue > 0 && detectedTier >= 1 && detectedTier <= 5) {
             double wheelCost = PriceCache.getBin(KuudraDrops.WHEEL_OF_FATE);
-            useWheel = wheelCost > 0 && attributeValue < wheelCost * 2;
+            double expectedShardValue = 2.0 * KuudraLootTables.expectedAttributeSlotValue(detectedTier);
+            useWheel = wheelCost > 0 && expectedShardValue > 0
+                    && expectedShardValue > rerollableAttributeValue + wheelCost;
         }
 
         return new ChestAnalysis(
@@ -228,6 +279,19 @@ public final class CroesusListener {
             canReroll, rerollProfit, useWheel, rerollSlot, wheelSlot,
             kismetAlreadyUsed, wheelAlreadyUsed, detectedTier
         );
+    }
+
+    private static long lastRerollDebugLogMs = 0L;
+    private static final long REROLL_DEBUG_LOG_INTERVAL_MS = 2000L;
+
+    private static void logRerollDebug(double expectedChestValue, double kismetCost, long totalValue, boolean rerollProfit) {
+        if (!KuudraConfig.isDeveloperFeaturesEnabled()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastRerollDebugLogMs < REROLL_DEBUG_LOG_INTERVAL_MS) return;
+        lastRerollDebugLogMs = now;
+        KuudraHelperMod.LOGGER.info(
+                "[RerollCalc] expectedChestValue={} kismetCost={} currentChestValue={} reroll={}",
+                expectedChestValue, kismetCost, totalValue, rerollProfit);
     }
 
     public static long calculateKeyCost(int tier) {
