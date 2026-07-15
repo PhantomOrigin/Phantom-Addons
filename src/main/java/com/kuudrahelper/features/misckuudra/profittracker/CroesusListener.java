@@ -37,16 +37,19 @@ public final class CroesusListener {
         if (stack == null || stack.isEmpty()) return false;
 
         String name = stripColor(stack.getDisplayName().getString()).toLowerCase();
-        if (!name.contains("chest")) return false;
+        if (!name.contains("kuudra's hollow")) return false;
 
         List<String> lore = getLore(stack);
         for (String line : lore) {
             String l = stripColor(line).toLowerCase();
-            if (l.contains("already opened") || l.contains("not yet opened") && l.contains("false"))
+            if (l.contains("no more chests to open!"))
                 return false;
-            if (l.contains("not opened") || l.contains("not yet opened")) return true;
+            if (l.contains("chests expire in"))
+                return true;
         }
-        return stack.getItem() == Items.CHEST || stack.getItem() == Items.TRAPPED_CHEST;
+        KuudraHelperMod.LOGGER.warn("[PhantomAddons] Reached end of `isUnopenedChest` without knowing if the chest can still be open. Please report this as a bug.");
+        KuudraHelperMod.LOGGER.warn("[PhantomAddons] name = {name}, lore: {lore}");
+        return false;
     }
 
     public record ChestAnalysis(
@@ -59,7 +62,8 @@ public final class CroesusListener {
         boolean wheelOfFate,       // true if Wheel of Fate on an item is recommended
         int rerollSlotIndex,       // GUI slot index of the kismet feather (or -1)
         int wheelSlotIndex,        // GUI slot index of the wheel-of-fate item (or -1)
-        boolean kismetAlreadyUsed, // chest lore says "already rerolled"
+        boolean kismetAlreadyUsed, // chest lore says "already rerolled this chest"
+        boolean wheelAlreadyUsed,  // chest lore says "already rerolled this shard"
         int detectedTier           // tier read from "Cost: X Kuudra Key" lore (0 if not found)
     ) {}
 
@@ -73,6 +77,7 @@ public final class CroesusListener {
         long essenceValue   = 0;
         boolean canReroll          = false;
         boolean kismetAlreadyUsed  = false;
+        boolean wheelAlreadyUsed  = false;
         int rerollSlot             = -1;
         int wheelSlot              = -1;
         int detectedTier           = 0;
@@ -90,11 +95,13 @@ public final class CroesusListener {
                 canReroll = true;
                 for (String l : lore) {
                     String sl = stripColor(l).toLowerCase();
-                    if (sl.contains("already been rerolled") || sl.contains("cannot be rerolled")
-                        || sl.contains("already rerolled")) {
+                    if (sl.contains("already rerolled this shard") || sl.contains("already had its shards rerolled")) {
+                        canReroll = false;
+                        wheelAlreadyUsed = true;
+                    }
+                    if (sl.contains("cannot be rerolled") || sl.contains("already rerolled this chest")) {
                         canReroll = false;
                         kismetAlreadyUsed = true;
-                        break;
                     }
                 }
             } else if (name.contains("wheel of fate") || (name.contains("wheel") && name.contains("fate"))) {
@@ -212,14 +219,14 @@ public final class CroesusListener {
 
         boolean useWheel = false;
         if (wheelSlot >= 0 && attributeValue > 0) {
-            double wheelCost = bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE);
+            double wheelCost = PriceCache.getBin(KuudraDrops.WHEEL_OF_FATE);
             useWheel = wheelCost > 0 && attributeValue < wheelCost * 2;
         }
 
         return new ChestAnalysis(
             itemsValue, attributeValue, essenceValue, totalValue,
             canReroll, rerollProfit, useWheel, rerollSlot, wheelSlot,
-            kismetAlreadyUsed, detectedTier
+            kismetAlreadyUsed, wheelAlreadyUsed, detectedTier
         );
     }
 

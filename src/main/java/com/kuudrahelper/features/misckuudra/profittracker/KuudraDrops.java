@@ -63,6 +63,13 @@ public final class KuudraDrops {
         AH_ITEM_IDS = Collections.unmodifiableSet(ids);
     }
 
+    public static final Set<String> AH_LOWEST_BIN_ITEM_IDS;
+    static {
+        Set<String> ids = new java.util.LinkedHashSet<>();
+        ids.add(KuudraDrops.WHEEL_OF_FATE);
+        AH_LOWEST_BIN_ITEM_IDS = Collections.unmodifiableSet(ids);
+    }
+
     public static final Map<String, String> SHARD_NAME_TO_ID;
     static {
         Map<String, String> m = new LinkedHashMap<>();
