@@ -2,39 +2,37 @@ package com.kuudrahelper.features.misckuudra;
 
 import com.kuudrahelper.KuudraConfig;
 import com.kuudrahelper.utils.KuudraTierDetector;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 
 public final class TuxedoWarning {
 
-    private static boolean wasInHollow = false;
-
     private TuxedoWarning() {}
 
     public static void register() {
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            boolean inHollow = KuudraTierDetector.isInKuudraHollow();
-            if (inHollow && !wasInHollow) {
-                onEnterHollow();
-            }
-            wasInHollow = inHollow;
-        });
-
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> wasInHollow = false);
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
+                Identifier.fromNamespaceAndPath("phantomaddons", "tuxedo_warning"),
+                (ctx, tickCounter) -> render(ctx));
     }
 
-    private static void onEnterHollow() {
+    private static void render(net.minecraft.client.gui.GuiGraphicsExtractor ctx) {
         if (!KuudraConfig.isTuxedoWarningEnabled()) return;
+        if (!KuudraTierDetector.isInKuudraHollow()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        if (mc.player == null || mc.font == null) return;
+        if (!isWearingTuxedo(mc)) return;
 
-        if (isWearingTuxedo(mc)) {
-            NotificationHud.show("§eWEARING TUXEDO!", 5000);
-        }
+        String text = "§eWEARING TUXEDO!";
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int screenH = mc.getWindow().getGuiScaledHeight();
+        int tw = mc.font.width(text);
+        ctx.text(mc.font, Component.literal(text), (screenW - tw) / 2, screenH / 4, 0xFFFFFFFF, true);
     }
 
     private static boolean isWearingTuxedo(Minecraft mc) {

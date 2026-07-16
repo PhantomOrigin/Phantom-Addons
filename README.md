@@ -1,12 +1,11 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.16   
+Latest Version: 1.6.17  
 Supported Minecraft Versions: 26.1.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L4L8234BMK)
-
 
 ### Supplies Features
 - Supply Beacons

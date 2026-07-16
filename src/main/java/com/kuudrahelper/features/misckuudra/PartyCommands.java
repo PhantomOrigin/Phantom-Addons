@@ -223,11 +223,30 @@ public final class PartyCommands {
 
         if (cmd.equals("!avg") || cmd.equals("!average")) {
             if (!canAnnounce()) return;
-            int tier = com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getSessionHighestTier();
-            if (tier < 1) return;
-            double avg = com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getSessionAverage(tier);
+            String scope = word2.toLowerCase();
+
+            String label;
+            int tier;
+            double avg;
+            int runs;
+            if (scope.equals("session")) {
+                label = "Session";
+                tier  = com.kuudrahelper.features.misckuudra.profittracker.ProfitStore.getSessionHighestTier();
+                avg   = tier < 1 ? -1 : com.kuudrahelper.features.misckuudra.profittracker.ProfitStore.getSessionRunTimeAverage(tier);
+                runs  = tier < 1 ? 0 : com.kuudrahelper.features.misckuudra.profittracker.ProfitStore.getSessionRunTimeCount(tier);
+            } else if (scope.equals("total")) {
+                label = "Total";
+                tier  = KuudraConfig.getTotalAverageHighestTier();
+                avg   = tier < 1 ? -1 : KuudraConfig.getTotalAverage(tier);
+                runs  = tier < 1 ? 0 : KuudraConfig.getTotalRunCount(tier);
+            } else {
+                label = "Party";
+                tier  = com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getSessionHighestTier();
+                avg   = tier < 1 ? -1 : com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getSessionAverage(tier);
+                runs  = tier < 1 ? 0 : com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getSessionRunCount(tier);
+            }
             if (avg < 0) return;
-            send("pc [Phantom] Party Average: " + formatAverage(avg));
+            send("pc [Phantom] " + label + " Average: " + formatAverage(avg) + " (" + runs + " runs)");
         }
     }
 
@@ -261,8 +280,6 @@ public final class PartyCommands {
         return resolve(arg);
     }
 
-    /** Prefetches the joiner's Kuudra profile (so a later /kuudra open is instant), evaluates
-     *  the stat-based Auto Kick feature against it, and posts a clickable profile link. */
     private static void onPartyFinderJoin(String name) {
         if (!KuudraConfig.isProfileViewerEnabled()) return;
         KuudraProfileFetcher.fetchAsync(name, data -> AutoKickManager.evaluate(name, data));

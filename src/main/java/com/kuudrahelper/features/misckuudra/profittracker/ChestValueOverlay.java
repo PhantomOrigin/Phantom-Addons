@@ -84,7 +84,8 @@ public final class ChestValueOverlay {
                 ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.KISMET_FEATHER) : 0;
         run.wheelCost      = a.wheelAlreadyUsed()
                 ? (long) CroesusListener.bazaarBuyPrice(KuudraDrops.WHEEL_OF_FATE) : 0;
-        run.durationMs     = 0;
+        run.tier           = cachedTier;
+        run.durationMs     = (long) (com.kuudrahelper.features.misckuudra.splits.KuudraSplitTimer.getTotalRunTime() * 1000.0);
         run.timestamp      = System.currentTimeMillis();
 
         ProfitStore.addRun(run);

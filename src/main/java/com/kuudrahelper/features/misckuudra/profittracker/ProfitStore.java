@@ -37,6 +37,8 @@ public final class ProfitStore {
     private static final List<ProfitRun> session = new ArrayList<>();
     private static final List<ProfitRun> allTime = new ArrayList<>();
 
+    private static final java.util.Map<Integer, List<Double>> sessionRunTimes = new java.util.HashMap<>();
+
     // ── View toggle ──────────────────────────────────────────────────────────────
     private static boolean showingSession = true;
     public static boolean isShowingSession()        { return showingSession; }
@@ -63,13 +65,42 @@ public final class ProfitStore {
 
     public static void resetSession() {
         session.clear();
+        sessionRunTimes.clear();
         save();
     }
 
     public static void resetAllTime() {
         allTime.clear();
         session.clear();
+        sessionRunTimes.clear();
         save();
+    }
+
+    // ── Run-time averages (for !avg session) ──────────────────────────────────────
+
+    public static void recordSessionRunTime(int tier, double seconds) {
+        if (tier < 1 || tier > 5) return;
+        sessionRunTimes.computeIfAbsent(tier, k -> new ArrayList<>()).add(seconds);
+        save();
+    }
+
+    public static int getSessionHighestTier() {
+        int best = -1;
+        for (var entry : sessionRunTimes.entrySet()) {
+            if (!entry.getValue().isEmpty() && entry.getKey() > best) best = entry.getKey();
+        }
+        return best;
+    }
+
+    public static double getSessionRunTimeAverage(int tier) {
+        List<Double> times = sessionRunTimes.get(tier);
+        if (times == null || times.isEmpty()) return -1;
+        return times.stream().mapToDouble(Double::doubleValue).average().orElse(-1);
+    }
+
+    public static int getSessionRunTimeCount(int tier) {
+        List<Double> times = sessionRunTimes.get(tier);
+        return times == null ? 0 : times.size();
     }
 
     public static Stats getActiveStats() { return compute(showingSession ? session : allTime); }
@@ -110,8 +141,12 @@ public final class ProfitStore {
                     if (s != null) session.addAll(s);
                 }
                 if (obj.has("lastTier")) lastCommittedTier = obj.get("lastTier").getAsInt();
+                if (obj.has("sessionRunTimes")) {
+                    Type mapType = new TypeToken<java.util.Map<Integer, List<Double>>>(){}.getType();
+                    java.util.Map<Integer, List<Double>> m = GSON.fromJson(obj.get("sessionRunTimes"), mapType);
+                    if (m != null) sessionRunTimes.putAll(m);
+                }
             } else if (root.isJsonArray()) {
-                // Legacy format: plain array was allTime
                 List<ProfitRun> at = GSON.fromJson(root, RUN_LIST_TYPE);
                 if (at != null) allTime.addAll(at);
             }
@@ -126,6 +161,7 @@ public final class ProfitStore {
             obj.add("session", GSON.toJsonTree(session, RUN_LIST_TYPE));
             obj.add("allTime", GSON.toJsonTree(allTime, RUN_LIST_TYPE));
             obj.addProperty("lastTier", lastCommittedTier);
+            obj.add("sessionRunTimes", GSON.toJsonTree(sessionRunTimes));
             GSON.toJson(obj, w);
         } catch (IOException e) {
             KuudraHelperMod.LOGGER.error("[ProfitTracker] Failed to save profit data", e);

@@ -172,6 +172,8 @@ public final class KuudraHpHud {
                 || p == KuudraPhaseTracker.Phase.DPS
                 || p == KuudraPhaseTracker.Phase.SKIP
                 || p == KuudraPhaseTracker.Phase.BOSS
+                || p == KuudraPhaseTracker.Phase.KILL
+                || p == KuudraPhaseTracker.Phase.DEATH
                 || p == KuudraPhaseTracker.Phase.END;
     }
 

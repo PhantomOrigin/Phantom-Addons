@@ -92,7 +92,6 @@ public final class KuudraSplitTimer {
             handleFreshMessage(text);
         });
 
-        // Party chat messages (signed) come through CHAT, not GAME — also catch FRESH! there.
         net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.CHAT.register(
                 (msg, signed, sender, params, ts) -> {
             if (runStartMs <= 0) return;
@@ -119,9 +118,6 @@ public final class KuudraSplitTimer {
         Matcher fm = FRESH_PAT.matcher(text);
         if (!fm.find()) return;
 
-        // Accept during BUILD phase, or within FRESH_GRACE_MS after BUILD ends.
-        // The "last supply" FRESH! often arrives just after the BUILD→EATEN phase
-        // transition because both are triggered by the same supply delivery event.
         boolean inBuild  = activeSplit == Split.BUILD && phaseStartMs >= 0;
         boolean inGrace  = !inBuild && buildPhaseStartMs >= 0 && buildPhaseEndMs > 0
                 && (System.currentTimeMillis() - buildPhaseEndMs) <= FRESH_GRACE_MS;
@@ -163,15 +159,28 @@ public final class KuudraSplitTimer {
     }
 
     public static int getSessionHighestTier() {
+        return highestTierOf(sessionRunTimes);
+    }
+
+    public static double getSessionAverage(int tier) {
+        return averageOf(sessionRunTimes, tier);
+    }
+
+    public static int getSessionRunCount(int tier) {
+        List<Double> times = sessionRunTimes.get(tier);
+        return times == null ? 0 : times.size();
+    }
+
+    private static int highestTierOf(Map<Integer, List<Double>> map) {
         int best = -1;
-        for (int tier : sessionRunTimes.keySet()) {
-            if (!sessionRunTimes.get(tier).isEmpty() && tier > best) best = tier;
+        for (int tier : map.keySet()) {
+            if (!map.get(tier).isEmpty() && tier > best) best = tier;
         }
         return best;
     }
 
-    public static double getSessionAverage(int tier) {
-        List<Double> times = sessionRunTimes.get(tier);
+    private static double averageOf(Map<Integer, List<Double>> map, int tier) {
+        List<Double> times = map.get(tier);
         if (times == null || times.isEmpty()) return -1;
         return times.stream().mapToDouble(Double::doubleValue).average().orElse(-1);
     }
@@ -248,6 +257,8 @@ public final class KuudraSplitTimer {
             if (tier < 1 || tier > 5) tier = 5;
 
             sessionRunTimes.computeIfAbsent(tier, k -> new ArrayList<>()).add(total);
+            KuudraConfig.recordTotalRunTime(tier, total);
+            com.kuudrahelper.features.misckuudra.profittracker.ProfitStore.recordSessionRunTime(tier, total);
 
             if (KuudraConfig.updateTotalRunPb(tier, total)) {
                 double[] splitArr = new double[Split.values().length];
@@ -472,7 +483,7 @@ public final class KuudraSplitTimer {
         if (tier == 1 || tier == 2)
             return new Split[]{Split.SUPPLIES, Split.BUILD, Split.BOSS};
         if (tier == 3 || tier == 4)
-            return new Split[]{Split.SUPPLIES, Split.BUILD, Split.EATEN, Split.STUN, Split.DPS};
+            return new Split[]{Split.SUPPLIES, Split.BUILD, Split.EATEN, Split.STUN, Split.DPS, Split.BOSS};
         return Split.values();
     }
 

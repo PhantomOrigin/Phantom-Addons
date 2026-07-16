@@ -16,25 +16,25 @@ public final class KuudraPhaseTracker {
         EATEN,
         STUN,
         DPS,
-        SKIP,
-        BOSS,
+        SKIP,   // T5 only — falling/teleporting into the boss arena, before BOSS
+        BOSS,   // T5 only — the actual timed bonemerang/rend kill phase
+        KILL,   // T1/T2 only — straight from BUILD, no eaten/stun/dps/skip mechanic
+        DEATH,  // T3/T4 only — straight from DPS on the "POW! SURELY" message, no skip/fall
         END
     }
 
     private static Phase   currentPhase = Phase.NONE;
     private static boolean runActive    = false;
 
+    private static long lastSkipDebugLogMs = 0L;
+    private static final long SKIP_DEBUG_LOG_INTERVAL_MS = 1000L;
+
     public static void init() {
-        // Listen on GAME events — handles both regular chat and action bar/overlay
-        // system messages. Hypixel routes some phase triggers (e.g. "Ballista ready",
-        // "eaten by Kuudra") as overlay system messages, so we must NOT filter by overlay.
         ClientReceiveMessageEvents.ALLOW_GAME.register((text, overlay) -> {
             handle(text.getString());
             return true;
         });
 
-        // Also listen on CHAT events — Hypixel routes some kill-feed messages
-        // (e.g. "destroyed one of Kuudra's pods!") through the signed-chat pipeline.
         ClientReceiveMessageEvents.CHAT.register((text, signed, sender, params, ts) ->
             handle(text.getString())
         );
@@ -52,8 +52,6 @@ public final class KuudraPhaseTracker {
     private static void handle(String raw) {
         String msg = stripFormatting(raw);
 
-        // Debug: log every message that contains kuudra-relevant keywords so we can
-        // see exactly what text the server is sending for phase transitions.
         if (msg.contains("Kuudra") || msg.contains("Ballista") || msg.contains("supplies")
                 || msg.contains("fish up") || msg.contains("eaten") || msg.contains("pods")
                 || msg.contains("Elle") || msg.contains("begin")) {
@@ -80,16 +78,15 @@ public final class KuudraPhaseTracker {
             return;
         }
 
-        // ── EATEN / BOSS (T1/T2) ─────────────────────────────────────────────────
+        // ── EATEN / KILL (T1/T2) ─────────────────────────────────────────────────
         if (msg.contains("The Ballista is finally ready")) {
             int tier = KuudraTierDetector.getTier();
-            setPhase((tier == 1 || tier == 2) ? Phase.BOSS : Phase.EATEN);
+            setPhase((tier == 1 || tier == 2) ? Phase.KILL : Phase.EATEN);
             return;
         }
 
         // ── STUN ─────────────────────────────────────────────────────────────────
-        // "has been eaten by Kuudra!" — always set runActive here so mid-run joins work
-        if (msg.contains("has been eaten by Kuudra!")) {
+        if (msg.contains("has been eaten by Kuudra!") && !msg.startsWith("Elle ") && currentPhase == Phase.EATEN) {
             runActive = true;
             setPhase(Phase.STUN);
             return;
@@ -102,11 +99,16 @@ public final class KuudraPhaseTracker {
             return;
         }
 
-        // ── SKIP ─────────────────────────────────────────────────────────────────
+        // ── SKIP (T5) / DEATH (T1-T4) ────────────────────────────────────────────
         if (msg.contains("SURELY THAT'S IT") || msg.contains("POW! SURELY")) {
             runActive = true;
-            setPhase(Phase.SKIP);
-            checkBossYTransition();
+            int tier = KuudraTierDetector.getTier();
+            if (tier >= 1 && tier <= 4) {
+                setPhase(Phase.DEATH);
+            } else {
+                setPhase(Phase.SKIP);
+                checkBossYTransition();
+            }
             return;
         }
 
@@ -122,15 +124,29 @@ public final class KuudraPhaseTracker {
         if (currentPhase != Phase.SKIP) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        // Any player (not just the local one) dropping below y10 during SKIP should
-        // trigger BOSS instantly — previously only checked the local player, so a run
-        // where someone else fell first (while you stayed up) never transitioned at all.
+
+        logSkipDebug(mc);
+
         for (Player p : mc.level.players()) {
             if (p.getY() < 10.0) {
                 setPhase(Phase.BOSS);
                 return;
             }
         }
+    }
+    
+    private static void logSkipDebug(Minecraft mc) {
+        if (!com.kuudrahelper.KuudraConfig.isDeveloperFeaturesEnabled()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastSkipDebugLogMs < SKIP_DEBUG_LOG_INTERVAL_MS) return;
+        lastSkipDebugLogMs = now;
+
+        StringBuilder sb = new StringBuilder();
+        for (Player p : mc.level.players()) {
+            if (!sb.isEmpty()) sb.append(", ");
+            sb.append(p.getScoreboardName()).append("=").append(String.format("%.2f", p.getY()));
+        }
+        KuudraHelperMod.LOGGER.info("[PhaseTracker] SKIP y-check tick: {}", sb);
     }
 
     private static void setPhase(Phase newPhase) {

@@ -358,6 +358,11 @@ public class KuudraConfig {
     private static double[]   totalRunPbs = defaultTotalPbs();
     private static PbRecord[] pbRecords   = new PbRecord[6];
 
+    // All-time run-time averages, per tier — only accumulates runs completed after this
+    // tracking was added (there's no historical data to backfill from).
+    private static double[] totalRunTimeSum = new double[6];
+    private static int[]    totalRunCount   = new int[6];
+
     private static double[][] defaultPbs() {
         double[][] a = new double[6][7];
         for (double[] row : a) Arrays.fill(row, 9999.0);
@@ -562,6 +567,28 @@ public class KuudraConfig {
     public static int getHighestTierPlayed() {
         for (int t = 5; t >= 1; t--) if (totalRunPbs[t] < 9999) return t;
         return 5;
+    }
+
+    public static void recordTotalRunTime(int tier, double seconds) {
+        if (tier < 1 || tier > 5) return;
+        totalRunTimeSum[tier] += seconds;
+        totalRunCount[tier]++;
+        save();
+    }
+
+    public static double getTotalAverage(int tier) {
+        if (tier < 1 || tier > 5 || totalRunCount[tier] <= 0) return -1;
+        return totalRunTimeSum[tier] / totalRunCount[tier];
+    }
+
+    public static int getTotalRunCount(int tier) {
+        if (tier < 1 || tier > 5) return 0;
+        return totalRunCount[tier];
+    }
+
+    public static int getTotalAverageHighestTier() {
+        for (int t = 5; t >= 1; t--) if (totalRunCount[t] > 0) return t;
+        return -1;
     }
 
     public static PbRecord getPbRecord(int tier) {
@@ -1137,6 +1164,10 @@ public class KuudraConfig {
                         splitPbs[i] = d.splitPbs[i].clone();
             if (d.totalRunPbs != null && d.totalRunPbs.length == 6)
                 totalRunPbs = d.totalRunPbs.clone();
+            if (d.totalRunTimeSum != null && d.totalRunTimeSum.length == 6)
+                totalRunTimeSum = d.totalRunTimeSum.clone();
+            if (d.totalRunCount != null && d.totalRunCount.length == 6)
+                totalRunCount = d.totalRunCount.clone();
             if (d.pbRecords != null && d.pbRecords.length == 6) {
                 pbRecords = d.pbRecords;
                 for (int t = 1; t <= 5; t++)
@@ -1404,6 +1435,8 @@ public class KuudraConfig {
         d.supplyTimesEnabled     = supplyTimesEnabled;
         d.splitPbs               = splitPbs;
         d.totalRunPbs            = totalRunPbs;
+        d.totalRunTimeSum        = totalRunTimeSum;
+        d.totalRunCount          = totalRunCount;
         d.pbRecords              = pbRecords;
 
         d.profitTrackerEnabled  = profitTrackerEnabled;
@@ -1777,6 +1810,8 @@ public class KuudraConfig {
         boolean   supplyTimesEnabled = true;
         double[][] splitPbs          = null;
         double[]   totalRunPbs       = null;
+        double[]   totalRunTimeSum   = null;
+        int[]      totalRunCount     = null;
         PbRecord[] pbRecords         = null;
 
         boolean                                          itemCustomizationEnabled = true;

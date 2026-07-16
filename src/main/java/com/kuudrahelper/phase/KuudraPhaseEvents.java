@@ -112,6 +112,12 @@ public final class KuudraPhaseEvents {
                     KuudraSplitTimer.onBossStart();
                 }
 
+                case KILL, DEATH -> {
+                    if (KuudraSplitTimer.getActiveSplit() != KuudraSplitTimer.Split.BOSS) {
+                        KuudraSplitTimer.onBossStart();
+                    }
+                }
+
                 case END -> {
                     com.kuudrahelper.features.misckuudra.AutoRequeue.trigger();
                     RendDamage.reset();

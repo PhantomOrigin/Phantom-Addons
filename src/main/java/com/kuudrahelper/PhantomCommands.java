@@ -44,6 +44,8 @@ public final class PhantomCommands {
             KuudraPhaseTracker.Phase.SKIP,      // 6
             KuudraPhaseTracker.Phase.BOSS,      // 7
             KuudraPhaseTracker.Phase.END,       // 8
+            KuudraPhaseTracker.Phase.KILL,      // 9
+            KuudraPhaseTracker.Phase.DEATH,     // 10
     };
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -62,7 +64,7 @@ public final class PhantomCommands {
                         ClientCommands.literal("phantom")
                                 .then(ClientCommands.literal("phase")
                                         .then(ClientCommands.argument("number",
-                                                        IntegerArgumentType.integer(0, 8))
+                                                        IntegerArgumentType.integer(0, 10))
                                                 .executes(ctx -> {
                                                     if (!requireDeveloperFeatures(ctx)) return 0;
                                                     int n = IntegerArgumentType.getInteger(ctx, "number");
@@ -157,10 +159,6 @@ public final class PhantomCommands {
                     );
                 }
 
-                // Hypixel's own server sends a "kuudra" node in its command tree, and Fabric's
-                // client-command merge silently refuses to add a client node over an existing
-                // one with the same name. Force it out of the dispatcher root first so ours wins
-                // (same technique KIC uses in someoneok.kic.commands.core.CommandRegistrar).
                 forceRemoveRootChild(dispatcher, "kuudra");
 
                 dispatcher.register(
