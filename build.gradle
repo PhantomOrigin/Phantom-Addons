@@ -49,7 +49,7 @@ if (edition == null) {
 // reflection, so its compilation isn't affected by this exclusion.
 if (editionKey != 'full') {
 	sourceSets.main.java {
-		exclude 'com/kuudrahelper/UpdateInstaller.java'
+		exclude 'com/phantomaddons/UpdateInstaller.java'
 	}
 }
 

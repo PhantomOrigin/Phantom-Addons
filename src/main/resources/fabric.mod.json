@@ -10,7 +10,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.kuudrahelper.KuudraHelperMod"
+      "com.phantomaddons.PhantomAddons"
     ]
   },
   "mixins": [

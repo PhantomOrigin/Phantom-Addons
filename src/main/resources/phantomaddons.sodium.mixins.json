@@ -1,8 +1,8 @@
 {
   "required": true,
-  "package": "com.kuudrahelper.mixin.client",
+  "package": "com.phantomaddons.mixin.client",
   "compatibilityLevel": "JAVA_21",
-  "plugin": "com.kuudrahelper.mixin.SodiumMixinPlugin",
+  "plugin": "com.phantomaddons.mixin.SodiumMixinPlugin",
   "client": [
     "SodiumFluidRendererMixin",
     "DefaultFluidRendererAccessor",
