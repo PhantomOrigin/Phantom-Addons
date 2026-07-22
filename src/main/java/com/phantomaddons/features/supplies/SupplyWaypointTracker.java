@@ -33,14 +33,15 @@ public final class SupplyWaypointTracker {
             new Vec3(-113.5, 77.0,  -68.5),   // Slash
             new Vec3(-143.0, 76.0,  -80.0),   // Square
     };
-    private static final String[] SPOT_ZONE = {
-            "Shop",     // 0 Shop
-            "Shop",     // 1 Triangle → same zone as Shop
-            "X Cannon", // 2 X         → X Cannon zone
-            "X Cannon", // 3 X Cannon
-            "Square",   // 4 Equals    → Square zone
-            "Square",   // 5 Slash     → Square zone
-            "Square",   // 6 Square
+
+    private static final boolean[] IS_SECOND_SUPPLY = {
+            true,   // 0 Shop
+            false,  // 1 Triangle
+            false,  // 2 X
+            true,   // 3 X Cannon
+            false,  // 4 Equals
+            false,  // 5 Slash
+            true,   // 6 Square
     };
 
     private static final Pattern PING_PATTERN = Pattern.compile(
@@ -90,6 +91,7 @@ public final class SupplyWaypointTracker {
 
         if (!pingFired && ticksSinceStart == PING_TICK) {
             pingFired = true;
+            playerSpotIdx = closestSpotIndex(mc.player.position());
             if (PhantomConfig.isSupplyLocationAnnounceEnabled()) firePings(mc);
         }
 
@@ -139,27 +141,29 @@ public final class SupplyWaypointTracker {
         }
         return count > 0 ? new Vec3(sx / count, sy / count, sz / count) : rough;
     }
+    
+    private static final double PING_MAX_DIST = 20.0;
 
     private static void firePings(Minecraft mc) {
         if (mc.getConnection() == null) return;
 
-        playerSpotIdx = closestSpotIndex(mc.player.position());
-        Vec3  playerSpotPos = SPOT_POS[playerSpotIdx];
-        String zoneName     = SPOT_ZONE[playerSpotIdx];
-
-        SupplyCluster best     = null;
-        double        bestDist = Double.MAX_VALUE;
+        SupplyCluster best        = null;
+        int           bestSpotIdx = -1;
+        double        bestDist    = Double.MAX_VALUE;
         for (SupplyCluster cluster : detectedClusters) {
-            double d = cluster.center.distanceTo(playerSpotPos);
-            if (d < bestDist) { bestDist = d; best = cluster; }
+            for (int i = 0; i < SPOT_POS.length; i++) {
+                double d = cluster.center.distanceTo(SPOT_POS[i]);
+                if (d < bestDist) { bestDist = d; best = cluster; bestSpotIdx = i; }
+            }
         }
 
-        if (best == null) return;
+        if (best == null || bestDist > PING_MAX_DIST) return;
+        if (!IS_SECOND_SUPPLY[bestSpotIdx]) return;
 
         Vec3   pos = best.center;
         String msg = String.format("[Phantom] %s x: %.2f y: %.2f z: %.2f",
-                zoneName, pos.x, pos.y, pos.z);
-        mc.getConnection().sendCommand("pc " + msg);
+                SPOT_NAMES[bestSpotIdx], pos.x, pos.y, pos.z);
+        PartyChatQueue.send(msg);
     }
 
     public static void onChat(String raw) {
@@ -193,12 +197,17 @@ public final class SupplyWaypointTracker {
         }
     }
 
+    private static final double X_XCANNON_Z_BOUNDARY = -136.0;
+
     private static int closestSpotIndex(Vec3 pos) {
         int best = 0;
         double bestDist = Double.MAX_VALUE;
         for (int i = 0; i < SPOT_POS.length; i++) {
             double d = pos.distanceTo(SPOT_POS[i]);
             if (d < bestDist) { bestDist = d; best = i; }
+        }
+        if (best == 2 || best == 3) { // X, X Cannon
+            return pos.z < X_XCANNON_Z_BOUNDARY ? 2 : 3;
         }
         return best;
     }

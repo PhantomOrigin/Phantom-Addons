@@ -1,6 +1,7 @@
 package com.phantomaddons;
 
 import com.phantomaddons.features.misckuudra.ShitterList;
+import com.phantomaddons.features.misckuudra.chesttracking.ChestTracker;
 import com.phantomaddons.features.misckuudra.profile.KuudraProfileScreen;
 import com.phantomaddons.features.misckuudra.profittracker.ProfitHud;
 import com.phantomaddons.features.misckuudra.profittracker.ProfitStore;
@@ -82,6 +83,9 @@ public final class PhantomCommands {
                                 )
                                 .then(ClientCommands.literal("pb")
                                         .executes(ctx -> { showAllPbs(); return 1; })
+                                )
+                                .then(ClientCommands.literal("chests")
+                                        .executes(ctx -> { printChests(); return 1; })
                                 )
                                 .then(ClientCommands.literal("tracker")
                                         .then(ClientCommands.literal("reset")
@@ -229,6 +233,19 @@ public final class PhantomCommands {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.getConnection() == null) return;
         mc.execute(() -> mc.getConnection().sendCommand("joininstance " + instance));
+    }
+
+    private static void printChests() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        int total   = ChestTracker.getTotal();
+        int success = ChestTracker.getSuccess();
+        int fail    = ChestTracker.getFail();
+        int left    = Math.max(0, 60 - total);
+
+        mc.player.sendSystemMessage(Component.literal(PREFIX + String.format(
+                "§eChests: §f%d/60 §7(%d:%d) §7| §f%d runs left", total, success, fail, left)));
     }
 
     private static void showAllPbs() {

@@ -38,6 +38,8 @@ public class HandledScreenMixin {
     @Shadow protected int topPos;
     @Final @Shadow protected int imageWidth;
 
+    @Shadow protected void slotClicked(Slot slot, int slotId, int mouseButton, ContainerInput type) {}
+
     private int kuudrahelper$getMenuSlotId(AbstractContainerScreen<?> screen, Slot slot) {
         return slot == null ? -1 : screen.getMenu().slots.indexOf(slot);
     }
@@ -90,6 +92,23 @@ public class HandledScreenMixin {
         if (ProfitHud.handleClick(mx, my)) {
             cir.setReturnValue(true);
         }
+    }
+
+    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    private void kuudrahelper$middleClickShopGui(Slot slot, int slotId, int mouseButton,
+                                                 ContainerInput clickType, CallbackInfo ci) {
+        if (!PhantomConfig.isMiddleClickShopGuiEnabled()) return;
+        // Only re-issue a real, plain left-click (PICKUP) — the recursive call below carries
+        // CLONE, so it falls through this guard instead of looping back into itself.
+        if (mouseButton != 0 || clickType != ContainerInput.PICKUP) return;
+        if (slot == null || slot.getItem().isEmpty()) return;
+
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        String title = self.getTitle().getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        if (!title.contains("Perk Menu")) return;
+
+        ci.cancel();
+        this.slotClicked(slot, slotId, 2, ContainerInput.CLONE);
     }
 
     @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)

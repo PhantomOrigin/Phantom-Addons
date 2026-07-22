@@ -118,6 +118,7 @@ public class PhantomAddons implements ClientModInitializer {
         UpdateChecker.checkOnStartup();
         com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.checkOnStartup();
         SlotBlocker.register();
+        com.phantomaddons.features.boss.AtomsplitBlocker.register();
         KuudraDirectionHud.register();
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.register();
         PearlTitleHud.register();
@@ -401,6 +402,9 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraSplitTimer.reset();
         CannonAutoClose.reset();
         PartyCommands.reset();
+        com.phantomaddons.features.misckuudra.profile.AutoKickManager.reset();
+        com.phantomaddons.features.misckuudra.ShitterList.reset();
+        com.phantomaddons.features.misckuudra.AutoKickCoordinator.reset();
         AutoRequeue.resetSession();
         ShopKeybinds.reset();
         WardrobeKeybinds.reset();
@@ -417,6 +421,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.boss.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
         NoPreAnnounce.reset();
+        com.phantomaddons.features.supplies.PartyChatQueue.reset();
         com.phantomaddons.features.supplies.etherwarp.EtherwarpWaypointManager.reset();
         NotificationHud.reset();
         CratePriority.reset();
@@ -457,6 +462,9 @@ public class PhantomAddons implements ClientModInitializer {
             PhaseLogger.tick(client);
             SupplyWaypointTracker.tick(client);
             com.phantomaddons.features.supplies.nopre.NoPreAnnounce.tick(client);
+            com.phantomaddons.features.supplies.PartyChatQueue.tick(client);
+            com.phantomaddons.features.misckuudra.profile.AutoKickManager.tick(client);
+            com.phantomaddons.features.misckuudra.ShitterList.tick(client);
             com.phantomaddons.features.supplies.giant.SupplyGiantHitbox.tick(client);
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);

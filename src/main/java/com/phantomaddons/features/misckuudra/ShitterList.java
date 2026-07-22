@@ -17,14 +17,15 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class ShitterList {
 
     private static final class Data {
-        boolean      enabled         = false;
         boolean      autoKickEnabled = false;
         List<String> names           = new ArrayList<>();
     }
@@ -33,12 +34,14 @@ public final class ShitterList {
     private static final Path PATH = FabricLoader.getInstance()
             .getConfigDir().resolve("phantomaddons_shitterlist.json");
 
-    private static final int DARK_RED = 0x8B0000;
+    private static final int  DARK_RED       = 0x8B0000;
+    private static final long KICK_DELAY_MS  = 200;
 
-    private static boolean enabled         = false;
     private static boolean autoKickEnabled = false;
     private static final List<String> NAMES       = new ArrayList<>();
     private static final Set<String>  NAMES_LOWER = new LinkedHashSet<>();
+
+    private static final Map<String, Long> pendingKicks = new LinkedHashMap<>();
 
     private ShitterList() {}
 
@@ -48,7 +51,6 @@ public final class ShitterList {
         try (Reader r = new FileReader(p.toFile())) {
             Data d = GSON.fromJson(r, Data.class);
             if (d != null) {
-                enabled = d.enabled;
                 autoKickEnabled = d.autoKickEnabled;
                 NAMES.clear();
                 NAMES_LOWER.clear();
@@ -65,7 +67,6 @@ public final class ShitterList {
 
     public static void save() {
         Data d = new Data();
-        d.enabled = enabled;
         d.autoKickEnabled = autoKickEnabled;
         d.names = NAMES;
         try (Writer w = new FileWriter(PATH.toFile())) {
@@ -73,8 +74,6 @@ public final class ShitterList {
         } catch (Exception ignored) {}
     }
 
-    public static boolean isEnabled()             { return enabled; }
-    public static void    setEnabled(boolean v)   { enabled = v; save(); }
     public static boolean isAutoKickEnabled()           { return autoKickEnabled; }
     public static void    setAutoKickEnabled(boolean v) { autoKickEnabled = v; save(); }
 
@@ -103,16 +102,38 @@ public final class ShitterList {
     }
 
     public static void checkAutoKick(String name) {
-        if (!enabled || !autoKickEnabled) return;
+        if (!autoKickEnabled) return;
         if (!contains(name)) return;
         if (!PartyCommands.isPartyLeader()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.getConnection() == null) return;
-        mc.execute(() -> mc.getConnection().sendCommand("p kick " + name));
+        if (!AutoKickCoordinator.tryClaim(name)) return;
+
+        com.phantomaddons.features.supplies.PartyChatQueue.send("Kicking " + name + " because bad.");
+        pendingKicks.put(name, System.currentTimeMillis() + KICK_DELAY_MS);
+    }
+
+    public static void tick(Minecraft mc) {
+        if (pendingKicks.isEmpty()) return;
+        if (mc.getConnection() == null) return;
+
+        long now = System.currentTimeMillis();
+        var it = pendingKicks.entrySet().iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
+            if (now >= entry.getValue()) {
+                com.phantomaddons.features.supplies.PartyChatQueue.sendCommand("p kick " + entry.getKey());
+                it.remove();
+            }
+        }
+    }
+
+    public static void reset() {
+        pendingKicks.clear();
     }
 
     private static boolean active() {
-        if (!enabled || NAMES.isEmpty()) return false;
+        if (NAMES.isEmpty()) return false;
         var screen = Minecraft.getInstance().screen;
         if (screen instanceof PhantomScreen || screen instanceof HudEditorScreen) return false;
         return true;

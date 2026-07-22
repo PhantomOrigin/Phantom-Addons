@@ -27,9 +27,6 @@ public class PhantomScreen extends Screen {
 
     private static final int SIDEBAR_W = 108;
     private static final int HEADER_H  = 34;
-    // Base panel size at scale 1.0 (the mod's own GUI-scale setting, separate from Minecraft's).
-    // Scaling only these two changes how much of the panel is on screen — every row/font/control
-    // inside stays its normal pixel size, so a bigger panel just fits more rows, not bigger rows.
     private static final int BASE_PANEL_W = 400;
     private static final int BASE_PANEL_H = 280;
     private static int PANEL_W = BASE_PANEL_W;
@@ -42,8 +39,6 @@ public class PhantomScreen extends Screen {
     private static final int GROUP_PAD_B = 6;
 
     // ── Colours ───────────────────────────────────────────────────────────────
-    // Mutable (not final) so applyTheme() can swap the whole palette between dark and
-    // light mode without touching any of the many call sites that reference these.
 
     private static final Identifier LOGO =
             Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/logo.png");
@@ -69,18 +64,11 @@ public class PhantomScreen extends Screen {
     private static int C_CYCLE_BG    = 0xFF151E33;
     private static int C_CYCLE_HOVER = 0xFF223366;
     private static int C_FIELD_BG    = 0xFF0F1218;
+    private static int C_FIELD_HOVER = 0xFF17202E;
     private static int C_FIELD_FOCUS = 0xFF1A2A44;
     private static int C_ERROR       = 0xFFCC4444;
     private static int C_INFO        = 0xFF44AAFF;
 
-    // Deliberately NOT part of the theme swap — the dim behind the GUI (over the game world)
-    // should stay the same regardless of dark/light mode, only the panel itself should change.
-    // It DOES react to the transparency toggle: a near-opaque dim behind the panel flattens away
-    // almost all of the game world's colour/detail, so even a translucent panel on top of it can
-    // only ever read as a brightness shift, never real see-through. Values below are lifted from
-    // IQ (another Kuudra-helper mod with working GUI transparency) — its dim sits at alpha 122/255
-    // (~48%) instead of our previous ~73%, and its panel/sidebar are set directly to ~50% alpha
-    // rather than nudged a few percent off of opaque.
     private static final int C_DIM_OVERLAY_ALPHA       = 0xBB; // ~73% opaque — transparency off
     private static final int C_DIM_OVERLAY_ALPHA_TRANS = 0x7A; // ~48% opaque — transparency on
     private static final int C_DIM_OVERLAY_RGB         = 0x06080C;
@@ -88,7 +76,6 @@ public class PhantomScreen extends Screen {
     private static boolean darkMode = true;
     private static PhantomConfig.UiTheme uiTheme = PhantomConfig.UiTheme.DARK;
 
-    /** Swaps every palette colour between the dark scheme and the light schemes (amber or blue accent). */
     private static void applyTheme(PhantomConfig.UiTheme theme) {
         uiTheme = theme;
         darkMode = theme == PhantomConfig.UiTheme.DARK;
@@ -113,6 +100,7 @@ public class PhantomScreen extends Screen {
                 C_CYCLE_BG    = 0xFF151E33;
                 C_CYCLE_HOVER = 0xFF223366;
                 C_FIELD_BG    = 0xFF0F1218;
+                C_FIELD_HOVER = 0xFF17202E;
                 C_FIELD_FOCUS = 0xFF1A2A44;
                 C_ERROR       = 0xFFCC4444;
                 C_INFO        = 0xFF44AAFF;
@@ -137,6 +125,7 @@ public class PhantomScreen extends Screen {
                 C_CYCLE_BG    = 0xFFDBD0A8;
                 C_CYCLE_HOVER = 0xFFC9BB86;
                 C_FIELD_BG    = 0xFFE3D8B4;
+                C_FIELD_HOVER = 0xFFEAD3A0;
                 C_FIELD_FOCUS = 0xFFF2E3AC;
                 C_ERROR       = 0xFF992222;
                 C_INFO        = 0xFF1F5FA8;
@@ -180,6 +169,47 @@ public class PhantomScreen extends Screen {
     private static int dangerBg(boolean hover) {
         if (darkMode) return hover ? 0xFF4A1515 : 0xFF2A0F0F;
         return hover ? 0xFFE8B4B4 : 0xFFF2D6D6;
+    }
+
+    // ── Shared text-field editing helpers ────────────────────────────────────
+
+    private static boolean fieldHovered(int fx, int fy, int fw, int fh, double mx, double my) {
+        return mx >= fx && mx <= fx + fw && my >= fy && my <= fy + fh;
+    }
+
+    private static int clickToCursor(net.minecraft.client.gui.Font font, String text, int textStartX, double clickX) {
+        int best = 0, bestDist = Integer.MAX_VALUE;
+        for (int i = 0; i <= text.length(); i++) {
+            int cx = textStartX + font.width(text.substring(0, i));
+            int dist = (int) Math.abs(clickX - cx);
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        return best;
+    }
+
+    private static boolean caretVisible() {
+        return (System.currentTimeMillis() / 530L) % 2 == 0;
+    }
+
+    private static void drawCaret(GuiGraphicsExtractor ctx, int x, int y, int h, int color) {
+        if (caretVisible()) ctx.fill(x, y, x + 1, y + h, color);
+    }
+
+    private static String insertAt(String s, int pos, char c) {
+        pos = Math.max(0, Math.min(s.length(), pos));
+        return s.substring(0, pos) + c + s.substring(pos);
+    }
+
+    private static String deleteBefore(String s, int pos) {
+        if (pos <= 0) return s;
+        pos = Math.min(s.length(), pos);
+        return s.substring(0, pos - 1) + s.substring(pos);
+    }
+
+    private static String deleteAfter(String s, int pos) {
+        if (pos >= s.length()) return s;
+        pos = Math.max(0, pos);
+        return s.substring(0, pos) + s.substring(pos + 1);
     }
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -308,37 +338,55 @@ public class PhantomScreen extends Screen {
         final Supplier<Integer> get; final Consumer<Integer> set;
         String  draft   = null;
         boolean focused = false;
+        int     cursorPos = 0;
+        int     fieldW = 50;
         IntInput(String n, Tab t, Supplier<Integer> get, Consumer<Integer> set) {
             super(n, t); this.get = get; this.set = set;
         }
+        String displayValue() { return draft != null ? draft : String.valueOf(get.get()); }
         @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
             drawText(ctx, s.font, Component.literal(name),
                     x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
-            String display = draft != null ? draft : String.valueOf(get.get());
-            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            roundedFill(ctx, fx, fy, fx + fw, fy + fh, focused ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
-            drawCenteredText(ctx, s.font, Component.literal(display),
-                    fx + fw / 2, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            String display = displayValue();
+            int fw = fieldW, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
+            boolean hov = fieldHovered(fx, fy, fw, fh, mx, my);
+            int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
+            roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
+            int textX = fx + (fw - s.font.width(display)) / 2;
+            drawText(ctx, s.font, Component.literal(display), textX, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            if (focused) {
+                cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
+                int caretX = textX + s.font.width(display.substring(0, cursorPos));
+                drawCaret(ctx, caretX, fy + 2, fh - 4, C_TEXT);
+            }
         }
         @Override boolean onDown(double mx, double my, int x, int y, int w) {
-            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            if (mx >= fx && mx <= fx + fw && my >= fy && my <= fy + fh) {
-                focused = true; draft = String.valueOf(get.get()); return true;
+            int fw = fieldW, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
+            if (fieldHovered(fx, fy, fw, fh, mx, my)) {
+                String display = displayValue();
+                var font = Minecraft.getInstance().font;
+                int textX = fx + (fw - font.width(display)) / 2;
+                focused = true;
+                draft = display;
+                cursorPos = clickToCursor(font, display, textX, mx);
+                return true;
             }
             if (focused) { commit(); focused = false; }
             return false;
         }
         @Override void onKey(int key) {
             if (!focused) return;
-            if (key == 256) { commit(); focused = false; }       // Esc saves current value
-            else if (key == 257 || key == 335) { commit(); focused = false; }
-            else if (key == 259 && draft != null && !draft.isEmpty())
-                draft = draft.substring(0, draft.length() - 1);
+            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; } // Esc/Enter save
+            else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
+            else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
+            else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);       // Left
+            else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1); // Right
         }
         @Override void onChar(char c) {
             if (focused && Character.isDigit(c)) {
                 if (draft == null) draft = "";
-                draft += c;
+                draft = insertAt(draft, cursorPos, c);
+                cursorPos++;
             }
         }
         @Override boolean isCapturing() { return focused; }
@@ -357,26 +405,10 @@ public class PhantomScreen extends Screen {
         OptionalIntInput(String n, Tab t, Supplier<Integer> get, Consumer<Integer> set) {
             super(n, t, get, set);
         }
-        @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
-            drawText(ctx, s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
+        @Override String displayValue() {
+            if (draft != null) return draft;
             int val = get.get();
-            String display = draft != null ? draft : (val < 0 ? "" : String.valueOf(val));
-            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            roundedFill(ctx, fx, fy, fx + fw, fy + fh, focused ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
-            drawCenteredText(ctx, s.font, Component.literal(display),
-                    fx + fw / 2, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
-        }
-        @Override boolean onDown(double mx, double my, int x, int y, int w) {
-            int fw = 50, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            if (mx >= fx && mx <= fx + fw && my >= fy && my <= fy + fh) {
-                focused = true;
-                int val = get.get();
-                draft = val < 0 ? "" : String.valueOf(val);
-                return true;
-            }
-            if (focused) { commit(); focused = false; }
-            return false;
+            return val < 0 ? "" : String.valueOf(val);
         }
         @Override void commit() {
             if (draft == null) return;
@@ -391,28 +423,16 @@ public class PhantomScreen extends Screen {
     private static class SignedIntInput extends IntInput {
         SignedIntInput(String n, Tab t, Supplier<Integer> get, Consumer<Integer> set) {
             super(n, t, get, set);
-        }
-        @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
-            drawText(ctx, s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
-            String display = draft != null ? draft : String.valueOf(get.get());
-            int fw = 64, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            roundedFill(ctx, fx, fy, fx + fw, fy + fh, focused ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
-            drawCenteredText(ctx, s.font, Component.literal(display),
-                    fx + fw / 2, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
-        }
-        @Override boolean onDown(double mx, double my, int x, int y, int w) {
-            int fw = 64, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
-            if (mx >= fx && mx <= fx + fw && my >= fy && my <= fy + fh) {
-                focused = true; draft = String.valueOf(get.get()); return true;
-            }
-            if (focused) { commit(); focused = false; }
-            return false;
+            fieldW = 64;
         }
         @Override void onChar(char c) {
             if (!focused) return;
-            if (c == '-' && (draft == null || draft.isEmpty())) { draft = "-"; }
-            else if (Character.isDigit(c)) { if (draft == null) draft = ""; draft += c; }
+            if (c == '-' && (draft == null || draft.isEmpty())) { draft = "-"; cursorPos = 1; }
+            else if (Character.isDigit(c)) {
+                if (draft == null) draft = "";
+                draft = insertAt(draft, cursorPos, c);
+                cursorPos++;
+            }
         }
         @Override void commit() {
             if (draft != null && !draft.isEmpty() && !draft.equals("-")) {
@@ -428,8 +448,10 @@ public class PhantomScreen extends Screen {
         final Supplier<String> get; final Consumer<String> set;
         String  draft   = null;
         boolean focused = false;
+        int     cursorPos = 0;
         // cached from last render so onDown uses the same geometry
-        private int lastFx, lastFy, lastFw, lastFh;
+        private int lastFx, lastFy, lastFw, lastFh, lastStart;
+        private String lastShown = "";
         TextInput(String n, Tab t, Supplier<String> get, Consumer<String> set) {
             super(n, t); this.get = get; this.set = set;
         }
@@ -443,17 +465,29 @@ public class PhantomScreen extends Screen {
             int fx = x + 8 + labelW + 8, fy = y + 3, fw = w - fx + x - 8, fh = ROW_H - 6;
             if (fw < 30) fw = 30;
             lastFx = fx; lastFy = fy; lastFw = fw; lastFh = fh;
-            roundedFill(ctx, fx, fy, fx + fw, fy + fh, focused ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
+            boolean hov = fieldHovered(fx, fy, fw, fh, mx, my);
+            int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
+            roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
+            cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
             int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
-            String shown = display.length() > maxChars
-                    ? display.substring(display.length() - maxChars) : display;
+            int start = display.length() <= maxChars ? 0
+                    : focused ? Math.max(0, Math.min(display.length() - maxChars, cursorPos - maxChars / 2))
+                              : display.length() - maxChars;
+            String shown = display.substring(start, Math.min(display.length(), start + maxChars));
+            lastStart = start; lastShown = shown;
             drawText(ctx, s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            if (focused) {
+                int visibleCursor = Math.max(start, Math.min(cursorPos, start + shown.length()));
+                int caretX = fx + 4 + s.font.width(display.substring(start, visibleCursor));
+                drawCaret(ctx, caretX, fy + 2, fh - 4, C_TEXT);
+            }
         }
         @Override boolean onDown(double mx, double my, int x, int y, int w) {
-            if (mx >= lastFx && mx <= lastFx + lastFw && my >= lastFy && my <= lastFy + lastFh) {
+            if (fieldHovered(lastFx, lastFy, lastFw, lastFh, mx, my)) {
                 focused = true;
                 String raw = get.get();
                 draft = raw != null ? stripNamespace(raw) : "";
+                cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
                 return true;
             }
             if (focused) { commit(); focused = false; }
@@ -462,11 +496,17 @@ public class PhantomScreen extends Screen {
         @Override void onKey(int key) {
             if (!focused) return;
             if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
-            else if (key == 259 && draft != null && !draft.isEmpty())
-                draft = draft.substring(0, draft.length() - 1);
+            else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
+            else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
+            else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);
+            else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1);
         }
         @Override void onChar(char c) {
-            if (focused) { if (draft == null) draft = ""; draft += c; }
+            if (focused) {
+                if (draft == null) draft = "";
+                draft = insertAt(draft, cursorPos, c);
+                cursorPos++;
+            }
         }
         @Override boolean isCapturing() { return focused; }
         @Override void cancel() { if (focused) { commit(); focused = false; } }
@@ -491,7 +531,9 @@ public class PhantomScreen extends Screen {
         final Supplier<String> get; final Consumer<String> set;
         String  draft   = null;
         boolean focused = false;
-        private int lastFx, lastFy, lastFw, lastFh;
+        int     cursorPos = 0;
+        private int lastFx, lastFy, lastFw, lastFh, lastStart;
+        private String lastShown = "";
         RawTextInput(String n, Tab t, Supplier<String> get, Consumer<String> set) {
             super(n, t); this.get = get; this.set = set;
         }
@@ -504,16 +546,28 @@ public class PhantomScreen extends Screen {
             int fx = x + 8 + labelW + 8, fy = y + 3, fw = w - fx + x - 8, fh = ROW_H - 6;
             if (fw < 30) fw = 30;
             lastFx = fx; lastFy = fy; lastFw = fw; lastFh = fh;
-            roundedFill(ctx, fx, fy, fx + fw, fy + fh, focused ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
+            boolean hov = fieldHovered(fx, fy, fw, fh, mx, my);
+            int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
+            roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
+            cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
             int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
-            String shown = display.length() > maxChars
-                    ? display.substring(display.length() - maxChars) : display;
+            int start = display.length() <= maxChars ? 0
+                    : focused ? Math.max(0, Math.min(display.length() - maxChars, cursorPos - maxChars / 2))
+                              : display.length() - maxChars;
+            String shown = display.substring(start, Math.min(display.length(), start + maxChars));
+            lastStart = start; lastShown = shown;
             drawText(ctx, s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            if (focused) {
+                int visibleCursor = Math.max(start, Math.min(cursorPos, start + shown.length()));
+                int caretX = fx + 4 + s.font.width(display.substring(start, visibleCursor));
+                drawCaret(ctx, caretX, fy + 2, fh - 4, C_TEXT);
+            }
         }
         @Override boolean onDown(double mx, double my, int x, int y, int w) {
-            if (mx >= lastFx && mx <= lastFx + lastFw && my >= lastFy && my <= lastFy + lastFh) {
+            if (fieldHovered(lastFx, lastFy, lastFw, lastFh, mx, my)) {
                 focused = true;
                 draft = get.get() != null ? get.get() : "";
+                cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
                 return true;
             }
             if (focused) { commit(); focused = false; }
@@ -522,11 +576,17 @@ public class PhantomScreen extends Screen {
         @Override void onKey(int key) {
             if (!focused) return;
             if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
-            else if (key == 259 && draft != null && !draft.isEmpty())
-                draft = draft.substring(0, draft.length() - 1);
+            else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
+            else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
+            else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);
+            else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1);
         }
         @Override void onChar(char c) {
-            if (focused) { if (draft == null) draft = ""; draft += c; }
+            if (focused) {
+                if (draft == null) draft = "";
+                draft = insertAt(draft, cursorPos, c);
+                cursorPos++;
+            }
         }
         @Override boolean isCapturing() { return focused; }
         @Override void cancel() { if (focused) { commit(); focused = false; } }
@@ -1183,12 +1243,12 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isAnnounceFreshEnabled, PhantomConfig::setAnnounceFreshEnabled);
         announce.add(leaf(new Toggle("Fresh Notification", T,
                 PhantomConfig::isFreshNotifyEnabled, PhantomConfig::setFreshNotifyEnabled)));
-        announce.add(soundGroup(T, PhantomConfig.SOUND_FRESH));
+        announce.add(soundGroup(T, announce.key, PhantomConfig.SOUND_FRESH));
         roots.add(announce);
 
         Group buildStarted = group("Build Started Notification", T, null,
                 PhantomConfig::isBuildStartedNotifyEnabled, PhantomConfig::setBuildStartedNotifyEnabled);
-        buildStarted.add(soundGroup(T, PhantomConfig.SOUND_BUILD_STARTED));
+        buildStarted.add(soundGroup(T, buildStarted.key, PhantomConfig.SOUND_BUILD_STARTED));
         roots.add(buildStarted);
         Group buildBeacons = group("Build Beacons", T, null,
                 PhantomConfig::isBuildBeaconsEnabled, PhantomConfig::setBuildBeaconsEnabled);
@@ -1211,17 +1271,17 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isNoPreAnnounceEnabled, PhantomConfig::setNoPreAnnounceEnabled);
         noPre.add(leaf(new Toggle("No Pre Notification", T,
                 PhantomConfig::isNoPreNotifyEnabled, PhantomConfig::setNoPreNotifyEnabled)));
-        noPre.add(soundGroup(T, PhantomConfig.SOUND_NO_PRE));
+        noPre.add(soundGroup(T, noPre.key, PhantomConfig.SOUND_NO_PRE));
         roots.add(noPre);
 
         Group supplyGrabbed = group("Supply Grabbed Notification", T, null,
                 PhantomConfig::isSupplyGrabbedNotifyEnabled, PhantomConfig::setSupplyGrabbedNotifyEnabled);
-        supplyGrabbed.add(soundGroup(T, PhantomConfig.SOUND_SUPPLY_GRABBED));
+        supplyGrabbed.add(soundGroup(T, supplyGrabbed.key, PhantomConfig.SOUND_SUPPLY_GRABBED));
         roots.add(supplyGrabbed);
 
         Group supplyDropped = group("Supply Dropped Notification", T, null,
                 PhantomConfig::isSupplyDroppedNotifyEnabled, PhantomConfig::setSupplyDroppedNotifyEnabled);
-        supplyDropped.add(soundGroup(T, PhantomConfig.SOUND_SUPPLY_DROPPED));
+        supplyDropped.add(soundGroup(T, supplyDropped.key, PhantomConfig.SOUND_SUPPLY_DROPPED));
         roots.add(supplyDropped);
 
         roots.add(leaf(new Toggle("Crate Priority", T,
@@ -1306,7 +1366,7 @@ public class PhantomScreen extends Screen {
         bcnCol.add(leaf(new RgbInput("Normal target",  T, PhantomConfig::getBeaconColNormal,  PhantomConfig::setBeaconColNormal)));
         bcnCol.add(leaf(new RgbInput("Correct target", T, PhantomConfig::getBeaconColCorrect, PhantomConfig::setBeaconColCorrect)));
         wp.add(bcnCol);
-        wp.add(soundGroup(T, PhantomConfig.SOUND_PEARL_NOW));
+        wp.add(soundGroup(T, wp.key, PhantomConfig.SOUND_PEARL_NOW));
 
         roots.add(wp);
 
@@ -1372,7 +1432,7 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isBoneTimingAssistEnabled, PhantomConfig::setBoneTimingAssistEnabled);
         boneTiming.add(leaf(new RangeSlider("Kuudra Timing Offset", T, -3.0f, 1.0f, "%.2f",
                 PhantomConfig::getBoneTimingAssistOffset, PhantomConfig::setBoneTimingAssistOffset)));
-        boneTiming.add(soundGroup(T, PhantomConfig.SOUND_BONE_THROW_NOW));
+        boneTiming.add(soundGroup(T, boneTiming.key, PhantomConfig.SOUND_BONE_THROW_NOW));
         roots.add(boneTiming);
         Group hitboxOutline = group("Predicted Hitbox Location", T, null,
                 PhantomConfig::isBoneTimingHitboxOutlineEnabled, PhantomConfig::setBoneTimingHitboxOutlineEnabled);
@@ -1389,7 +1449,7 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isBackboneProgressBarEnabled, PhantomConfig::setBackboneProgressBarEnabled);
         backbone.add(leaf(new Toggle("Work Outside Kuudra", T,
                 PhantomConfig::isBackboneProgressBarOutsideKuudraEnabled, PhantomConfig::setBackboneProgressBarOutsideKuudraEnabled)));
-        backbone.add(soundGroup(T, PhantomConfig.SOUND_BACKBONE_DONE));
+        backbone.add(soundGroup(T, backbone.key, PhantomConfig.SOUND_BACKBONE_DONE));
         roots.add(backbone);
 
         Group hl = group("Kuudra Highlight", T, null,
@@ -1397,6 +1457,10 @@ public class PhantomScreen extends Screen {
         hl.add(leaf(new Toggle("Filled Highlight", T,
                 PhantomConfig::isKuudraHighlightFilled, PhantomConfig::setKuudraHighlightFilled)));
         roots.add(hl);
+
+        roots.add(leaf(new Toggle("Block Atomsplit", T,
+                PhantomConfig::isBlockAtomsplitEnabled, PhantomConfig::setBlockAtomsplitEnabled)
+                .withTooltip("Prevents using any item with \"Atomsplit\" in its lore during the Boss phase")));
     }
 
     // ── Loadouts tab (Skyblock) ────────────────────────────────────────────────
@@ -1539,6 +1603,9 @@ public class PhantomScreen extends Screen {
         shop.add(leaf(new KeyCapture("Cannon Key", T, PhantomConfig::getShopCannonKey, PhantomConfig::setShopCannonKey)));
         roots.add(shop);
 
+        roots.add(leaf(new Toggle("Middle Click Perk Menu", T,
+                PhantomConfig::isMiddleClickShopGuiEnabled, PhantomConfig::setMiddleClickShopGuiEnabled)));
+
         Group profit = group("Profit Tracker", T, null,
                 PhantomConfig::isProfitTrackerEnabled, PhantomConfig::setProfitTrackerEnabled);
         profit.add(leaf(new Toggle("Show During Run", T,
@@ -1603,14 +1670,6 @@ public class PhantomScreen extends Screen {
         roots.add(leaf(new Toggle("Chest Tracker HUD", T,
                 PhantomConfig::isChestTrackerVisible, PhantomConfig::setChestTrackerVisible)));
 
-        Group shitterList = group("Shitter List", T, null,
-                com.phantomaddons.features.misckuudra.ShitterList::isEnabled,
-                com.phantomaddons.features.misckuudra.ShitterList::setEnabled);
-        shitterList.add(leaf(new Toggle("Auto Kick Shitters", T,
-                com.phantomaddons.features.misckuudra.ShitterList::isAutoKickEnabled,
-                com.phantomaddons.features.misckuudra.ShitterList::setAutoKickEnabled)));
-        roots.add(shitterList);
-
         Group explosion = group("Exploison Hider", T, null,
                 PhantomConfig::isExplosionFilterEnabled, PhantomConfig::setExplosionFilterEnabled);
         explosion.add(leaf(new Slider("Hide Radius", T,
@@ -1640,6 +1699,9 @@ public class PhantomScreen extends Screen {
             autoKick.add(leaf(new Toggle("Rend", T,
                     PhantomConfig::isAkRequireRend, PhantomConfig::setAkRequireRend)));
             autoKick.add(leaf(new OptionalIntInput("Gdrag Level", T, PhantomConfig::getAkMinGdragLevel, PhantomConfig::setAkMinGdragLevel)));
+            autoKick.add(leaf(new Toggle("Auto Kick Shitters", T,
+                    com.phantomaddons.features.misckuudra.ShitterList::isAutoKickEnabled,
+                    com.phantomaddons.features.misckuudra.ShitterList::setAutoKickEnabled)));
             roots.add(autoKick);
 
             roots.add(leaf(new Toggle("Profile Viewer", T,
@@ -2365,7 +2427,17 @@ public class PhantomScreen extends Screen {
 
         int outlineColor = PhantomConfig.isUiTransparencyEnabled() ? withAlpha(C_BORDER, CONTENT_ALPHA_TRANS) : C_BORDER;
         roundedFill(ctx, px - 1, py - 1, px + PANEL_W + 1, py + PANEL_H + 1, outlineColor, PANEL_RADIUS + 1);
-        roundedFill(ctx, px, py, px + PANEL_W, py + PANEL_H, C_BG, PANEL_RADIUS);
+        // Circular gradient stemming from near the top-left of the content area (the panel's
+        // largest single section) — noticeably stronger in transparency mode, since it's the
+        // one surface where a flat colour would otherwise look the most washed-out/plain.
+        boolean transparentBg = PhantomConfig.isUiTransparencyEnabled();
+        int bgShade = transparentBg ? 26 : 10;
+        double gradCenterX = px + SIDEBAR_W + 24;
+        double gradCenterY = py + HEADER_H + 20;
+        double gradRadius  = Math.hypot(PANEL_W, PANEL_H) * 0.85;
+        roundedFillRadial(ctx, px, py, px + PANEL_W, py + PANEL_H,
+                gradCenterX, gradCenterY, gradRadius,
+                shade(C_BG, bgShade), shade(C_BG, -bgShade), PANEL_RADIUS, true, true, true, true);
 
         ctx.enableScissor(px, py, px + PANEL_W, py + PANEL_H);
         roundedFill(ctx, px, py, px + PANEL_W, py + HEADER_H, C_HEADER, PANEL_RADIUS, true, true, false, false);
@@ -2654,6 +2726,56 @@ public class PhantomScreen extends Screen {
         ctx.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 0f, 0f, r, r,
                 CORNER_TEX_SIZE, CORNER_TEX_SIZE, CORNER_TEX_SIZE, CORNER_TEX_SIZE, color);
     }
+
+    private static void roundedFillRadial(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2,
+                                           double centerX, double centerY, double radius,
+                                           int colorNear, int colorFar, int radiusCorner,
+                                           boolean roundTL, boolean roundTR, boolean roundBL, boolean roundBR) {
+        int r = Math.max(0, Math.min(radiusCorner, Math.min((x2 - x1) / 2, (y2 - y1) / 2)));
+        if (r <= 0 || !(roundTL || roundTR || roundBL || roundBR)) {
+            radialCellFill(ctx, x1, y1, x2, y2, centerX, centerY, radius, colorNear, colorFar);
+            return;
+        }
+
+        radialCellFill(ctx, x1 + r, y1,     x2 - r, y2,     centerX, centerY, radius, colorNear, colorFar);
+        radialCellFill(ctx, x1,     y1 + r, x1 + r, y2 - r, centerX, centerY, radius, colorNear, colorFar);
+        radialCellFill(ctx, x2 - r, y1 + r, x2,     y2 - r, centerX, centerY, radius, colorNear, colorFar);
+
+        cornerTile(ctx, x1,     y1,     r, roundTL, CORNER_TL, radialSample(x1 + r / 2.0,     y1 + r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
+        cornerTile(ctx, x2 - r, y1,     r, roundTR, CORNER_TR, radialSample(x2 - r / 2.0,     y1 + r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
+        cornerTile(ctx, x1,     y2 - r, r, roundBL, CORNER_BL, radialSample(x1 + r / 2.0,     y2 - r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
+        cornerTile(ctx, x2 - r, y2 - r, r, roundBR, CORNER_BR, radialSample(x2 - r / 2.0,     y2 - r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
+    }
+
+    private static final int RADIAL_CELL = 14;
+
+    private static void radialCellFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2,
+                                        double centerX, double centerY, double radius, int colorNear, int colorFar) {
+        for (int gy = y1; gy < y2; gy += RADIAL_CELL) {
+            int cellH = Math.min(RADIAL_CELL, y2 - gy);
+            for (int gx = x1; gx < x2; gx += RADIAL_CELL) {
+                int cellW = Math.min(RADIAL_CELL, x2 - gx);
+                int color = radialSample(gx + cellW / 2.0, gy + cellH / 2.0, centerX, centerY, radius, colorNear, colorFar);
+                ctx.fill(gx, gy, gx + cellW, gy + cellH, color);
+            }
+        }
+    }
+
+    private static int radialSample(double x, double y, double centerX, double centerY, double radius, int colorNear, int colorFar) {
+        double dist = Math.hypot(x - centerX, y - centerY);
+        float t = (float) Math.max(0.0, Math.min(1.0, dist / radius));
+        return lerpColor(colorNear, colorFar, t);
+    }
+
+    private static int shade(int argb, int delta) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = clampByte(((argb >> 16) & 0xFF) + delta);
+        int g = clampByte(((argb >> 8) & 0xFF) + delta);
+        int b = clampByte((argb & 0xFF) + delta);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    private static int clampByte(int v) { return Math.max(0, Math.min(255, v)); }
 
     private static final int CONTROL_RADIUS = 5;
 

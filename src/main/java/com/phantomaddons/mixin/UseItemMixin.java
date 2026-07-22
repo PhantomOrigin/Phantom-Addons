@@ -38,6 +38,11 @@ public class UseItemMixin {
         ItemStack stack  = player.getItemInHand(hand);
         Minecraft client = Minecraft.getInstance();
 
+        if (com.phantomaddons.features.boss.AtomsplitBlocker.shouldBlock(stack)) {
+            cir.setReturnValue(InteractionResult.FAIL);
+            return;
+        }
+
         if (stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
             if (PhantomConfig.isEtherwarpWaypointsEnabled()) {
                 EtherwarpWaypointManager.onPearlThrow(client, player);

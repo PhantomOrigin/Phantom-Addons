@@ -37,7 +37,6 @@ public final class KuudraSplitTimer {
     private static int globalTick = 0;
     private static Split activeSplit = null;
 
-    // Track BUILD phase start/end separately for FRESH! grace period
     private static long buildPhaseStartMs = -1;
     private static long buildPhaseEndMs   = -1;
     private static final long FRESH_GRACE_MS = 2_000;
@@ -60,7 +59,7 @@ public final class KuudraSplitTimer {
     private static boolean pendingAnnounce = false;
 
     private static final Pattern FRESH_PAT =
-            Pattern.compile("Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH!(?: \\((\\d+)%\\))?");
+            Pattern.compile("Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH(?:.*?\\((\\d+)%\\))?.*");
     private static final Pattern RECOVERED =
             Pattern.compile("(\\S+)\\s+recovered (?:a supply|one of Elle's supplies)", Pattern.CASE_INSENSITIVE);
 
@@ -114,7 +113,7 @@ public final class KuudraSplitTimer {
     }
 
     private static void handleFreshMessage(String text) {
-        if (!text.contains("Party > ") || !text.contains(": FRESH!")) return;
+        if (!text.contains("Party > ") || !text.contains(": FRESH")) return;
         Matcher fm = FRESH_PAT.matcher(text);
         if (!fm.find()) return;
 

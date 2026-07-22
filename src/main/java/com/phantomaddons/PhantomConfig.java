@@ -69,11 +69,11 @@ public class PhantomConfig {
     private static boolean shopKeybindsEnabled      = false;
     private static int     shopMainKey              = 49;
     private static int     shopCannonKey            = 50;
+    private static boolean middleClickShopGuiEnabled = false;
     private static boolean explosionFilterEnabled   = false;
     private static float   explosionHideRadius      = 0.3f;
 
     // ── Auto Kick ─────────────────────────────────────────────────────────────
-    // Thresholds are "minimum required"; -1 means the field is empty/unset and isn't checked.
 
     private static boolean autoKickEnabled       = false;
     private static boolean profileViewerEnabled  = true;
@@ -215,6 +215,7 @@ public class PhantomConfig {
     private static int            beaconColCorrect      = 0x00C800;
     private static float          buildBeaconAlpha      = 0.63f;
     private static boolean        blockSlot9Enabled          = false;
+    private static boolean        blockAtomsplitEnabled      = false;
     private static boolean        stunPreviewEnabled         = false;
     private static boolean        stunPreviewLeftEnabled     = false;
     private static boolean        stunPreviewRightEnabled    = false;
@@ -367,8 +368,6 @@ public class PhantomConfig {
     private static double[]   totalRunPbs = defaultTotalPbs();
     private static PbRecord[] pbRecords   = new PbRecord[6];
 
-    // All-time run-time averages, per tier — only accumulates runs completed after this
-    // tracking was added (there's no historical data to backfill from).
     private static double[] totalRunTimeSum = new double[6];
     private static int[]    totalRunCount   = new int[6];
 
@@ -429,6 +428,7 @@ public class PhantomConfig {
     public static boolean isBoneTimingHitboxOutlineOnlyCurrentDirection() { return boneTimingHitboxOutlineOnlyCurrentDirection; }
     public static boolean isBoneTimingHitboxHighlightInRangeEnabled() { return boneTimingHitboxHighlightInRange; }
     public static boolean isShopKeybindsEnabled()     { return shopKeybindsEnabled; }
+    public static boolean isMiddleClickShopGuiEnabled() { return middleClickShopGuiEnabled; }
     public static int     getShopMainKey()            { return shopMainKey; }
     public static int     getShopCannonKey()          { return shopCannonKey; }
     public static boolean isExplosionFilterEnabled()  { return explosionFilterEnabled; }
@@ -498,6 +498,7 @@ public class PhantomConfig {
     public static int            getBeaconColCorrect()     { return beaconColCorrect; }
     public static float          getBuildBeaconAlpha()     { return buildBeaconAlpha; }
     public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
+    public static boolean        isBlockAtomsplitEnabled() { return blockAtomsplitEnabled; }
     public static boolean        isStunPreviewEnabled()           { return stunPreviewEnabled; }
     public static boolean        isStunPreviewLeftEnabled()       { return stunPreviewLeftEnabled; }
     public static boolean        isStunPreviewRightEnabled()      { return stunPreviewRightEnabled; }
@@ -678,6 +679,7 @@ public class PhantomConfig {
     public static void setBoneTimingHitboxOutlineOnlyCurrentDirection(boolean v) { boneTimingHitboxOutlineOnlyCurrentDirection = v; save(); }
     public static void setBoneTimingHitboxHighlightInRange(boolean v) { boneTimingHitboxHighlightInRange = v; save(); }
     public static void setShopKeybindsEnabled(boolean v)    { shopKeybindsEnabled = v;      save(); }
+    public static void setMiddleClickShopGuiEnabled(boolean v) { middleClickShopGuiEnabled = v; save(); }
     public static void setShopMainKey(int v)                { shopMainKey = v;              save(); }
     public static void setShopCannonKey(int v)              { shopCannonKey = v;            save(); }
     public static void setExplosionFilterEnabled(boolean v) { explosionFilterEnabled = v;   save(); }
@@ -741,6 +743,7 @@ public class PhantomConfig {
     public static void setBeaconColCorrect(int v)            { beaconColCorrect = v & 0xFFFFFF; save(); }
     public static void setBuildBeaconAlpha(float v)          { buildBeaconAlpha = clamp01(v);   save(); }
     public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
+    public static void setBlockAtomsplitEnabled(boolean v)   { blockAtomsplitEnabled = v;    save(); }
     public static void setStunPreviewEnabled(boolean v)          { stunPreviewEnabled = v;            save(); }
     public static void setStunPreviewLeftEnabled(boolean v)      { stunPreviewLeftEnabled = v;         save(); }
     public static void setStunPreviewRightEnabled(boolean v)     { stunPreviewRightEnabled = v;        save(); }
@@ -986,6 +989,7 @@ public class PhantomConfig {
             soloDetectorEnabled     = d.soloDetectorEnabled;
             cannonAutoClose         = d.cannonAutoClose;
             shopKeybindsEnabled     = d.shopKeybindsEnabled;
+            middleClickShopGuiEnabled = d.middleClickShopGuiEnabled;
             shopMainKey             = d.shopMainKey;
             shopCannonKey           = d.shopCannonKey;
             explosionFilterEnabled  = d.explosionFilterEnabled;
@@ -1054,6 +1058,7 @@ public class PhantomConfig {
             beaconColCorrect      = d.beaconColCorrect & 0xFFFFFF;
             buildBeaconAlpha      = clamp01(d.buildBeaconAlpha);
             blockSlot9Enabled          = d.blockSlot9Enabled;
+            blockAtomsplitEnabled      = d.blockAtomsplitEnabled;
             stunPreviewEnabled         = d.stunPreviewEnabled;
             // Old configs only ever had one stun-preview pod (what's now "right") — inherit the
             // old master toggle's value for right specifically so existing users see no change.
@@ -1280,6 +1285,7 @@ public class PhantomConfig {
         d.soloDetectorEnabled     = soloDetectorEnabled;
         d.cannonAutoClose         = cannonAutoClose;
         d.shopKeybindsEnabled     = shopKeybindsEnabled;
+        d.middleClickShopGuiEnabled = middleClickShopGuiEnabled;
         d.shopMainKey             = shopMainKey;
         d.shopCannonKey           = shopCannonKey;
         d.explosionFilterEnabled  = explosionFilterEnabled;
@@ -1345,6 +1351,7 @@ public class PhantomConfig {
         d.beaconColCorrect      = beaconColCorrect;
         d.buildBeaconAlpha      = buildBeaconAlpha;
         d.blockSlot9Enabled          = blockSlot9Enabled;
+        d.blockAtomsplitEnabled      = blockAtomsplitEnabled;
         d.stunPreviewEnabled         = stunPreviewEnabled;
         d.stunPreviewLeftEnabled     = stunPreviewLeftEnabled;
         d.stunPreviewRightEnabled    = stunPreviewRightEnabled;
@@ -1586,7 +1593,10 @@ public class PhantomConfig {
         if (SOUND_WARDROBE_SWAP.equals(key))
             return new NotificationSound("minecraft:ui.button.click", 1.5f);
         if (SOUND_BACKBONE_DONE.equals(key))
-            return new NotificationSound("minecraft:block.note_block.pling", 1.5f);
+            // Deliberately a different clip (not just a different pitch of note_block.pling) from
+            // SOUND_BONE_THROW_NOW — both firing close together with the identical sound event
+            // caused Minecraft's sound engine to cut one off / restart it, sounding like stutter.
+            return new NotificationSound("minecraft:entity.player.levelup", 1.0f);
         if (SOUND_BONE_THROW_NOW.equals(key))
             return new NotificationSound("minecraft:block.note_block.pling", 2.0f);
         return new NotificationSound("minecraft:entity.experience_orb.pickup", 1.0f);
@@ -1646,6 +1656,7 @@ public class PhantomConfig {
         boolean soloDetectorEnabled     = true;
         boolean cannonAutoClose         = false;
         boolean shopKeybindsEnabled     = false;
+        boolean middleClickShopGuiEnabled = false;
         int     shopMainKey             = 49;
         int     shopCannonKey           = 50;
         boolean explosionFilterEnabled  = false;
@@ -1709,6 +1720,7 @@ public class PhantomConfig {
         int     beaconColCorrect      = 0x00C800;
         float   buildBeaconAlpha      = 0.63f;
         boolean blockSlot9Enabled          = false;
+        boolean blockAtomsplitEnabled      = false;
         boolean stunPreviewEnabled         = false;
         Boolean stunPreviewLeftEnabled     = null; // null = not yet saved under its own key; see load()
         Boolean stunPreviewRightEnabled    = null;

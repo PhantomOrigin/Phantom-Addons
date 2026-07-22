@@ -69,6 +69,13 @@ public final class PartyCommands {
         return partyLeader.equalsIgnoreCase(mc.player.getScoreboardName());
     }
 
+    private static void assumeSelfLeaderIfUnknown() {
+        if (partyLeader != null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        partyLeader = mc.player.getScoreboardName();
+    }
+
     public static void register() {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
@@ -95,12 +102,19 @@ public final class PartyCommands {
         }
 
         Matcher join = PARTY_JOIN.matcher(raw);
-        if (join.find()) { partyMembers.add(join.group(1)); return; }
+        if (join.find()) {
+            String joinedName = join.group(1);
+            partyMembers.add(joinedName);
+            assumeSelfLeaderIfUnknown();
+            ShitterList.checkAutoKick(joinedName);
+            return;
+        }
 
         Matcher finderJoin = PARTY_FINDER_JOIN.matcher(raw);
         if (finderJoin.find()) {
             String joined = finderJoin.group(1);
             partyMembers.add(joined);
+            assumeSelfLeaderIfUnknown();
             ShitterList.checkAutoKick(joined);
             onPartyFinderJoin(joined);
             return;
@@ -282,9 +296,12 @@ public final class PartyCommands {
     }
 
     private static void onPartyFinderJoin(String name) {
-        if (!PhantomConfig.isProfileViewerEnabled()) return;
+        boolean profileViewerOn = PhantomConfig.isProfileViewerEnabled();
+        boolean autoKickOn      = PhantomConfig.isAutoKickEnabled();
+        if (!profileViewerOn && !autoKickOn) return;
+
         KuudraProfileFetcher.fetchAsync(name, data -> AutoKickManager.evaluate(name, data));
-        announceProfileLink(name);
+        if (profileViewerOn) announceProfileLink(name);
     }
 
     private static void announceProfileLink(String name) {

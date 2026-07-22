@@ -80,7 +80,7 @@ public final class ShopKeybinds {
                 acted = clickSlot(mc, screen, ITEM_SPECIALIST, "Specialist Route")
                         || clickSlot(mc, screen, ITEM_BALLISTA,   "Ballista Mechanic");
             }
-        } else { // cannon key — normal perk-menu click while not yet purchased
+        } else {
             if (title.contains(TITLE_PERK_MENU)) {
                 acted = clickSlot(mc, screen, ITEM_CANNONBALL, "Human Cannonball");
             }
@@ -105,7 +105,7 @@ public final class ShopKeybinds {
 
             if (mc.gameMode == null || mc.player == null) return false;
             mc.gameMode.handleContainerInput(
-                    handler.containerId, i, 0, ContainerInput.PICKUP, mc.player);
+                    handler.containerId, i, 2, ContainerInput.CLONE, mc.player);
             PhantomAddons.LOGGER.info("[ShopKeybinds] Clicked {}", logName);
             return true;
         }
