@@ -212,6 +212,51 @@ public class PhantomScreen extends Screen {
         return s.substring(0, pos) + s.substring(pos + 1);
     }
 
+    private static String deleteRange(String s, int a, int b) {
+        int lo = Math.max(0, Math.min(a, b)), hi = Math.min(s.length(), Math.max(a, b));
+        if (lo >= hi) return s;
+        return s.substring(0, lo) + s.substring(hi);
+    }
+
+    private static String insertRange(String s, int pos, String insert) {
+        pos = Math.max(0, Math.min(s.length(), pos));
+        return s.substring(0, pos) + insert + s.substring(pos);
+    }
+
+    private static boolean isCtrlDown() {
+        com.mojang.blaze3d.platform.Window window = Minecraft.getInstance().getWindow();
+        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL)
+                || com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL);
+    }
+
+    private static boolean isShiftDown() {
+        com.mojang.blaze3d.platform.Window window = Minecraft.getInstance().getWindow();
+        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT)
+                || com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT);
+    }
+
+    private static void copyToClipboard(String s) {
+        if (s == null || s.isEmpty()) return;
+        Minecraft.getInstance().keyboardHandler.setClipboard(s);
+    }
+
+    private static String pasteFromClipboard() {
+        String s = Minecraft.getInstance().keyboardHandler.getClipboard();
+        return s == null ? "" : s.replace("\n", "").replace("\r", "");
+    }
+
+    private static void drawSelection(GuiGraphicsExtractor ctx, net.minecraft.client.gui.Font font,
+                                      String shown, int windowStart, int anchor, int cursor,
+                                      int textX, int fy, int fh, int color) {
+        if (anchor == cursor) return;
+        int lo = Math.max(windowStart, Math.min(anchor, cursor));
+        int hi = Math.min(windowStart + shown.length(), Math.max(anchor, cursor));
+        if (lo >= hi) return;
+        int x1 = textX + font.width(shown.substring(0, lo - windowStart));
+        int x2 = textX + font.width(shown.substring(0, hi - windowStart));
+        ctx.fill(x1, fy + 2, x2, fy + fh - 2, color);
+    }
+
     // ── Tabs ──────────────────────────────────────────────────────────────────
 
     private enum Tab {
@@ -449,6 +494,7 @@ public class PhantomScreen extends Screen {
         String  draft   = null;
         boolean focused = false;
         int     cursorPos = 0;
+        int     selAnchor = 0;
         // cached from last render so onDown uses the same geometry
         private int lastFx, lastFy, lastFw, lastFh, lastStart;
         private String lastShown = "";
@@ -469,12 +515,14 @@ public class PhantomScreen extends Screen {
             int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
             roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
             cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
+            selAnchor = Math.max(0, Math.min(selAnchor, display.length()));
             int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
             int start = display.length() <= maxChars ? 0
                     : focused ? Math.max(0, Math.min(display.length() - maxChars, cursorPos - maxChars / 2))
                               : display.length() - maxChars;
             String shown = display.substring(start, Math.min(display.length(), start + maxChars));
             lastStart = start; lastShown = shown;
+            if (focused) drawSelection(ctx, s.font, shown, start, selAnchor, cursorPos, fx + 4, fy, fh, withAlpha(C_ACCENT, 90));
             drawText(ctx, s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
             if (focused) {
                 int visibleCursor = Math.max(start, Math.min(cursorPos, start + shown.length()));
@@ -488,25 +536,76 @@ public class PhantomScreen extends Screen {
                 String raw = get.get();
                 draft = raw != null ? stripNamespace(raw) : "";
                 cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
+                if (!isShiftDown()) selAnchor = cursorPos;
                 return true;
             }
             if (focused) { commit(); focused = false; }
             return false;
         }
+        @Override boolean onDrag(double mx, double my, int x, int y, int w) {
+            if (!focused) return false;
+            cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
+            return true;
+        }
         @Override void onKey(int key) {
             if (!focused) return;
-            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
-            else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
-            else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
-            else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);
-            else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1);
+            boolean ctrl = isCtrlDown(), shift = isShiftDown();
+            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; return; }
+            if (ctrl && key == 65) { selAnchor = 0; cursorPos = draft == null ? 0 : draft.length(); return; } // Ctrl+A
+            if (ctrl && key == 67) { copySelection(); return; } // Ctrl+C
+            if (ctrl && key == 88) { copySelection(); deleteSelection(); return; } // Ctrl+X
+            if (ctrl && key == 86) { pasteAtCursor(); return; } // Ctrl+V
+            if (key == 259) { // Backspace
+                if (selAnchor != cursorPos) deleteSelection();
+                else if (draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); selAnchor = cursorPos; }
+                return;
+            }
+            if (key == 261) { // Delete
+                if (selAnchor != cursorPos) deleteSelection();
+                else if (draft != null) draft = deleteAfter(draft, cursorPos);
+                selAnchor = cursorPos;
+                return;
+            }
+            if (key == 263) { // Left
+                if (!shift && selAnchor != cursorPos) cursorPos = Math.min(selAnchor, cursorPos);
+                else cursorPos = Math.max(0, cursorPos - 1);
+                if (!shift) selAnchor = cursorPos;
+                return;
+            }
+            if (key == 262) { // Right
+                int len = draft == null ? 0 : draft.length();
+                if (!shift && selAnchor != cursorPos) cursorPos = Math.max(selAnchor, cursorPos);
+                else cursorPos = Math.min(len, cursorPos + 1);
+                if (!shift) selAnchor = cursorPos;
+            }
         }
         @Override void onChar(char c) {
             if (focused) {
                 if (draft == null) draft = "";
+                if (selAnchor != cursorPos) deleteSelection();
                 draft = insertAt(draft, cursorPos, c);
                 cursorPos++;
+                selAnchor = cursorPos;
             }
+        }
+        private void deleteSelection() {
+            if (draft == null || selAnchor == cursorPos) return;
+            draft = deleteRange(draft, selAnchor, cursorPos);
+            cursorPos = Math.min(selAnchor, cursorPos);
+            selAnchor = cursorPos;
+        }
+        private void copySelection() {
+            if (draft == null || selAnchor == cursorPos) return;
+            int lo = Math.min(selAnchor, cursorPos), hi = Math.max(selAnchor, cursorPos);
+            copyToClipboard(draft.substring(lo, hi));
+        }
+        private void pasteAtCursor() {
+            if (draft == null) draft = "";
+            if (selAnchor != cursorPos) deleteSelection();
+            String paste = pasteFromClipboard();
+            draft = insertRange(draft, cursorPos, paste);
+            cursorPos += paste.length();
+            selAnchor = cursorPos;
         }
         @Override boolean isCapturing() { return focused; }
         @Override void cancel() { if (focused) { commit(); focused = false; } }
@@ -532,11 +631,14 @@ public class PhantomScreen extends Screen {
         String  draft   = null;
         boolean focused = false;
         int     cursorPos = 0;
+        int     selAnchor = 0;
+        boolean masked  = false; // shown as asterisks while not focused
         private int lastFx, lastFy, lastFw, lastFh, lastStart;
         private String lastShown = "";
         RawTextInput(String n, Tab t, Supplier<String> get, Consumer<String> set) {
             super(n, t); this.get = get; this.set = set;
         }
+        RawTextInput withMasked() { this.masked = true; return this; }
         @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
             drawText(ctx, s.font, Component.literal(name),
                     x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT);
@@ -550,13 +652,16 @@ public class PhantomScreen extends Screen {
             int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
             roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
             cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
+            selAnchor = Math.max(0, Math.min(selAnchor, display.length()));
             int maxChars = (fw - 8) / Math.max(1, s.font.width("a"));
             int start = display.length() <= maxChars ? 0
                     : focused ? Math.max(0, Math.min(display.length() - maxChars, cursorPos - maxChars / 2))
                               : display.length() - maxChars;
             String shown = display.substring(start, Math.min(display.length(), start + maxChars));
             lastStart = start; lastShown = shown;
-            drawText(ctx, s.font, Component.literal(shown), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
+            if (focused) drawSelection(ctx, s.font, shown, start, selAnchor, cursorPos, fx + 4, fy, fh, withAlpha(C_ACCENT, 90));
+            String shownForDraw = (masked && !focused) ? "*".repeat(shown.length()) : shown;
+            drawText(ctx, s.font, Component.literal(shownForDraw), fx + 4, fy + (fh - s.font.lineHeight) / 2, C_TEXT);
             if (focused) {
                 int visibleCursor = Math.max(start, Math.min(cursorPos, start + shown.length()));
                 int caretX = fx + 4 + s.font.width(display.substring(start, visibleCursor));
@@ -568,25 +673,76 @@ public class PhantomScreen extends Screen {
                 focused = true;
                 draft = get.get() != null ? get.get() : "";
                 cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
+                if (!isShiftDown()) selAnchor = cursorPos;
                 return true;
             }
             if (focused) { commit(); focused = false; }
             return false;
         }
+        @Override boolean onDrag(double mx, double my, int x, int y, int w) {
+            if (!focused) return false;
+            cursorPos = lastStart + clickToCursor(Minecraft.getInstance().font, lastShown, lastFx + 4, mx);
+            return true;
+        }
         @Override void onKey(int key) {
             if (!focused) return;
-            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; }
-            else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
-            else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
-            else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);
-            else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1);
+            boolean ctrl = isCtrlDown(), shift = isShiftDown();
+            if (key == 256 || key == 257 || key == 335) { commit(); focused = false; return; }
+            if (ctrl && key == 65) { selAnchor = 0; cursorPos = draft == null ? 0 : draft.length(); return; } // Ctrl+A
+            if (ctrl && key == 67) { copySelection(); return; } // Ctrl+C
+            if (ctrl && key == 88) { copySelection(); deleteSelection(); return; } // Ctrl+X
+            if (ctrl && key == 86) { pasteAtCursor(); return; } // Ctrl+V
+            if (key == 259) { // Backspace
+                if (selAnchor != cursorPos) deleteSelection();
+                else if (draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); selAnchor = cursorPos; }
+                return;
+            }
+            if (key == 261) { // Delete
+                if (selAnchor != cursorPos) deleteSelection();
+                else if (draft != null) draft = deleteAfter(draft, cursorPos);
+                selAnchor = cursorPos;
+                return;
+            }
+            if (key == 263) { // Left
+                if (!shift && selAnchor != cursorPos) cursorPos = Math.min(selAnchor, cursorPos);
+                else cursorPos = Math.max(0, cursorPos - 1);
+                if (!shift) selAnchor = cursorPos;
+                return;
+            }
+            if (key == 262) { // Right
+                int len = draft == null ? 0 : draft.length();
+                if (!shift && selAnchor != cursorPos) cursorPos = Math.max(selAnchor, cursorPos);
+                else cursorPos = Math.min(len, cursorPos + 1);
+                if (!shift) selAnchor = cursorPos;
+            }
         }
         @Override void onChar(char c) {
             if (focused) {
                 if (draft == null) draft = "";
+                if (selAnchor != cursorPos) deleteSelection();
                 draft = insertAt(draft, cursorPos, c);
                 cursorPos++;
+                selAnchor = cursorPos;
             }
+        }
+        private void deleteSelection() {
+            if (draft == null || selAnchor == cursorPos) return;
+            draft = deleteRange(draft, selAnchor, cursorPos);
+            cursorPos = Math.min(selAnchor, cursorPos);
+            selAnchor = cursorPos;
+        }
+        private void copySelection() {
+            if (draft == null || selAnchor == cursorPos) return;
+            int lo = Math.min(selAnchor, cursorPos), hi = Math.max(selAnchor, cursorPos);
+            copyToClipboard(draft.substring(lo, hi));
+        }
+        private void pasteAtCursor() {
+            if (draft == null) draft = "";
+            if (selAnchor != cursorPos) deleteSelection();
+            String paste = pasteFromClipboard();
+            draft = insertRange(draft, cursorPos, paste);
+            cursorPos += paste.length();
+            selAnchor = cursorPos;
         }
         @Override boolean isCapturing() { return focused; }
         @Override void cancel() { if (focused) { commit(); focused = false; } }
@@ -1659,8 +1815,11 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isHideDamageTitleEnabled, PhantomConfig::setHideDamageTitleEnabled)));
         roots.add(leaf(new Toggle("Hollow Wand Announcer", T,
                 PhantomConfig::isHollowWandEnabled, PhantomConfig::setHollowWandEnabled)));
-        roots.add(leaf(new Toggle("Hide Boss Bar", T,
-                PhantomConfig::isHideBossBarEnabled, PhantomConfig::setHideBossBarEnabled)));
+        Group hideBossBar = group("Hide Boss Bar", T, null,
+                PhantomConfig::isHideBossBarEnabled, PhantomConfig::setHideBossBarEnabled);
+        hideBossBar.add(leaf(new Toggle("Only In Kuudra", T,
+                PhantomConfig::isHideBossBarOnlyInKuudra, PhantomConfig::setHideBossBarOnlyInKuudra)));
+        roots.add(hideBossBar);
 
         roots.add(leaf(new Toggle("Hide Elle Dialogue", T,
                 PhantomConfig::isHideElleDialogueEnabled, PhantomConfig::setHideElleDialogue)));
@@ -1922,6 +2081,16 @@ public class PhantomScreen extends Screen {
                 .withTooltip("Resizes the mod's own GUI panel — everything inside stays the same size, this just fits more (or less) on screen at once")));
         roots.add(leaf(new Toggle("Developer Features", T,
                 PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled)));
+
+        roots.add(leaf(new Button("PhantomAddons Discord", T, "Copy Link",
+                () -> copyToClipboard("https://discord.gg/6MquvmrXNP"))));
+
+        if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) {
+            roots.add(leaf(new RawTextInput("API Key", T,
+                    PhantomConfig::getKuudraApiKey, PhantomConfig::setKuudraApiKey)
+                    .withMasked()
+                    .withTooltip("Get a key with /apikey in the PhantomAddons Discord server. Required for Auto Kick and Profile Viewer.")));
+        }
     }
 
     // ── Sound group helper ────────────────────────────────────────────────────

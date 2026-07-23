@@ -20,6 +20,14 @@ public abstract class TitleMixin {
 
     private static final Pattern DAMAGE_TITLE = Pattern.compile("[\\d.,]+[a-zA-Z]?/[\\d.,]+[a-zA-Z]", Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern BOSS_HP_TITLE = Pattern.compile(
+            "[\\d.,]+[a-zA-Z]?\\s*/\\s*[\\d.,]+[a-zA-Z]?\\s*❤|INVULNERABLE", Pattern.CASE_INSENSITIVE);
+
+    private static boolean isDamageTitle(String text) {
+        String stripped = text.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return DAMAGE_TITLE.matcher(stripped).find() || BOSS_HP_TITLE.matcher(stripped).find();
+    }
+
     @Shadow private Component title;
     @Shadow private Component subtitle;
 
@@ -46,14 +54,21 @@ public abstract class TitleMixin {
                 ci.cancel();
                 return;
             }
-            if (PhantomConfig.isHideDamageTitleEnabled() && DAMAGE_TITLE.matcher(text).find()) {
+            if (PhantomConfig.isHideDamageTitleEnabled() && isDamageTitle(text)) {
                 ci.cancel();
                 return;
             }
         }
-        if (subtitle != null && PearlTitleListener.isMatchingTitle(subtitle.getString())) {
-            PearlTitleListener.setActiveComponent(subtitle);
-            ci.cancel();
+        if (subtitle != null) {
+            String subText = subtitle.getString();
+            if (PearlTitleListener.isMatchingTitle(subText)) {
+                PearlTitleListener.setActiveComponent(subtitle);
+                ci.cancel();
+                return;
+            }
+            if (PhantomConfig.isHideDamageTitleEnabled() && isDamageTitle(subText)) {
+                ci.cancel();
+            }
         }
     }
 }

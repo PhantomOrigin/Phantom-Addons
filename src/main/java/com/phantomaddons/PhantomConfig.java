@@ -214,6 +214,7 @@ public class PhantomConfig {
     private static int            beaconColNormal       = 0xFFFFFF;
     private static int            beaconColCorrect      = 0x00C800;
     private static float          buildBeaconAlpha      = 0.63f;
+    private static String         kuudraApiKey               = "";
     private static boolean        blockSlot9Enabled          = false;
     private static boolean        blockAtomsplitEnabled      = false;
     private static boolean        stunPreviewEnabled         = false;
@@ -304,6 +305,7 @@ public class PhantomConfig {
     private static boolean hollowWandEnabled        = false;
     private static boolean kickedNotificationEnabled = false;
     private static boolean hideBossBarEnabled       = false;
+    private static boolean hideBossBarOnlyInKuudra  = false;
     private static boolean hideFallingBlocksEnabled  = false;
     private static boolean manaDrainAnnouncerEnabled = false;
     private static boolean hideEntityFireEnabled  = false;
@@ -497,6 +499,7 @@ public class PhantomConfig {
     public static int            getBeaconColNormal()      { return beaconColNormal; }
     public static int            getBeaconColCorrect()     { return beaconColCorrect; }
     public static float          getBuildBeaconAlpha()     { return buildBeaconAlpha; }
+    public static String         getKuudraApiKey()         { return kuudraApiKey; }
     public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
     public static boolean        isBlockAtomsplitEnabled() { return blockAtomsplitEnabled; }
     public static boolean        isStunPreviewEnabled()           { return stunPreviewEnabled; }
@@ -742,6 +745,7 @@ public class PhantomConfig {
     public static void setBeaconColNormal(int v)             { beaconColNormal = v & 0xFFFFFF;  save(); }
     public static void setBeaconColCorrect(int v)            { beaconColCorrect = v & 0xFFFFFF; save(); }
     public static void setBuildBeaconAlpha(float v)          { buildBeaconAlpha = clamp01(v);   save(); }
+    public static void setKuudraApiKey(String v)             { kuudraApiKey = v == null ? "" : v.trim(); save(); }
     public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
     public static void setBlockAtomsplitEnabled(boolean v)   { blockAtomsplitEnabled = v;    save(); }
     public static void setStunPreviewEnabled(boolean v)          { stunPreviewEnabled = v;            save(); }
@@ -875,8 +879,10 @@ public class PhantomConfig {
     public static boolean isKickedNotificationEnabled()     { return kickedNotificationEnabled; }
     public static void setKickedNotificationEnabled(boolean v) { kickedNotificationEnabled = v; save(); }
     public static boolean isHideBossBarEnabled()              { return hideBossBarEnabled; }
+    public static boolean isHideBossBarOnlyInKuudra()         { return hideBossBarOnlyInKuudra; }
     public static boolean isHideFallingBlocksEnabled()        { return hideFallingBlocksEnabled; }
     public static void setHideBossBarEnabled(boolean v)       { hideBossBarEnabled = v; save(); }
+    public static void setHideBossBarOnlyInKuudra(boolean v)  { hideBossBarOnlyInKuudra = v; save(); }
     public static void setHideFallingBlocksEnabled(boolean v) { hideFallingBlocksEnabled = v; save(); }
     public static boolean isManaDrainAnnouncerEnabled()       { return manaDrainAnnouncerEnabled; }
     public static void setManaDrainAnnouncerEnabled(boolean v){ manaDrainAnnouncerEnabled = v; save(); }
@@ -1057,6 +1063,7 @@ public class PhantomConfig {
             beaconColNormal       = d.beaconColNormal  & 0xFFFFFF;
             beaconColCorrect      = d.beaconColCorrect & 0xFFFFFF;
             buildBeaconAlpha      = clamp01(d.buildBeaconAlpha);
+            kuudraApiKey               = d.kuudraApiKey != null ? d.kuudraApiKey : "";
             blockSlot9Enabled          = d.blockSlot9Enabled;
             blockAtomsplitEnabled      = d.blockAtomsplitEnabled;
             stunPreviewEnabled         = d.stunPreviewEnabled;
@@ -1155,6 +1162,7 @@ public class PhantomConfig {
             hollowWandEnabled            = d.hollowWandEnabled;
             kickedNotificationEnabled    = d.kickedNotificationEnabled;
             hideBossBarEnabled         = d.hideBossBarEnabled;
+            hideBossBarOnlyInKuudra    = d.hideBossBarOnlyInKuudra;
             hideFallingBlocksEnabled  = d.hideFallingBlocksEnabled;
             manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
             hideEntityFireEnabled      = d.hideEntityFireEnabled;
@@ -1350,6 +1358,7 @@ public class PhantomConfig {
         d.beaconColNormal       = beaconColNormal;
         d.beaconColCorrect      = beaconColCorrect;
         d.buildBeaconAlpha      = buildBeaconAlpha;
+        d.kuudraApiKey               = kuudraApiKey;
         d.blockSlot9Enabled          = blockSlot9Enabled;
         d.blockAtomsplitEnabled      = blockAtomsplitEnabled;
         d.stunPreviewEnabled         = stunPreviewEnabled;
@@ -1445,6 +1454,7 @@ public class PhantomConfig {
         d.hollowWandEnabled             = hollowWandEnabled;
         d.kickedNotificationEnabled     = kickedNotificationEnabled;
         d.hideBossBarEnabled         = hideBossBarEnabled;
+        d.hideBossBarOnlyInKuudra    = hideBossBarOnlyInKuudra;
         d.hideFallingBlocksEnabled  = hideFallingBlocksEnabled;
         d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
         d.hideEntityFireEnabled      = hideEntityFireEnabled;
@@ -1719,6 +1729,7 @@ public class PhantomConfig {
         int     beaconColNormal       = 0xFFFFFF;
         int     beaconColCorrect      = 0x00C800;
         float   buildBeaconAlpha      = 0.63f;
+        String  kuudraApiKey               = "";
         boolean blockSlot9Enabled          = false;
         boolean blockAtomsplitEnabled      = false;
         boolean stunPreviewEnabled         = false;
@@ -1814,6 +1825,7 @@ public class PhantomConfig {
         boolean hollowWandEnabled           = false;
         boolean kickedNotificationEnabled   = false;
         boolean hideBossBarEnabled         = false;
+        boolean hideBossBarOnlyInKuudra    = false;
         boolean hideFallingBlocksEnabled  = false;
         boolean manaDrainAnnouncerEnabled  = false;
         boolean hideEntityFireEnabled      = false;

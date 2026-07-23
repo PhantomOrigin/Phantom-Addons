@@ -4,6 +4,7 @@ import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 
@@ -126,7 +127,7 @@ public final class PearlRefill {
         boolean down = mc.options.keyUse.isDown();
         if (down && !prevUseDown) {
             ItemStack stack = mc.player.getMainHandItem();
-            if (!stack.isEmpty() && stack.is(Items.ENDER_PEARL) && stack.getCount() < TARGET_COUNT) {
+            if (isPlainEnderPearl(stack) && stack.getCount() < TARGET_COUNT) {
                 lastInteractMs = System.currentTimeMillis();
             }
         }
@@ -141,10 +142,25 @@ public final class PearlRefill {
         var inv = mc.player.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack stack = inv.getItem(i);
-            if (!stack.isEmpty() && stack.is(Items.ENDER_PEARL)) {
+            if (isPlainEnderPearl(stack)) {
                 return stack.getCount();
             }
         }
         return 0;
+    }
+
+    private static boolean isPlainEnderPearl(ItemStack stack) {
+        if (stack.isEmpty() || !stack.is(Items.ENDER_PEARL)) return false;
+        String skyblockId = getSkyblockId(stack);
+        if (skyblockId != null) return skyblockId.equals("ENDER_PEARL");
+        String name = stack.getHoverName().getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return name.equalsIgnoreCase("Ender Pearl");
+    }
+
+    private static String getSkyblockId(ItemStack stack) {
+        var customData = stack.get(DataComponents.CUSTOM_DATA);
+        if (customData == null) return null;
+        String id = customData.copyTag().getStringOr("id", "");
+        return id.isEmpty() ? null : id;
     }
 }

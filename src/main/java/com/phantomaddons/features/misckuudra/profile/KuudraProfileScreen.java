@@ -135,6 +135,7 @@ public final class KuudraProfileScreen extends Screen {
         if (d == null || !d.loaded) return cols;
 
         List<RawRow> statLines = new ArrayList<>();
+        statLines.add(new RawRow("§bBank:§r " + (d.bankBalance >= 0 ? formatCoins(d.bankBalance) : "?"), null));
         statLines.add(new RawRow("§bMagical Power:§r " + (d.magicalPower >= 0 ? d.magicalPower : "?"), null));
         statLines.add(new RawRow("§bCatacombs:§r " + (d.catacombsLevel >= 0 ? d.catacombsLevel : "?"), null));
         statLines.add(new RawRow("§bForaging:§r " + (d.foragingLevel >= 0 ? d.foragingLevel : "?"), null));
@@ -162,6 +163,19 @@ public final class KuudraProfileScreen extends Screen {
         }
 
         return cols;
+    }
+
+    private static String formatCoins(long amount) {
+        double value;
+        String suffix;
+        if (amount >= 1_000_000_000L) { value = amount / 1_000_000_000.0; suffix = "b"; }
+        else if (amount >= 1_000_000L) { value = amount / 1_000_000.0; suffix = "m"; }
+        else if (amount >= 1_000L) { value = amount / 1_000.0; suffix = "k"; }
+        else return String.valueOf(amount);
+
+        String formatted = String.format("%.1f", value);
+        if (formatted.endsWith(".0")) formatted = formatted.substring(0, formatted.length() - 2);
+        return formatted + suffix;
     }
 
     private static String gdragLine(String role, KuudraProfileData.GoldenDragonPet pet) {

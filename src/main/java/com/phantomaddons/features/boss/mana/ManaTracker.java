@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 
 public final class ManaTracker {
 
-    private static final Pattern MANA_PATTERN = Pattern.compile("([\\d,]+)\\s*/\\s*([\\d,]+)[^\\d]*Mana", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FRACTION_PATTERN = Pattern.compile("([\\d,]+)\\s*/\\s*([\\d,]+)");
+    private static final int MANA_FRACTION_INDEX = 2; // 1st = Health, 2nd = Mana
 
     private static volatile int currentMana = -1;
 
@@ -20,8 +21,18 @@ public final class ManaTracker {
     public static int getCurrentMana() { return currentMana; }
 
     public static void onChat(String clean) {
-        Matcher m = MANA_PATTERN.matcher(clean);
-        if (!m.find()) {
+        Matcher m = FRACTION_PATTERN.matcher(clean);
+        int index = 0;
+        String manaCurrent = null;
+        while (m.find()) {
+            index++;
+            if (index == MANA_FRACTION_INDEX) {
+                manaCurrent = m.group(1);
+                break;
+            }
+        }
+
+        if (manaCurrent == null) {
             if (PhantomConfig.isDeveloperFeaturesEnabled() && !clean.isBlank()) {
                 long now = System.currentTimeMillis();
                 if (now - lastUnmatchedLogMs > UNMATCHED_LOG_INTERVAL_MS) {
@@ -32,7 +43,7 @@ public final class ManaTracker {
             return;
         }
         try {
-            currentMana = Integer.parseInt(m.group(1).replace(",", ""));
+            currentMana = Integer.parseInt(manaCurrent.replace(",", ""));
         } catch (NumberFormatException ignored) {}
     }
 

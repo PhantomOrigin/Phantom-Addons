@@ -1,7 +1,6 @@
 package com.phantomaddons.features.boss.rend;
 
 import com.phantomaddons.PhantomConfig;
-import com.phantomaddons.features.boss.mana.ManaTracker;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import com.phantomaddons.utils.KuudraTierDetector;
 import net.minecraft.client.Minecraft;
@@ -68,27 +67,6 @@ public final class RendTracker {
         if (!isKillPhase()) return;
         if (backboneHitMs < 0) return;
         if (manaDrainMs < 0) manaDrainMs = System.currentTimeMillis();
-    }
-
-    public static void onEndstoneSwordUse(ItemStack item) {
-        if (!com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) return;
-        if (!isKillPhase()) return;
-        if (manaDrainMs >= 0) return;
-        if (!hasEndstoneSwordInItem(item)) return;
-        if (ManaTracker.getCurrentMana() <= 0) return; // nothing to drain, ability can't have triggered
-        manaDrainMs = System.currentTimeMillis();
-    }
-
-    private static boolean hasEndstoneSwordInItem(ItemStack stack) {
-        if (stack.isEmpty()) return false;
-        if (stack.getHoverName().getString().toLowerCase().contains("end stone sword")) return true;
-        net.minecraft.world.item.component.ItemLore lore =
-                stack.get(net.minecraft.core.component.DataComponents.LORE);
-        if (lore == null) return false;
-        for (net.minecraft.network.chat.Component line : lore.lines()) {
-            if (line.getString().toLowerCase().contains("end stone sword")) return true;
-        }
-        return false;
     }
 
     public static void onLeftClick(ItemStack item) {

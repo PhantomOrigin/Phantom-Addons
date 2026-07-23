@@ -405,6 +405,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.misckuudra.profile.AutoKickManager.reset();
         com.phantomaddons.features.misckuudra.ShitterList.reset();
         com.phantomaddons.features.misckuudra.AutoKickCoordinator.reset();
+        com.phantomaddons.features.miscskyblock.PredictedBobber.reset();
         AutoRequeue.resetSession();
         ShopKeybinds.reset();
         WardrobeKeybinds.reset();

@@ -14,6 +14,9 @@ public class BossHealthOverlayMixin {
 
     @Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)
     private void phantomaddons$hideBossBar(GuiGraphicsExtractor ctx, CallbackInfo ci) {
-        if (PhantomConfig.isHideBossBarEnabled() && KuudraTierDetector.isInKuudraHollow()) ci.cancel();
+        if (!PhantomConfig.isHideBossBarEnabled()) return;
+        if (!KuudraTierDetector.isInKuudraHollow()) return;
+        if (PhantomConfig.isHideBossBarOnlyInKuudra() && KuudraTierDetector.getTier() <= 0) return;
+        ci.cancel();
     }
 }

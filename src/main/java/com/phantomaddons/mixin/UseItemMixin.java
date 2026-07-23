@@ -43,6 +43,10 @@ public class UseItemMixin {
             return;
         }
 
+        if (stack.is(net.minecraft.world.item.Items.FISHING_ROD) && hand == InteractionHand.MAIN_HAND) {
+            com.phantomaddons.features.miscskyblock.PredictedBobber.onCast(player);
+        }
+
         if (stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
             if (PhantomConfig.isEtherwarpWaypointsEnabled()) {
                 EtherwarpWaypointManager.onPearlThrow(client, player);
@@ -57,7 +61,6 @@ public class UseItemMixin {
                 com.phantomaddons.features.boss.backbone.BackboneProgressBar.onBonemerangThrow();
                 com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.onBonemerangThrow();
             }
-            com.phantomaddons.features.boss.rend.RendTracker.onEndstoneSwordUse(stack);
         }
 
         if (EtherwarpPredictor.isEtherTransmissionItem(stack)) {

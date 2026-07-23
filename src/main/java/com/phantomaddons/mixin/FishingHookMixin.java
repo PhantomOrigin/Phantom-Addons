@@ -1,10 +1,10 @@
 package com.phantomaddons.mixin;
 
 import com.phantomaddons.PhantomConfig;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InterpolationHandler;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.level.Level;
@@ -38,9 +38,11 @@ public abstract class FishingHookMixin {
         return null;
     }
 
-    @Inject(method = "recreateFromPacket", at = @At("RETURN"))
-    private void phantomaddons$snapFishingHookInterpolation(ClientboundAddEntityPacket packet, CallbackInfo ci) {
-        if (!PhantomConfig.isLavaBobberFixEnabled() && !PhantomConfig.isLegacyRodPhysicsEnabled()) return;
-        ((FishingHook)(Object)this).getInterpolation().setInterpolationLength(1);
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void phantomaddons$lavaBobberInterpolation(CallbackInfo ci) {
+        if (!PhantomConfig.isLavaBobberFixEnabled()) return;
+        FishingHook self = (FishingHook) (Object) this;
+        boolean inLava = self.level().getFluidState(self.blockPosition()).is(FluidTags.LAVA);
+        self.getInterpolation().setInterpolationLength(inLava ? 0 : InterpolationHandler.DEFAULT_INTERPOLATION_STEPS);
     }
 }

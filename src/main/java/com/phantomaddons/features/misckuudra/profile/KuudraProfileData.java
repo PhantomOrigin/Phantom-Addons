@@ -36,6 +36,7 @@ public final class KuudraProfileData {
     public int magicalPower = -1;
     public int catacombsLevel = -1;
     public int foragingLevel = -1;
+    public long bankBalance = -1;
 
     public final Map<KuudraTier, Integer> kuudraCompletions = new EnumMap<>(KuudraTier.class);
     public final Map<Weapon, ItemInfo> ownedWeapons = new EnumMap<>(Weapon.class);

@@ -1,10 +1,13 @@
 package com.phantomaddons.mixin;
 
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.features.miscskyblock.PredictedBobber;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.FishingHookRenderer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,6 +17,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FishingHookRenderer.class)
 public abstract class FishingHookRendererMixin {
+
+    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
+    private void phantomaddons$hideRealHook(FishingHook hook, Frustum frustum,
+                                            double camX, double camY, double camZ,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        if (PredictedBobber.isSuppressingRealHook(hook)) {
+            cir.setReturnValue(false);
+        }
+    }
 
     @Inject(method = "getPlayerHandPos", at = @At("HEAD"), cancellable = true)
     private void phantomaddons$legacyHandPos(Player player, float bobArg, float partialTicks,

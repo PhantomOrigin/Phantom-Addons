@@ -67,6 +67,7 @@ public final class KuudraProfileFetcher {
         data.magicalPower = intOr(root, "magicalPower", -1);
         data.catacombsLevel = intOr(root, "catacombsLevel", -1);
         data.foragingLevel = intOr(root, "foragingLevel", -1);
+        data.bankBalance = longOr(root, "bankBalance", -1);
 
         JsonObject tiers = objOrNull(root, "kuudraCompletions");
         if (tiers != null) {
@@ -135,6 +136,10 @@ public final class KuudraProfileFetcher {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsInt() : fallback;
     }
 
+    private static long longOr(JsonObject obj, String key, long fallback) {
+        return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsLong() : fallback;
+    }
+
     private static String strOrNull(JsonObject obj, String key) {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsString() : null;
     }
@@ -143,6 +148,7 @@ public final class KuudraProfileFetcher {
         HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "PhantomAddons-KuudraProfile");
+        conn.setRequestProperty("X-Phantom-Key", com.phantomaddons.PhantomConfig.getKuudraApiKey());
         conn.setConnectTimeout(8_000);
         conn.setReadTimeout(15_000);
         int code = conn.getResponseCode();
