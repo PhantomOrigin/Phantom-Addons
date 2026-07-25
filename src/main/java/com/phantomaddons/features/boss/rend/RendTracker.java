@@ -12,11 +12,8 @@ import net.minecraft.world.item.ItemStackTemplate;
 
 public final class RendTracker {
 
-    private static final int BACKBONE_BASE_TICKS = 22;
-
     private static long killPhaseStartMs      = -1;
 
-    private static int  backboneTicksRemaining = -1;
     private static long backboneHitMs          = -1;
     private static ItemStack helmetAtBackbone  = null;
     private static ItemStack heldAtBackbone    = null;
@@ -27,6 +24,10 @@ public final class RendTracker {
     private static final long PULL_BUFFER_MS = 400;
 
     private RendTracker() {}
+
+    static {
+        BonemerangHitTracker.addOnBackHitListener(RendTracker::onRealBackboneHit);
+    }
 
     public static void onKillPhaseStart() {
         if (killPhaseStartMs > 0) return;
@@ -45,7 +46,6 @@ public final class RendTracker {
     }
 
     private static void clearCycle() {
-        backboneTicksRemaining = -1;
         backboneHitMs          = -1;
         helmetAtBackbone       = null;
         heldAtBackbone         = null;
@@ -59,7 +59,21 @@ public final class RendTracker {
         if (!isKillPhase()) return;
         if (killPhaseStartMs < 0) return;
         clearCycle();
-        backboneTicksRemaining = BACKBONE_BASE_TICKS;
+    }
+
+    private static void onRealBackboneHit() {
+        if (!PhantomConfig.isRendTrackerEnabled() || !isKillPhase() || backboneHitMs >= 0) return;
+
+        backboneHitMs = System.currentTimeMillis();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            helmetAtBackbone = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).copy();
+            heldAtBackbone   = mc.player.getMainHandItem().copy();
+        }
+        if (pendingPullMs >= 0) {
+            printOutput(pendingPullItem, pendingPullMs);
+            clearCycle();
+        }
     }
 
     public static void onManaDrain() {
@@ -102,21 +116,6 @@ public final class RendTracker {
             pendingPullMs   = -1;
             pendingPullItem = null;
         }
-
-        if (backboneTicksRemaining <= 0) return;
-        backboneTicksRemaining--;
-        if (backboneTicksRemaining == 0) {
-            backboneHitMs = System.currentTimeMillis();
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
-                helmetAtBackbone = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).copy();
-                heldAtBackbone   = mc.player.getMainHandItem().copy();
-            }
-            if (pendingPullMs >= 0) {
-                printOutput(pendingPullItem, pendingPullMs);
-                clearCycle();
-            }
-        }
     }
 
     private static boolean isKillPhase() {
@@ -131,8 +130,9 @@ public final class RendTracker {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || killPhaseStartMs < 0 || backboneHitMs < 0) return;
 
-        double backboneTime = (backboneHitMs - killPhaseStartMs) / 1000.0;
-        double pullTime     = (pullMs         - killPhaseStartMs) / 1000.0;
+        long pingAdjustMs = PhantomConfig.getLowPing() / 2L;
+        double backboneTime = Math.max(0L, backboneHitMs - killPhaseStartMs - pingAdjustMs) / 1000.0;
+        double pullTime     = Math.max(0L, pullMs         - killPhaseStartMs - pingAdjustMs) / 1000.0;
 
         mc.player.sendSystemMessage(Component.literal("§8-------------------------------------"));
         mc.player.sendSystemMessage(Component.literal(String.format("§fBackbone Hit at §a%.2fs", backboneTime)));
@@ -141,7 +141,7 @@ public final class RendTracker {
 
         if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) {
             if (manaDrainMs > 0) {
-                double drainTime = (manaDrainMs - killPhaseStartMs) / 1000.0;
+                double drainTime = Math.max(0L, manaDrainMs - killPhaseStartMs - pingAdjustMs) / 1000.0;
                 mc.player.sendSystemMessage(Component.literal(String.format("§fMana Drain at §b%.2fs", drainTime)));
             } else {
                 mc.player.sendSystemMessage(Component.literal("§cNo Mana Drain!"));

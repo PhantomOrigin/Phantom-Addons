@@ -139,6 +139,19 @@ public final class PhantomCommands {
                                                 .executes(ctx -> { shitterList(); return 1; })
                                         )
                                 )
+                                .then(ClientCommands.literal("fishdebug")
+                                        .executes(ctx -> {
+                                            if (!requireDeveloperFeatures(ctx)) return 0;
+                                            boolean on = com.phantomaddons.features.miscskyblock.FishingHookDebugTracker.toggle();
+                                            Minecraft mc = Minecraft.getInstance();
+                                            if (mc.player != null) {
+                                                mc.player.sendSystemMessage(Component.literal(
+                                                        PREFIX + "§eFish hook debug " + (on ? "§aenabled" : "§cdisabled") + "§r"
+                                                                + (on ? " §7(tracks the real server hook's position every tick)" : "")));
+                                            }
+                                            return 1;
+                                        })
+                                )
                                 .then(ClientCommands.literal("setpb")
                                         .executes(ctx -> { openPbEditor(5); return 1; })
                                         .then(ClientCommands.argument("tier",

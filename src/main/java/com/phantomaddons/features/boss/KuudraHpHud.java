@@ -51,13 +51,8 @@ public final class KuudraHpHud {
             }
 
             if (cachedKuudra != null) {
-                float hp = cachedKuudra.getHealth();
-                if (hp > 0 && hp < DECOY_MAX_HP) {
-                    cachedKuudra = null;
-                } else {
-                    updateDisplayValues();
-                    return;
-                }
+                updateDisplayValues();
+                return;
             }
 
             Slime best = null;
@@ -156,6 +151,10 @@ public final class KuudraHpHud {
 
     public static float getHpPercent() {
         return lastProgress < 0 ? -1f : lastProgress * 100f;
+    }
+
+    public static Slime getKuudra() {
+        return cachedKuudra;
     }
 
     public static float getTrueHpPercent() {

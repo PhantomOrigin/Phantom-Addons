@@ -1617,6 +1617,9 @@ public class PhantomScreen extends Screen {
         roots.add(leaf(new Toggle("Block Atomsplit", T,
                 PhantomConfig::isBlockAtomsplitEnabled, PhantomConfig::setBlockAtomsplitEnabled)
                 .withTooltip("Prevents using any item with \"Atomsplit\" in its lore during the Boss phase")));
+        roots.add(leaf(new Toggle("Show Ichor Radius", T,
+                PhantomConfig::isIchorRadiusEnabled, PhantomConfig::setIchorRadiusEnabled)
+                .withTooltip("Shows a cylinder around Ichor Pool's centre for its duration")));
     }
 
     // ── Loadouts tab (Skyblock) ────────────────────────────────────────────────

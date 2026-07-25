@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -43,8 +44,13 @@ public class UseItemMixin {
             return;
         }
 
-        if (stack.is(net.minecraft.world.item.Items.FISHING_ROD) && hand == InteractionHand.MAIN_HAND) {
-            com.phantomaddons.features.miscskyblock.PredictedBobber.onCast(player);
+        if (stack.is(net.minecraft.world.item.Items.FISHING_ROD) && hand == InteractionHand.MAIN_HAND
+                && !hasAbilityFlay(stack)) {
+            if (com.phantomaddons.features.miscskyblock.PredictedBobber.isActive()) {
+                com.phantomaddons.features.miscskyblock.PredictedBobber.onRetrieve();
+            } else {
+                com.phantomaddons.features.miscskyblock.PredictedBobber.onCast(player);
+            }
         }
 
         if (stack.is(net.minecraft.world.item.Items.ENDER_PEARL)) {
@@ -60,6 +66,8 @@ public class UseItemMixin {
                 com.phantomaddons.features.boss.rend.RendTracker.onBonemerangThrow();
                 com.phantomaddons.features.boss.backbone.BackboneProgressBar.onBonemerangThrow();
                 com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.onBonemerangThrow();
+                Vec3 eye = player.getEyePosition();
+                com.phantomaddons.features.boss.rend.BonemerangHitTracker.onThrow(eye.x, eye.y, eye.z);
             }
         }
 
@@ -83,6 +91,16 @@ public class UseItemMixin {
         if (!PickoblockManager.isPickobulusAllowedThisTick()) {
             cir.setReturnValue(InteractionResult.FAIL);
         }
+    }
+
+    private static boolean hasAbilityFlay(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        var lore = stack.get(net.minecraft.core.component.DataComponents.LORE);
+        if (lore == null) return false;
+        for (var line : lore.lines()) {
+            if (line.getString().contains("Ability: Flay")) return true;
+        }
+        return false;
     }
 
     @Inject(

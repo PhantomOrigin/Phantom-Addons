@@ -1,6 +1,7 @@
 package com.phantomaddons.features.supplies;
 
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.features.miscskyblock.PredictedBobber;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -8,6 +9,8 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.phys.AABB;
@@ -20,6 +23,7 @@ import java.util.List;
 public final class SupplyRenderHelper {
 
     private static final int LB_R = 0, LB_G = 191, LB_B = 255;
+    private static final int RD_R = 60, RD_G = 220, RD_B = 90; // rod radius circle turns this green
     private static final int OUTLINE_A = 200;
     private static final int FILL_A    = 13;  // ~5% opacity
 
@@ -85,18 +89,44 @@ public final class SupplyRenderHelper {
         }
 
         if (showRodRadius && !zombies.isEmpty()) {
+            Vec3 bobberInLava = getBobberPosInLava(mc);
             List<Vec3> centers = clusterCenters(zombies);
             VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
             for (Vec3 ctr : centers) {
-                // Always draw at the lava surface so the circle is visible even when the
-                // supply entity is submerged below the lava.
                 double drawY = Math.max(ctr.y, LAVA_SURFACE);
+                boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
+                int r = inRange ? RD_R : LB_R;
+                int g = inRange ? RD_G : LB_G;
+                int b = inRange ? RD_B : LB_B;
                 drawHorizontalCircle(lines, m,
                         ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
-                        ROD_RADIUS, LB_R, LB_G, LB_B, OUTLINE_A);
+                        ROD_RADIUS, r, g, b, OUTLINE_A);
             }
             imm.endBatch();
         }
+    }
+
+    private static Vec3 getBobberPosInLava(Minecraft mc) {
+        Vec3 pos = PhantomConfig.isLegacyRodPhysicsEnabled()
+                ? PredictedBobber.getGhostPosition()
+                : (mc.player != null && mc.player.fishing != null ? mc.player.fishing.position() : null);
+        if (pos == null || mc.level == null) return null;
+        // A bobber resting/floating on the surface sits right at the fluid block's top boundary, so
+        // its own Y can land in the air block a hair above the surface — and if it's fully submerged
+        // (sunk below the surface into a pool that goes deeper than one block), only checking its own
+        // block would still catch that, but checking a couple blocks down too makes both cases robust
+        // without needing an exact Y match.
+        BlockPos bp = BlockPos.containing(pos.x, pos.y, pos.z);
+        for (int dy = 0; dy >= -2; dy--) {
+            if (mc.level.getFluidState(bp.offset(0, dy, 0)).is(FluidTags.LAVA)) return pos;
+        }
+        return null;
+    }
+
+    private static boolean isWithinRadiusXZ(Vec3 pos, Vec3 center, float radius) {
+        double dx = pos.x - center.x;
+        double dz = pos.z - center.z;
+        return dx * dx + dz * dz <= (double) radius * radius;
     }
 
     private static List<Vec3> clusterCenters(List<Zombie> zombies) {

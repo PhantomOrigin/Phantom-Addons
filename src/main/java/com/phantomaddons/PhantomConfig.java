@@ -96,7 +96,7 @@ public class PhantomConfig {
     private static boolean developerFeaturesEnabled = false;
     private static UiTheme uiTheme = UiTheme.DARK;
     private static float   uiGuiScale = 1.0f;
-    private static boolean uiTransparencyEnabled = false;
+    private static boolean uiTransparencyEnabled = true;
     private static boolean autoSprintEnabled        = false;
     private static boolean slotBindsEnabled         = false;
     private static int     slotBindSetKey           = -1;
@@ -217,6 +217,7 @@ public class PhantomConfig {
     private static String         kuudraApiKey               = "";
     private static boolean        blockSlot9Enabled          = false;
     private static boolean        blockAtomsplitEnabled      = false;
+    private static boolean        ichorRadiusEnabled         = false;
     private static boolean        stunPreviewEnabled         = false;
     private static boolean        stunPreviewLeftEnabled     = false;
     private static boolean        stunPreviewRightEnabled    = false;
@@ -502,6 +503,7 @@ public class PhantomConfig {
     public static String         getKuudraApiKey()         { return kuudraApiKey; }
     public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
     public static boolean        isBlockAtomsplitEnabled() { return blockAtomsplitEnabled; }
+    public static boolean        isIchorRadiusEnabled()    { return ichorRadiusEnabled; }
     public static boolean        isStunPreviewEnabled()           { return stunPreviewEnabled; }
     public static boolean        isStunPreviewLeftEnabled()       { return stunPreviewLeftEnabled; }
     public static boolean        isStunPreviewRightEnabled()      { return stunPreviewRightEnabled; }
@@ -748,6 +750,7 @@ public class PhantomConfig {
     public static void setKuudraApiKey(String v)             { kuudraApiKey = v == null ? "" : v.trim(); save(); }
     public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
     public static void setBlockAtomsplitEnabled(boolean v)   { blockAtomsplitEnabled = v;    save(); }
+    public static void setIchorRadiusEnabled(boolean v)      { ichorRadiusEnabled = v;       save(); }
     public static void setStunPreviewEnabled(boolean v)          { stunPreviewEnabled = v;            save(); }
     public static void setStunPreviewLeftEnabled(boolean v)      { stunPreviewLeftEnabled = v;         save(); }
     public static void setStunPreviewRightEnabled(boolean v)     { stunPreviewRightEnabled = v;        save(); }
@@ -1066,6 +1069,7 @@ public class PhantomConfig {
             kuudraApiKey               = d.kuudraApiKey != null ? d.kuudraApiKey : "";
             blockSlot9Enabled          = d.blockSlot9Enabled;
             blockAtomsplitEnabled      = d.blockAtomsplitEnabled;
+            ichorRadiusEnabled         = d.ichorRadiusEnabled;
             stunPreviewEnabled         = d.stunPreviewEnabled;
             // Old configs only ever had one stun-preview pod (what's now "right") — inherit the
             // old master toggle's value for right specifically so existing users see no change.
@@ -1361,6 +1365,7 @@ public class PhantomConfig {
         d.kuudraApiKey               = kuudraApiKey;
         d.blockSlot9Enabled          = blockSlot9Enabled;
         d.blockAtomsplitEnabled      = blockAtomsplitEnabled;
+        d.ichorRadiusEnabled         = ichorRadiusEnabled;
         d.stunPreviewEnabled         = stunPreviewEnabled;
         d.stunPreviewLeftEnabled     = stunPreviewLeftEnabled;
         d.stunPreviewRightEnabled    = stunPreviewRightEnabled;
@@ -1692,7 +1697,7 @@ public class PhantomConfig {
         boolean developerFeaturesEnabled = false;
         boolean uiDarkMode = true;
         String  uiTheme = null;
-        boolean uiTransparencyEnabled = false;
+        boolean uiTransparencyEnabled = true;
         float   uiGuiScale = 1.0f;
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
@@ -1732,6 +1737,7 @@ public class PhantomConfig {
         String  kuudraApiKey               = "";
         boolean blockSlot9Enabled          = false;
         boolean blockAtomsplitEnabled      = false;
+        boolean ichorRadiusEnabled         = false;
         boolean stunPreviewEnabled         = false;
         Boolean stunPreviewLeftEnabled     = null; // null = not yet saved under its own key; see load()
         Boolean stunPreviewRightEnabled    = null;

@@ -119,6 +119,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.checkOnStartup();
         SlotBlocker.register();
         com.phantomaddons.features.boss.AtomsplitBlocker.register();
+        com.phantomaddons.features.boss.IchorRadiusTracker.register();
         KuudraDirectionHud.register();
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.register();
         PearlTitleHud.register();
@@ -141,7 +142,6 @@ public class PhantomAddons implements ClientModInitializer {
     }
 
     private void registerProfitTrackerPhaseListener() {
-        // Track run start (used for duration) and fire price fetches on run end
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!PhantomConfig.isProfitTrackerEnabled()) return;
             com.phantomaddons.features.misckuudra.profittracker.PriceFetcher.fetchBazaarIfStale();
@@ -175,7 +175,6 @@ public class PhantomAddons implements ClientModInitializer {
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) handleSupplyNotifications(clean);
             if (!overlay) com.phantomaddons.features.boss.mana.ManaDrainAnnouncer.onChat(clean);
-            // Action bar (overlay) text carries the live "current/max✎" mana readout.
             if (overlay) com.phantomaddons.features.boss.mana.ManaTracker.onChat(clean);
             if (clean.contains("Used Extreme Focus!")) com.phantomaddons.features.boss.rend.RendTracker.onManaDrain();
             com.phantomaddons.features.misckuudra.HollowWandAnnouncer.onChat(clean);
@@ -285,8 +284,6 @@ public class PhantomAddons implements ClientModInitializer {
     }
 
     private void registerCommands() {
-        // Intercept /pa and /phantom before they reach the server (e.g. Hypixel has its own /pa).
-        // ALLOW_COMMAND fires with the raw command string (no leading slash).
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> {
             if (command.trim().equalsIgnoreCase("pa")) {
                 openGuiNextTick = true;
@@ -405,6 +402,8 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.misckuudra.profile.AutoKickManager.reset();
         com.phantomaddons.features.misckuudra.ShitterList.reset();
         com.phantomaddons.features.misckuudra.AutoKickCoordinator.reset();
+        com.phantomaddons.features.boss.rend.BonemerangHitTracker.reset();
+        com.phantomaddons.features.boss.IchorRadiusTracker.reset();
         com.phantomaddons.features.miscskyblock.PredictedBobber.reset();
         AutoRequeue.resetSession();
         ShopKeybinds.reset();
@@ -471,6 +470,8 @@ public class PhantomAddons implements ClientModInitializer {
             GiantYLogger.tick(client);
             KuudraStationaryLogger.tick(client);
             com.phantomaddons.features.boss.rend.RendTracker.tick();
+            com.phantomaddons.features.boss.rend.BonemerangHitTracker.tick(client);
+            com.phantomaddons.features.miscskyblock.FishingHookDebugTracker.tick(client);
             com.phantomaddons.features.boss.backbone.BackboneProgressBar.tick();
 
             if (PhantomConfig.isAutoSprintEnabled() && client.player != null
