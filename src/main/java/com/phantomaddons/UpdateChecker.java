@@ -189,8 +189,13 @@ public final class UpdateChecker {
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(10000);
 
-        if (conn.getResponseCode() != 200)
-            throw new Exception("GitHub API returned HTTP " + conn.getResponseCode());
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            if (responseCode == 403 && "0".equals(conn.getHeaderField("X-RateLimit-Remaining"))) {
+                throw new Exception("GitHub API rate limit exceeded" + rateLimitResetSuffix(conn));
+            }
+            throw new Exception("GitHub API returned HTTP " + responseCode);
+        }
 
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(
@@ -223,6 +228,16 @@ public final class UpdateChecker {
 
         if (latestVersion != null) {
             downloadUrl = releaseAssets.get(expectedAssetName(ownEditionSuffix()));
+        }
+    }
+
+    private static String rateLimitResetSuffix(HttpURLConnection conn) {
+        try {
+            long resetEpochSec = Long.parseLong(conn.getHeaderField("X-RateLimit-Reset"));
+            long minutes = Math.max(0, (resetEpochSec - System.currentTimeMillis() / 1000) / 60);
+            return " — resets in ~" + minutes + " min";
+        } catch (Exception ignored) {
+            return "";
         }
     }
 

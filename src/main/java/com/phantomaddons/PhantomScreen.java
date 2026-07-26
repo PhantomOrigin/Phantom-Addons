@@ -2599,9 +2599,6 @@ public class PhantomScreen extends Screen {
 
         int outlineColor = PhantomConfig.isUiTransparencyEnabled() ? withAlpha(C_BORDER, CONTENT_ALPHA_TRANS) : C_BORDER;
         roundedFill(ctx, px - 1, py - 1, px + PANEL_W + 1, py + PANEL_H + 1, outlineColor, PANEL_RADIUS + 1);
-        // Circular gradient stemming from near the top-left of the content area (the panel's
-        // largest single section) — noticeably stronger in transparency mode, since it's the
-        // one surface where a flat colour would otherwise look the most washed-out/plain.
         boolean transparentBg = PhantomConfig.isUiTransparencyEnabled();
         int bgShade = transparentBg ? 26 : 10;
         double gradCenterX = px + SIDEBAR_W + 24;
@@ -2863,10 +2860,6 @@ public class PhantomScreen extends Screen {
     }
 
     // ── Rounded rectangles ───────────────────────────────────────────────────────
-    // Corners are a real anti-aliased circle baked into a texture (generated once offline with
-    // Graphics2D, not drawn per-pixel), blitted with the fill colour as a GPU tint. This gives a
-    // genuinely smooth curve at any size instead of a stepped pixel approximation — the straight
-    // edges/centre are still plain flat fills since there's nothing to smooth there.
 
     private static final Identifier CORNER_TL = Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/corner_tl.png");
     private static final Identifier CORNER_TR = Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/corner_tr.png");
@@ -2919,7 +2912,7 @@ public class PhantomScreen extends Screen {
         cornerTile(ctx, x2 - r, y2 - r, r, roundBR, CORNER_BR, radialSample(x2 - r / 2.0,     y2 - r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
     }
 
-    private static final int RADIAL_CELL = 14;
+    private static final int RADIAL_CELL = 6;
 
     private static void radialCellFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2,
                                         double centerX, double centerY, double radius, int colorNear, int colorFar) {

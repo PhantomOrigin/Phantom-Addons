@@ -45,7 +45,7 @@ public class UseItemMixin {
         }
 
         if (stack.is(net.minecraft.world.item.Items.FISHING_ROD) && hand == InteractionHand.MAIN_HAND
-                && !hasAbilityFlay(stack)) {
+                && !hasAbilityFlay(stack) && !isLegacyNonFunctionalRod(stack)) {
             if (com.phantomaddons.features.miscskyblock.PredictedBobber.isActive()) {
                 com.phantomaddons.features.miscskyblock.PredictedBobber.onRetrieve();
             } else {
@@ -99,6 +99,20 @@ public class UseItemMixin {
         if (lore == null) return false;
         for (var line : lore.lines()) {
             if (line.getString().contains("Ability: Flay")) return true;
+        }
+        return false;
+    }
+
+    private static final java.util.Set<String> LEGACY_NON_FUNCTIONAL_RODS = java.util.Set.of(
+            "Prismarine Rod", "Sponge Rod", "Ice Rod", "Speedster Rod", "Farmer's Rod",
+            "Chum Rod", "Winter Rod", "Yeti Rod", "Auger Rod", "Shredder", "Phantom Rod"
+    );
+
+    private static boolean isLegacyNonFunctionalRod(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        String name = stack.getHoverName().getString();
+        for (String rod : LEGACY_NON_FUNCTIONAL_RODS) {
+            if (name.contains(rod)) return true;
         }
         return false;
     }

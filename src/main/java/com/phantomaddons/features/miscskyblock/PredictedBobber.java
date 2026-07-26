@@ -101,6 +101,11 @@ public final class PredictedBobber {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || ghost == null || !(mc.player.level() instanceof ClientLevel level)) { reset(); return; }
 
+        if (!mc.player.getMainHandItem().is(net.minecraft.world.item.Items.FISHING_ROD)) {
+            reset();
+            return;
+        }
+
         long now = System.currentTimeMillis();
         if (!landed && !floating && now - launchAtMs > MAX_FLIGHT_MS) { reset(); return; }
 
