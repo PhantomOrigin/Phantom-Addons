@@ -3,6 +3,7 @@ package com.phantomaddons.utils;
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.features.stundps.MountTimerHud;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.decoration.ArmorStand;
 
 
 public final class Phase2BuildTracker {
@@ -36,9 +37,7 @@ public final class Phase2BuildTracker {
     public static void tick(Minecraft client) {
         if (client.player == null || !phase2Active) return;
 
-        boolean ridingArmorStand =
-                client.player.getVehicle() != null &&
-                        client.player.getVehicle().getType().toString().contains("armor_stand");
+        boolean ridingArmorStand = client.player.getVehicle() instanceof ArmorStand;
 
         if (ridingArmorStand && !wasRidingArmorStand && !mountTimerActive) {
             mountTimer       = 96;

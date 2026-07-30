@@ -1,5 +1,6 @@
 package com.phantomaddons.mixin;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.HollowWandAnnouncer;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlTitleListener;
@@ -24,7 +25,7 @@ public abstract class TitleMixin {
             "[\\d.,]+[a-zA-Z]?\\s*/\\s*[\\d.,]+[a-zA-Z]?\\s*❤|INVULNERABLE", Pattern.CASE_INSENSITIVE);
 
     private static boolean isDamageTitle(String text) {
-        String stripped = text.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        String stripped = TextUtil.stripColor(text);
         return DAMAGE_TITLE.matcher(stripped).find() || BOSS_HP_TITLE.matcher(stripped).find();
     }
 

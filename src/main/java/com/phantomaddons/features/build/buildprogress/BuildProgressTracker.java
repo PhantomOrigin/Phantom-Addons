@@ -1,5 +1,6 @@
 package com.phantomaddons.features.build.buildprogress;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlLocation;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.network.chat.Component;
@@ -62,7 +63,7 @@ public final class BuildProgressTracker {
                     Component name = stand.getCustomName();
                     if (name == null) continue;
 
-                    String raw = name.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+                    String raw = TextUtil.stripColor(name.getString());
                     if (raw.toLowerCase().contains("complete")) {
                         bestPct = 100;
                         break;

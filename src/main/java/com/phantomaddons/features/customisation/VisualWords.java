@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
+import com.phantomaddons.utils.TextUtil;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -93,9 +94,10 @@ public final class VisualWords {
         return true;
     }
 
-    private static boolean matchesAny(String lower) {
+    private static boolean matchesAny(CharSequence text) {
         for (Rule r : RULES) {
-            if (r.pattern != null && !r.inputLower.isEmpty() && lower.contains(r.inputLower)) return true;
+            if (r.pattern != null && !r.input.isEmpty()
+                    && TextUtil.containsIgnoreCase(text, r.input)) return true;
         }
         return false;
     }
@@ -110,7 +112,7 @@ public final class VisualWords {
 
     public static String applyString(String s) {
         if (s == null || !active()) return s;
-        if (!matchesAny(s.toLowerCase())) return s;
+        if (!matchesAny(s)) return s;
         return applyRules(s);
     }
 
@@ -121,12 +123,21 @@ public final class VisualWords {
         return (font.width(original) - font.width(replaced)) / 2f;
     }
 
+    private static final ThreadLocal<StringBuilder> SCRATCH = ThreadLocal.withInitial(StringBuilder::new);
+
     public static FormattedCharSequence apply(FormattedCharSequence in) {
         if (in == null || !active()) return in;
         try {
+            StringBuilder scratch = SCRATCH.get();
+            scratch.setLength(0);
+            in.accept((pos, style, codePoint) -> {
+                scratch.appendCodePoint(codePoint);
+                return true;
+            });
+            if (scratch.length() == 0 || !matchesAny(scratch)) return in;
+
             List<Style>         styles = new ArrayList<>();
             List<StringBuilder> runs   = new ArrayList<>();
-            StringBuilder full = new StringBuilder();
 
             in.accept((pos, style, codePoint) -> {
                 if (runs.isEmpty() || !styles.get(styles.size() - 1).equals(style)) {
@@ -134,11 +145,8 @@ public final class VisualWords {
                     runs.add(new StringBuilder());
                 }
                 runs.get(runs.size() - 1).appendCodePoint(codePoint);
-                full.appendCodePoint(codePoint);
                 return true;
             });
-
-            if (full.length() == 0 || !matchesAny(full.toString().toLowerCase())) return in;
 
             boolean changed = false;
             MutableComponent root = Component.empty();

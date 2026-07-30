@@ -19,9 +19,15 @@ public final class KuudraTierDetector {
     private static boolean inDungeonHub     = false;
     private static boolean inForgottenSkull = false;
 
+    private static boolean registered = false;
+
     private KuudraTierDetector() {}
 
+    // Fabric's event listeners can never be removed once added, so registering more than once
+    // would leave duplicate copies of this tick handler running forever.
     public static void init() {
+        if (registered) return;
+        registered = true;
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.level == null) return;
             if (++tickCounter < 20) return;
@@ -37,7 +43,7 @@ public final class KuudraTierDetector {
         kuudraTier       = 0;
 
         for (String line : getSidebarLines(client)) {
-            String clean = line.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            String clean = TextUtil.stripColor(line).trim();
 
             if (clean.contains("Kuudra's Hollow")) inKuudraHollow   = true;
             if (clean.contains("Dungeon Hub"))     inDungeonHub     = true;
@@ -82,5 +88,12 @@ public final class KuudraTierDetector {
     public static boolean isInDungeonHub()        { return inDungeonHub; }
     public static boolean isInForgottenSkull()    { return inForgottenSkull; }
 
-    public static void reset() { kuudraTier = 0; tickCounter = 0; }
+    // lastKnownTier deliberately survives a reset — it exists to persist across leaving the Hollow.
+    public static void reset() {
+        kuudraTier       = 0;
+        tickCounter      = 0;
+        inKuudraHollow   = false;
+        inDungeonHub     = false;
+        inForgottenSkull = false;
+    }
 }

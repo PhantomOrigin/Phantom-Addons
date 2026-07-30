@@ -1,5 +1,6 @@
 package com.phantomaddons.features.miscskyblock;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -49,7 +50,7 @@ public final class PearlRefill {
             long now = System.currentTimeMillis();
             if (now - lastAttemptMs > REPLY_WINDOW_MS) return;
 
-            String text = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String text = TextUtil.stripColor(message.getString());
             if (text.startsWith(MOVED_PREFIX) && text.endsWith(MOVED_SUFFIX)) {
                 resetWaiting();
                 state = State.IDLE;
@@ -153,7 +154,7 @@ public final class PearlRefill {
         if (stack.isEmpty() || !stack.is(Items.ENDER_PEARL)) return false;
         String skyblockId = getSkyblockId(stack);
         if (skyblockId != null) return skyblockId.equals("ENDER_PEARL");
-        String name = stack.getHoverName().getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        String name = TextUtil.stripColor(stack.getHoverName().getString());
         return name.equalsIgnoreCase("Ender Pearl");
     }
 

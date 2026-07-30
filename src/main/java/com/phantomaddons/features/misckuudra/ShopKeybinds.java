@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.PhantomScreen;
@@ -35,7 +36,7 @@ public final class ShopKeybinds {
     public static void register() {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay || !PhantomConfig.isShopKeybindsEnabled()) return;
-            String text = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String text = TextUtil.stripColor(message.getString());
             if (text.contains(PURCHASE_MSG)) {
                 pendingClose = true;
                 PhantomAddons.LOGGER.info("[ShopKeybinds] Human Cannonball purchased — cannon key will close next GUI");
@@ -113,6 +114,6 @@ public final class ShopKeybinds {
     }
 
     private static String strip(String s) {
-        return s.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return TextUtil.stripColor(s);
     }
 }

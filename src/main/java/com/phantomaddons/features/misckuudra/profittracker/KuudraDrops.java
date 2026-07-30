@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.profittracker;
 
+import com.phantomaddons.utils.TextUtil;
 import java.util.*;
 
 public final class KuudraDrops {
@@ -141,10 +142,10 @@ public final class KuudraDrops {
 
     public static final KeyRecipe[] KEY_RECIPES = {
         null,                                                                                        // [0] unused
-        new KeyRecipe(ENCHANTED_MYCELIUM,  2, ENCHANTED_RED_SAND,  2, null,        0,          0L), // T1
-        new KeyRecipe(ENCHANTED_MYCELIUM,  6, ENCHANTED_RED_SAND,  6, null,        0,          0L), // T2
-        new KeyRecipe(ENCHANTED_MYCELIUM, 20, ENCHANTED_RED_SAND, 20, NETHER_STAR, 2,          0L), // T3
-        new KeyRecipe(ENCHANTED_MYCELIUM, 60, ENCHANTED_RED_SAND, 60, NETHER_STAR, 2,          0L), // T4
+        new KeyRecipe(ENCHANTED_MYCELIUM,  2, ENCHANTED_RED_SAND,  2, NETHER_STAR, 2,    194_000L), // T1
+        new KeyRecipe(ENCHANTED_MYCELIUM,  6, ENCHANTED_RED_SAND,  6, NETHER_STAR, 2,    388_000L), // T2
+        new KeyRecipe(ENCHANTED_MYCELIUM, 20, ENCHANTED_RED_SAND, 20, NETHER_STAR, 2,    727_500L), // T3
+        new KeyRecipe(ENCHANTED_MYCELIUM, 60, ENCHANTED_RED_SAND, 60, NETHER_STAR, 2,  1_455_000L), // T4
         new KeyRecipe(ENCHANTED_MYCELIUM, 80, ENCHANTED_RED_SAND, 80, NETHER_STAR, 2, 2_328_000L), // T5
     };
     
@@ -188,7 +189,7 @@ public final class KuudraDrops {
 
     // ── Misc ─────────────────────────────────────────────────────────────────────
     public static String stripColor(String s) {
-        return s == null ? "" : s.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return s == null ? "" : TextUtil.stripColor(s);
     }
 
     public static int countStars(String displayName) {

@@ -1386,6 +1386,10 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isFastDpsNotifyEnabled, PhantomConfig::setFastDpsNotifyEnabled)));
         fastDps.add(soundGroup(T, PhantomConfig.SOUND_FAST_DPS));
         roots.add(fastDps);
+
+        roots.add(leaf(new Toggle("DPS Waypoint", T,
+                PhantomConfig::isDpsWaypointEnabled, PhantomConfig::setDpsWaypointEnabled)
+                .withTooltip("Shows a personal waypoint during eaten/stun based on alphabetical order among non-stun players")));
     }
 
     // ── Build tab ───────────────────────────────────────────────────────────────
@@ -1412,8 +1416,11 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::getBuildBeaconAlpha, PhantomConfig::setBuildBeaconAlpha, "%")));
         roots.add(buildBeacons);
 
-        roots.add(leaf(new Toggle("Elle Highlight", T,
-                PhantomConfig::isElleHighlightEnabled, PhantomConfig::setElleHighlightEnabled)));
+        Group elleHighlight = group("Elle Highlight", T, null,
+                PhantomConfig::isElleHighlightEnabled, PhantomConfig::setElleHighlightEnabled);
+        elleHighlight.add(leaf(new Toggle("Show Beacon", T,
+                PhantomConfig::isElleHighlightBeaconEnabled, PhantomConfig::setElleHighlightBeaconEnabled)));
+        roots.add(elleHighlight);
     }
 
     // ── Supplies tab ──────────────────────────────────────────────────────────
@@ -1703,6 +1710,14 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isHideArmorStandsOthers, PhantomConfig::setHideArmorStandsOthers)
                 .withTooltip("Warning: this hides rat pets")));
         roots.add(as);
+
+        Group ch = group("Show Cannon Hitboxes", T, null,
+                PhantomConfig::isCannonHitboxesEnabled, PhantomConfig::setCannonHitboxesEnabled);
+        ch.add(leaf(new Toggle("Left Cannon", T,
+                PhantomConfig::isCannonHitboxesLeftEnabled, PhantomConfig::setCannonHitboxesLeftEnabled)));
+        ch.add(leaf(new Toggle("Right Cannon", T,
+                PhantomConfig::isCannonHitboxesRightEnabled, PhantomConfig::setCannonHitboxesRightEnabled)));
+        roots.add(ch);
     }
 
     // ── Misc tab (Skyblock) ─────────────────────────────────────────────────────
@@ -1736,6 +1751,10 @@ public class PhantomScreen extends Screen {
 
         roots.add(leaf(new Toggle("Prevent Placing Weapons", T,
                 PhantomConfig::isPreventPlacingWeaponsEnabled, PhantomConfig::setPreventPlacingWeaponsEnabled)));
+
+        roots.add(leaf(new Toggle("Block Close Item", T,
+                PhantomConfig::isBlockCloseItemEnabled, PhantomConfig::setBlockCloseItemEnabled)
+                .withTooltip("Prevents clicking Barrier \"close menu\" items in storage GUIs, stopping accidental instant-closes from click spam")));
 
         Group slot = group("Slot Binds", T, null,
                 PhantomConfig::isSlotBindsEnabled, PhantomConfig::setSlotBindsEnabled);
@@ -1775,8 +1794,6 @@ public class PhantomScreen extends Screen {
         profit.add(leaf(new Cycle("Faction", T,
                 () -> PhantomConfig.isProfitFactionMage() ? "Mage" : "Barbarian",
                 () -> PhantomConfig.setProfitFactionMage(!PhantomConfig.isProfitFactionMage()))));
-        profit.add(leaf(new Toggle("Highlight Unopened Chests", T,
-                PhantomConfig::isProfitHighlightChests, PhantomConfig::setProfitHighlightChests)));
         profit.add(leaf(new Toggle("Reroll Calculator", T,
                 PhantomConfig::isProfitRerollCalc, PhantomConfig::setProfitRerollCalc)));
         profit.add(leaf(new Toggle("Block Reroll On Expensive Items", T,
@@ -1805,6 +1822,10 @@ public class PhantomScreen extends Screen {
                 v  -> PhantomConfig.setKuudraPetLevel(Math.round(v)))));
         roots.add(profit);
 
+        roots.add(leaf(new Toggle("Highlight Unopened Chests", T,
+                PhantomConfig::isHighlightUnopenedChestsEnabled, PhantomConfig::setHighlightUnopenedChestsEnabled)
+                .withTooltip("Highlights unopened Kuudra chests in Croesus/Vesuvius — works independently of Profit Tracker")));
+
         Group kicked = group("Kicked Notification", T, null,
                 PhantomConfig::isKickedNotificationEnabled, PhantomConfig::setKickedNotificationEnabled);
         kicked.add(soundGroup(T, PhantomConfig.SOUND_KICKED));
@@ -1826,9 +1847,12 @@ public class PhantomScreen extends Screen {
 
         roots.add(leaf(new Toggle("Hide Elle Dialogue", T,
                 PhantomConfig::isHideElleDialogueEnabled, PhantomConfig::setHideElleDialogue)));
-        roots.add(leaf(new Toggle("Etherwarp Lava Block", T,
+        Group etherwarpLavaBlock = group("Etherwarp Lava Block", T, null,
                 PhantomConfig::isEtherwarpLavaBlockEnabled,
-                v -> { if (v != PhantomConfig.isEtherwarpLavaBlockEnabled()) PhantomConfig.toggleEtherwarpLavaBlock(); })));
+                v -> { if (v != PhantomConfig.isEtherwarpLavaBlockEnabled()) PhantomConfig.toggleEtherwarpLavaBlock(); });
+        etherwarpLavaBlock.add(leaf(new Toggle("Only In Kuudra", T,
+                PhantomConfig::isEtherwarpLavaBlockOnlyInKuudra, PhantomConfig::setEtherwarpLavaBlockOnlyInKuudra)));
+        roots.add(etherwarpLavaBlock);
         roots.add(leaf(new Toggle("Chest Tracker HUD", T,
                 PhantomConfig::isChestTrackerVisible, PhantomConfig::setChestTrackerVisible)));
 
@@ -2190,6 +2214,9 @@ public class PhantomScreen extends Screen {
             closing = true;
             return;
         }
+        // Config writes are debounced in the background; flush now so settings are on disk the
+        // moment the user closes the menu rather than a fraction of a second later.
+        PhantomConfig.saveNow();
         super.onClose();
     }
 

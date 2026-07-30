@@ -50,6 +50,8 @@ public final class ElleHighlightRenderer {
         imm.endBatch();
         GL11.glDepthFunc(GL11.GL_LEQUAL);
 
+        if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
+
         double bx = (bb.minX + bb.maxX) / 2.0 - cam.x;
         double by = bb.minY - cam.y;
         double bz = (bb.minZ + bb.maxZ) / 2.0 - cam.z;

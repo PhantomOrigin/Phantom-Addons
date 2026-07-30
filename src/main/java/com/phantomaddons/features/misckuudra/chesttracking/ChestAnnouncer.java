@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.chesttracking;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -16,8 +17,7 @@ public final class ChestAnnouncer {
             if (overlay) return;
             if (!PhantomConfig.isChestAnnouncerEnabled()) return;
 
-            String clean = message.getString()
-                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "")
+            String clean = TextUtil.stripColor(message.getString())
                     .trim();
 
             if (clean.contains("!chests")) handleChests();

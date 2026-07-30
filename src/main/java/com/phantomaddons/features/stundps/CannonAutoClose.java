@@ -1,5 +1,6 @@
 package com.phantomaddons.features.stundps;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -24,7 +25,7 @@ public final class CannonAutoClose {
         if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay || !PhantomConfig.isCannonAutoCloseEnabled()) return;
-            String text = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String text = TextUtil.stripColor(message.getString());
             if (text.contains(TRIGGER)) arm();
         });
 

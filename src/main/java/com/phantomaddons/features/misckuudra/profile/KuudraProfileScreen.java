@@ -148,7 +148,8 @@ public final class KuudraProfileScreen extends Screen {
         for (KuudraProfileData.Weapon w : KuudraProfileData.Weapon.values()) {
             KuudraProfileData.ItemInfo item = d.getWeapon(w);
             boolean has = item != null;
-            weaponLines.add(new RawRow((has ? "§a✔ " : "§c✖ ") + w.label, item));
+            String rowLabel = has && item.displayName() != null ? item.displayName() : w.label;
+            weaponLines.add(new RawRow((has ? "§a✔ " : "§c✖ ") + rowLabel, item));
         }
         weaponLines.add(new RawRow(gdragLine("DPS", d.dpsGoldenDragonPet), null));
         weaponLines.add(new RawRow(gdragLine("Rend", d.rendGoldenDragonPet), null));

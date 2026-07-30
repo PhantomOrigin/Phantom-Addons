@@ -18,14 +18,11 @@ public final class EtherwarpPredictor {
 
     private static boolean etherwarpBlockedByLava = false;
 
-    public static void tick(Minecraft client) {
-        predictEtherwarpIntoLava(client);
-    }
-
     public static void predictEtherwarpIntoLava(Minecraft client) {
         etherwarpBlockedByLava = false;
 
         if (!PhantomConfig.isEtherwarpLavaBlockEnabled()) return;
+        if (PhantomConfig.isEtherwarpLavaBlockOnlyInKuudra() && com.phantomaddons.utils.KuudraTierDetector.getTier() <= 0) return;
         if (client.player == null || client.level == null) return;
 
         Player player = client.player;
@@ -133,6 +130,7 @@ public final class EtherwarpPredictor {
         etherwarpBlockedByLava = false;
 
         if (!PhantomConfig.isEtherwarpLavaBlockEnabled()) return;
+        if (PhantomConfig.isEtherwarpLavaBlockOnlyInKuudra() && com.phantomaddons.utils.KuudraTierDetector.getTier() <= 0) return;
         if (client.player == null || client.level == null) return;
 
         Player player = client.player;

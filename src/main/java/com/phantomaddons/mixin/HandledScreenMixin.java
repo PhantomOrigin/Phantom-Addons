@@ -1,7 +1,9 @@
 package com.phantomaddons.mixin;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.ShopKeybinds;
+import com.phantomaddons.features.miscskyblock.BlockCloseItem;
 import com.phantomaddons.features.miscskyblock.SlotBinds;
 import com.phantomaddons.features.loadouts.WardrobeKeybinds;
 import com.phantomaddons.features.misckuudra.profile.PartyFinderProfileHook;
@@ -98,13 +100,11 @@ public class HandledScreenMixin {
     private void kuudrahelper$middleClickShopGui(Slot slot, int slotId, int mouseButton,
                                                  ContainerInput clickType, CallbackInfo ci) {
         if (!PhantomConfig.isMiddleClickShopGuiEnabled()) return;
-        // Only re-issue a real, plain left-click (PICKUP) — the recursive call below carries
-        // CLONE, so it falls through this guard instead of looping back into itself.
         if (mouseButton != 0 || clickType != ContainerInput.PICKUP) return;
         if (slot == null || slot.getItem().isEmpty()) return;
 
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        String title = self.getTitle().getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        String title = TextUtil.stripColor(self.getTitle().getString());
         if (!title.contains("Perk Menu")) return;
 
         ci.cancel();
@@ -112,10 +112,20 @@ public class HandledScreenMixin {
     }
 
     @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    private void kuudrahelper$blockCloseItemClick(Slot slot, int slotId, int mouseButton,
+                                                  ContainerInput clickType, CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        if (!(self instanceof InventoryScreen) && BlockCloseItem.shouldBlock(slot)) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$slotBindsClick(Slot slot, int slotId, int mouseButton,
                                              ContainerInput clickType, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
-        boolean isKuudraChest = PhantomConfig.isProfitTrackerEnabled() && CroesusListener.isKuudraChest(self);
+        boolean isKuudraChest = PhantomConfig.isProfitTrackerEnabled()
+                && kuudrahelper$kind(self) == KIND_KUUDRA_CHEST;
 
         if (isKuudraChest && PhantomConfig.isBlockExpensiveRerollEnabled()
                 && kuudrahelper$cachedAnalysis != null
@@ -145,6 +155,8 @@ public class HandledScreenMixin {
     private void kuudrahelper$onRemoved(CallbackInfo ci) {
         SlotBinds.clearPending();
         kuudrahelper$cachedAnalysis = null;
+        kuudrahelper$lastChestSignature = 0;
+        kuudrahelper$screenKind = KIND_UNRESOLVED;
         ChestValueOverlay.reset();
         PartyFinderProfileHook.reset();
     }
@@ -153,16 +165,52 @@ public class HandledScreenMixin {
 
     private CroesusListener.ChestAnalysis kuudrahelper$cachedAnalysis = null;
 
+    private static final int KIND_UNRESOLVED = -1, KIND_OTHER = 0,
+                             KIND_CROESUS = 1, KIND_KUUDRA_CHEST = 2, KIND_PARTY_FINDER = 3;
+    private int kuudrahelper$screenKind = KIND_UNRESOLVED;
+
+    private int kuudrahelper$kind(AbstractContainerScreen<?> self) {
+        if (kuudrahelper$screenKind == KIND_UNRESOLVED) {
+            if (CroesusListener.isCroesusMain(self)) {
+                kuudrahelper$screenKind = KIND_CROESUS;
+            } else if (CroesusListener.isKuudraChest(self)) {
+                kuudrahelper$screenKind = KIND_KUUDRA_CHEST;
+            } else if (TextUtil.stripColor(self.getTitle().getString())
+                    .equalsIgnoreCase("Party Finder")) {
+                kuudrahelper$screenKind = KIND_PARTY_FINDER;
+            } else {
+                kuudrahelper$screenKind = KIND_OTHER;
+            }
+        }
+        return kuudrahelper$screenKind;
+    }
+
+    private int kuudrahelper$lastChestSignature = 0;
+
+    private static int kuudrahelper$chestSignature(AbstractContainerScreen<?> self) {
+        var slots = self.getMenu().slots;
+        int chestSlots = Math.max(0, slots.size() - 36);
+        int h = 1;
+        for (int i = 0; i < chestSlots; i++) {
+            ItemStack stack = slots.get(i).getItem();
+            h = 31 * h + (stack.isEmpty() ? 0 : System.identityHashCode(stack) * 31 + stack.getCount());
+        }
+        return h;
+    }
+
     @Inject(method = "extractRenderState", at = @At("HEAD"))
     private void kuudrahelper$inventoryOverlay(GuiGraphicsExtractor ctx, int mx, int my, float delta,
                                                CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
         boolean profitOn = PhantomConfig.isProfitTrackerEnabled();
+        int kind = kuudrahelper$kind(self);
 
-        PartyFinderProfileHook.checkShiftHover(self, hoveredSlot, Minecraft.getInstance());
+        if (kind == KIND_PARTY_FINDER) {
+            PartyFinderProfileHook.checkShiftHover(self, hoveredSlot, Minecraft.getInstance());
+        }
 
         // ── Croesus main menu: highlight unopened chests ──────────────────────────
-        if (profitOn && PhantomConfig.isProfitHighlightChests() && CroesusListener.isCroesusMain(self)) {
+        if (PhantomConfig.isHighlightUnopenedChestsEnabled() && kind == KIND_CROESUS) {
             ctx.nextStratum();
             AbstractContainerMenu menu = self.getMenu();
             for (Slot slot : menu.slots) {
@@ -177,13 +225,17 @@ public class HandledScreenMixin {
         }
 
         // ── Kuudra reward chest: value overlay + highlight reroll/wheel slots ─────
-        if (profitOn && CroesusListener.isKuudraChest(self)) {
+        if (profitOn && kind == KIND_KUUDRA_CHEST) {
             if (!ChestValueOverlay.isChestOpen()) {
                 ChestValueOverlay.onChestOpen(self);
             }
-            if (ChestValueOverlay.areSlotsReady(self)) {
-                kuudrahelper$cachedAnalysis = CroesusListener.analyseChest(self);
-                ChestValueOverlay.updatePending(kuudrahelper$cachedAnalysis);
+            int signature = kuudrahelper$chestSignature(self);
+            if (signature != kuudrahelper$lastChestSignature || kuudrahelper$cachedAnalysis == null) {
+                if (ChestValueOverlay.areSlotsReady(self)) {
+                    kuudrahelper$lastChestSignature = signature;
+                    kuudrahelper$cachedAnalysis = CroesusListener.analyseChest(self);
+                    ChestValueOverlay.updatePending(kuudrahelper$cachedAnalysis);
+                }
             }
             CroesusListener.ChestAnalysis a = kuudrahelper$cachedAnalysis;
             AbstractContainerMenu menu = self.getMenu();

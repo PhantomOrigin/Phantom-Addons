@@ -1,5 +1,6 @@
 package com.phantomaddons.features.loadouts;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -278,6 +279,6 @@ public final class WardrobeKeybinds {
     }
 
     private static String strip(String s) {
-        return s.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return TextUtil.stripColor(s);
     }
 }

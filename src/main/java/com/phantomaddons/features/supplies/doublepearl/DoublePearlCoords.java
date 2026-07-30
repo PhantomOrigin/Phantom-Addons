@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies.doublepearl;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.supplies.TrajectorySolver;
 import com.phantomaddons.features.supplies.pearlwaypoints.PickupLocation;
 import net.minecraft.client.Minecraft;
@@ -33,7 +34,7 @@ public final class DoublePearlCoords {
     }
 
     public static void onChat(String raw) {
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         Matcher m = IQ_PATTERN.matcher(clean);
         if (!m.find()) {

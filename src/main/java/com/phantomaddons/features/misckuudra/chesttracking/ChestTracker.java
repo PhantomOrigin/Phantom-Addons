@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.chesttracking;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.features.misckuudra.profittracker.ChestValueOverlay;
@@ -67,7 +68,7 @@ public final class ChestTracker {
     }
 
     private static void handleMessage(String raw) {
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         if (clean.contains(WIN)) {
             success++;
@@ -128,8 +129,6 @@ public final class ChestTracker {
 
     public static void syncFromTabList(int tabTotal) {
         if (tabTotal == total) return;
-        // Suppress sync for a few seconds after a local chest open — Hypixel's tab
-        // list lags behind and would otherwise undo our decrement, causing a double-subtract.
         if (System.currentTimeMillis() - lastChestOpenMs < CHEST_SYNC_COOLDOWN_MS) return;
 
         PhantomAddons.LOGGER.info(

@@ -47,6 +47,7 @@ public final class KuudraPhaseEvents {
                     SoloDetector.onPhaseEnd();
                     SoloDetector.onPhaseStart();
                     KuudraSplitTimer.onSuppliesStart();
+                    com.phantomaddons.features.stundps.DpsWaypoint.reset();
                 }
 
                 case BUILD -> {

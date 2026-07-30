@@ -38,6 +38,7 @@ public class PhantomConfig {
     private static boolean  eatenTimerEnabled              = false;
     private static boolean  eatenTimerSubtractPingEnabled  = false;
     private static boolean  etherwarpLavaBlock = true;
+    private static boolean  etherwarpLavaBlockOnlyInKuudra = false;
     private static boolean  pickoblockEnabled  = false;
     private static boolean  hideElleDialogue   = false;
     private static boolean  autoGfsEnabled     = true;
@@ -122,7 +123,7 @@ public class PhantomConfig {
     private static boolean         profitShowDuringRun    = false;
     private static boolean         profitArmorSalvage     = true;  // true = salvage, false = sell AH
     private static boolean         profitFactionMage      = true;  // true = mage (mycelium), false = barbarian (red sand)
-    private static boolean         profitHighlightChests  = true;
+    private static boolean         highlightUnopenedChestsEnabled  = true;
     private static boolean         profitRerollCalc       = true;
     private static boolean         blockExpensiveReroll   = true;
     private static boolean         profitBazaarInstaSell  = true;  // sell items: instasell vs sell order
@@ -144,7 +145,7 @@ public class PhantomConfig {
     public static boolean         isProfitShowDuringRun()     { return profitShowDuringRun; }
     public static boolean         isProfitArmorSalvage()      { return profitArmorSalvage; }
     public static boolean         isProfitFactionMage()       { return profitFactionMage; }
-    public static boolean         isProfitHighlightChests()   { return profitHighlightChests; }
+    public static boolean         isHighlightUnopenedChestsEnabled()   { return highlightUnopenedChestsEnabled; }
     public static boolean         isProfitRerollCalc()        { return profitRerollCalc; }
     public static boolean         isBlockExpensiveRerollEnabled() { return blockExpensiveReroll; }
     public static boolean         isProfitBazaarInstaSell()   { return profitBazaarInstaSell; }
@@ -162,7 +163,7 @@ public class PhantomConfig {
     public static void setProfitShowDuringRun(boolean v)        { profitShowDuringRun   = v; save(); }
     public static void setProfitArmorSalvage(boolean v)         { profitArmorSalvage    = v; save(); }
     public static void setProfitFactionMage(boolean v)          { profitFactionMage     = v; save(); }
-    public static void setProfitHighlightChests(boolean v)      { profitHighlightChests = v; save(); }
+    public static void setHighlightUnopenedChestsEnabled(boolean v)      { highlightUnopenedChestsEnabled = v; save(); }
     public static void setProfitRerollCalc(boolean v)           { profitRerollCalc      = v; save(); }
     public static void setBlockExpensiveRerollEnabled(boolean v) { blockExpensiveReroll = v; save(); }
     public static void setProfitBazaarInstaSell(boolean v)      { profitBazaarInstaSell = v; save(); }
@@ -222,8 +223,10 @@ public class PhantomConfig {
     private static boolean        stunPreviewLeftEnabled     = false;
     private static boolean        stunPreviewRightEnabled    = false;
     private static boolean        stunPreviewBackEnabled     = false;
+    private static boolean        dpsWaypointEnabled    = false;
     private static boolean        buildBeaconsEnabled        = false;
     private static boolean        elleHighlightEnabled       = false;
+    private static boolean        elleHighlightBeaconEnabled = true;
     private static boolean        rendDamageEnabled          = false;
     private static boolean        rendTrackerEnabled         = false;
     private static boolean        backboneProgressBarEnabled = false;
@@ -250,6 +253,7 @@ public class PhantomConfig {
     private static boolean        preventPlacingPlayerHeadsEnabled      = false;
     private static boolean        preventPlacingPlayerHeadsExceptGarden = true;
     private static boolean        preventPlacingWeaponsEnabled          = false;
+    private static boolean        blockCloseItemEnabled                 = false;
     private static boolean        supplyGiantHitboxEnabled              = false;
     private static boolean        giantHitboxEnabled                    = false;
     private static boolean        giantHitboxFilled                     = false;
@@ -299,6 +303,9 @@ public class PhantomConfig {
     private static boolean hideArmorStandsLeftCannon   = true;
     private static boolean hideArmorStandsShop         = true;
     private static boolean hideArmorStandsOthers       = true;
+    private static boolean cannonHitboxesEnabled       = true;
+    private static boolean cannonHitboxesLeftEnabled   = true;
+    private static boolean cannonHitboxesRightEnabled  = false;
 
     private static boolean kuudraHpHudEnabled       = false;
     private static boolean kuudraHpShowRaw          = false;
@@ -405,6 +412,7 @@ public class PhantomConfig {
     public static boolean  isEatenTimerSubtractPingEnabled()  { return eatenTimerSubtractPingEnabled; }
     public static boolean  isPickoblockEnabled()         { return pickoblockEnabled; }
     public static boolean  isEtherwarpLavaBlockEnabled() { return etherwarpLavaBlock; }
+    public static boolean  isEtherwarpLavaBlockOnlyInKuudra() { return etherwarpLavaBlockOnlyInKuudra; }
     public static boolean  isHideElleDialogueEnabled()   { return hideElleDialogue; }
     public static boolean  isAutoGfsEnabled()            { return autoGfsEnabled; }
 
@@ -508,8 +516,10 @@ public class PhantomConfig {
     public static boolean        isStunPreviewLeftEnabled()       { return stunPreviewLeftEnabled; }
     public static boolean        isStunPreviewRightEnabled()      { return stunPreviewRightEnabled; }
     public static boolean        isStunPreviewBackEnabled()       { return stunPreviewBackEnabled; }
+    public static boolean        isDpsWaypointEnabled()      { return dpsWaypointEnabled; }
     public static boolean        isBuildBeaconsEnabled()         { return buildBeaconsEnabled; }
     public static boolean        isElleHighlightEnabled()        { return elleHighlightEnabled; }
+    public static boolean        isElleHighlightBeaconEnabled()  { return elleHighlightBeaconEnabled; }
     public static boolean        isRendDamageEnabled()           { return rendDamageEnabled; }
     public static boolean        isRendTrackerEnabled()          { return rendTrackerEnabled; }
     public static boolean        isBackboneProgressBarEnabled()   { return backboneProgressBarEnabled; }
@@ -536,6 +546,7 @@ public class PhantomConfig {
     public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return preventPlacingPlayerHeadsEnabled; }
     public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return preventPlacingPlayerHeadsExceptGarden; }
     public static boolean        isPreventPlacingWeaponsEnabled()          { return preventPlacingWeaponsEnabled; }
+    public static boolean        isBlockCloseItemEnabled()                 { return blockCloseItemEnabled; }
     public static boolean        isSupplyGiantHitboxEnabled()              { return supplyGiantHitboxEnabled; }
     public static boolean        isGiantHitboxEnabled()                    { return giantHitboxEnabled; }
     public static boolean        isGiantHitboxFilled()                     { return giantHitboxFilled; }
@@ -660,6 +671,7 @@ public class PhantomConfig {
     public static void setHideElleDialogue(boolean v)   { hideElleDialogue = v;   save(); }
     public static void setAutoGfsEnabled(boolean v)     { autoGfsEnabled = v;     save(); }
     public static void toggleEtherwarpLavaBlock()       { etherwarpLavaBlock = !etherwarpLavaBlock; save(); }
+    public static void setEtherwarpLavaBlockOnlyInKuudra(boolean v) { etherwarpLavaBlockOnlyInKuudra = v; save(); }
 
     // Lava
     public static void setLavaTweaksEnabled(boolean v) { lavaTweaksEnabled = v;    save(); rebuildChunks(); }
@@ -755,8 +767,10 @@ public class PhantomConfig {
     public static void setStunPreviewLeftEnabled(boolean v)      { stunPreviewLeftEnabled = v;         save(); }
     public static void setStunPreviewRightEnabled(boolean v)     { stunPreviewRightEnabled = v;        save(); }
     public static void setStunPreviewBackEnabled(boolean v)      { stunPreviewBackEnabled = v;         save(); }
+    public static void setDpsWaypointEnabled(boolean v)     { dpsWaypointEnabled = v;        save(); }
     public static void setBuildBeaconsEnabled(boolean v)         { buildBeaconsEnabled = v;           save(); }
     public static void setElleHighlightEnabled(boolean v)        { elleHighlightEnabled = v;          save(); }
+    public static void setElleHighlightBeaconEnabled(boolean v)  { elleHighlightBeaconEnabled = v;    save(); }
     public static void setRendDamageEnabled(boolean v)           { rendDamageEnabled = v;             save(); }
     public static void setRendTrackerEnabled(boolean v)          { rendTrackerEnabled = v;            save(); }
     public static void setBackboneProgressBarEnabled(boolean v)   { backboneProgressBarEnabled = v;    save(); }
@@ -783,6 +797,7 @@ public class PhantomConfig {
     public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { preventPlacingPlayerHeadsEnabled = v;      save(); }
     public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { preventPlacingPlayerHeadsExceptGarden = v; save(); }
     public static void setPreventPlacingWeaponsEnabled(boolean v)          { preventPlacingWeaponsEnabled = v;          save(); }
+    public static void setBlockCloseItemEnabled(boolean v)                 { blockCloseItemEnabled = v;                 save(); }
     public static void setSupplyGiantHitboxEnabled(boolean v)              { supplyGiantHitboxEnabled = v;              save(); }
     public static void setGiantHitboxEnabled(boolean v)                    { giantHitboxEnabled = v;                    save(); }
     public static void setGiantHitboxFilled(boolean v)                     { giantHitboxFilled = v;                     save(); }
@@ -871,6 +886,12 @@ public class PhantomConfig {
     public static void setHideArmorStandsShop(boolean v)          { hideArmorStandsShop = v; save(); }
     public static boolean isHideArmorStandsOthers()               { return hideArmorStandsOthers; }
     public static void setHideArmorStandsOthers(boolean v)        { hideArmorStandsOthers = v; save(); }
+    public static boolean isCannonHitboxesEnabled()               { return cannonHitboxesEnabled; }
+    public static void setCannonHitboxesEnabled(boolean v)        { cannonHitboxesEnabled = v; save(); }
+    public static boolean isCannonHitboxesLeftEnabled()           { return cannonHitboxesLeftEnabled; }
+    public static void setCannonHitboxesLeftEnabled(boolean v)    { cannonHitboxesLeftEnabled = v; save(); }
+    public static boolean isCannonHitboxesRightEnabled()          { return cannonHitboxesRightEnabled; }
+    public static void setCannonHitboxesRightEnabled(boolean v)   { cannonHitboxesRightEnabled = v; save(); }
     public static boolean isKuudraHpHudEnabled()            { return kuudraHpHudEnabled; }
     public static void setKuudraHpHudEnabled(boolean v)     { kuudraHpHudEnabled = v; save(); }
     public static boolean isKuudraHpShowRaw()               { return kuudraHpShowRaw; }
@@ -983,6 +1004,7 @@ public class PhantomConfig {
             eatenTimerSubtractPingEnabled = d.eatenTimerSubtractPingEnabled;
             pickoblockEnabled             = d.pickoblockEnabled;
             etherwarpLavaBlock = d.etherwarpLavaBlock;
+            etherwarpLavaBlockOnlyInKuudra = d.etherwarpLavaBlockOnlyInKuudra;
             hideElleDialogue   = d.hideElleDialogue;
             autoGfsEnabled     = d.autoGfsEnabled;
 
@@ -1076,8 +1098,10 @@ public class PhantomConfig {
             stunPreviewLeftEnabled     = d.stunPreviewLeftEnabled != null ? d.stunPreviewLeftEnabled : false;
             stunPreviewRightEnabled    = d.stunPreviewRightEnabled != null ? d.stunPreviewRightEnabled : d.stunPreviewEnabled;
             stunPreviewBackEnabled     = d.stunPreviewBackEnabled != null ? d.stunPreviewBackEnabled : false;
+            dpsWaypointEnabled    = d.dpsWaypointEnabled;
             buildBeaconsEnabled        = d.buildBeaconsEnabled;
             elleHighlightEnabled       = d.elleHighlightEnabled;
+            elleHighlightBeaconEnabled = d.elleHighlightBeaconEnabled;
             rendDamageEnabled          = d.rendDamageEnabled;
             rendTrackerEnabled         = d.rendTrackerEnabled;
             backboneProgressBarEnabled = d.backboneProgressBarEnabled;
@@ -1105,6 +1129,7 @@ public class PhantomConfig {
             preventPlacingPlayerHeadsEnabled      = d.preventPlacingPlayerHeadsEnabled;
             preventPlacingPlayerHeadsExceptGarden = d.preventPlacingPlayerHeadsExceptGarden;
             preventPlacingWeaponsEnabled          = d.preventPlacingWeaponsEnabled;
+            blockCloseItemEnabled                 = d.blockCloseItemEnabled;
             supplyGiantHitboxEnabled              = d.supplyGiantHitboxEnabled;
             giantHitboxEnabled                    = d.giantHitboxEnabled;
             giantHitboxFilled                     = d.giantHitboxFilled;
@@ -1160,6 +1185,9 @@ public class PhantomConfig {
             hideArmorStandsLeftCannon  = d.hideArmorStandsLeftCannon;
             hideArmorStandsShop        = d.hideArmorStandsShop;
             hideArmorStandsOthers      = d.hideArmorStandsOthers;
+            cannonHitboxesEnabled      = d.cannonHitboxesEnabled;
+            cannonHitboxesLeftEnabled  = d.cannonHitboxesLeftEnabled;
+            cannonHitboxesRightEnabled = d.cannonHitboxesRightEnabled;
             kuudraHpHudEnabled       = d.kuudraHpHudEnabled;
             kuudraHpShowRaw          = d.kuudraHpShowRaw;
             kuudraHpHideBar          = d.kuudraHpHideBar;
@@ -1241,7 +1269,7 @@ public class PhantomConfig {
             profitShowDuringRun   = d.profitShowDuringRun;
             profitArmorSalvage    = d.profitArmorSalvage;
             profitFactionMage     = d.profitFactionMage;
-            profitHighlightChests = d.profitHighlightChests;
+            highlightUnopenedChestsEnabled = d.highlightUnopenedChestsEnabled;
             profitRerollCalc      = d.profitRerollCalc;
             blockExpensiveReroll  = d.blockExpensiveReroll;
             profitBazaarInstaSell = d.profitBazaarInstaSell;
@@ -1282,6 +1310,7 @@ public class PhantomConfig {
         d.eatenTimerSubtractPingEnabled = eatenTimerSubtractPingEnabled;
         d.pickoblockEnabled             = pickoblockEnabled;
         d.etherwarpLavaBlock = etherwarpLavaBlock;
+        d.etherwarpLavaBlockOnlyInKuudra = etherwarpLavaBlockOnlyInKuudra;
         d.hideElleDialogue   = hideElleDialogue;
         d.autoGfsEnabled     = autoGfsEnabled;
 
@@ -1370,8 +1399,10 @@ public class PhantomConfig {
         d.stunPreviewLeftEnabled     = stunPreviewLeftEnabled;
         d.stunPreviewRightEnabled    = stunPreviewRightEnabled;
         d.stunPreviewBackEnabled     = stunPreviewBackEnabled;
+        d.dpsWaypointEnabled    = dpsWaypointEnabled;
         d.buildBeaconsEnabled        = buildBeaconsEnabled;
         d.elleHighlightEnabled       = elleHighlightEnabled;
+        d.elleHighlightBeaconEnabled = elleHighlightBeaconEnabled;
         d.rendDamageEnabled          = rendDamageEnabled;
         d.rendTrackerEnabled         = rendTrackerEnabled;
         d.backboneProgressBarEnabled = backboneProgressBarEnabled;
@@ -1398,6 +1429,7 @@ public class PhantomConfig {
         d.preventPlacingPlayerHeadsEnabled      = preventPlacingPlayerHeadsEnabled;
         d.preventPlacingPlayerHeadsExceptGarden = preventPlacingPlayerHeadsExceptGarden;
         d.preventPlacingWeaponsEnabled          = preventPlacingWeaponsEnabled;
+        d.blockCloseItemEnabled                 = blockCloseItemEnabled;
         d.supplyGiantHitboxEnabled              = supplyGiantHitboxEnabled;
         d.giantHitboxEnabled                    = giantHitboxEnabled;
         d.giantHitboxFilled                     = giantHitboxFilled;
@@ -1453,6 +1485,9 @@ public class PhantomConfig {
         d.hideArmorStandsLeftCannon  = hideArmorStandsLeftCannon;
         d.hideArmorStandsShop        = hideArmorStandsShop;
         d.hideArmorStandsOthers      = hideArmorStandsOthers;
+        d.cannonHitboxesEnabled      = cannonHitboxesEnabled;
+        d.cannonHitboxesLeftEnabled  = cannonHitboxesLeftEnabled;
+        d.cannonHitboxesRightEnabled = cannonHitboxesRightEnabled;
         d.kuudraHpHudEnabled       = kuudraHpHudEnabled;
         d.kuudraHpShowRaw          = kuudraHpShowRaw;
         d.kuudraHpHideBar          = kuudraHpHideBar;
@@ -1513,7 +1548,7 @@ public class PhantomConfig {
         d.profitShowDuringRun   = profitShowDuringRun;
         d.profitArmorSalvage    = profitArmorSalvage;
         d.profitFactionMage     = profitFactionMage;
-        d.profitHighlightChests = profitHighlightChests;
+        d.highlightUnopenedChestsEnabled = highlightUnopenedChestsEnabled;
         d.profitRerollCalc      = profitRerollCalc;
         d.blockExpensiveReroll  = blockExpensiveReroll;
         d.profitBazaarInstaSell = profitBazaarInstaSell;
@@ -1533,9 +1568,57 @@ public class PhantomConfig {
         d.itemCustomCategories     = ItemCustomization.serialiseCustom();
         d.notificationSounds       = new java.util.LinkedHashMap<>(notificationSounds);
 
+        // Every setter calls save(), and dragging a GUI slider fires one per mouse-move event, so
+        // the snapshot above is built on the calling thread (cheap, and keeps it consistent with
+        // the live fields) while the Gson serialisation and disk write are debounced onto a
+        // background writer. A shutdown hook flushes anything still pending.
+        pendingWrite = d;
+        lastSaveRequestMs = System.currentTimeMillis();
+        startWriterThread();
+    }
+
+    private static final long SAVE_DEBOUNCE_MS = 400L;
+
+    private static volatile Data pendingWrite      = null;
+    private static volatile long lastSaveRequestMs = 0L;
+    private static volatile boolean writerStarted  = false;
+
+    private static synchronized void startWriterThread() {
+        if (writerStarted) return;
+        writerStarted = true;
+
+        Thread writer = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(100L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                if (pendingWrite == null) continue;
+                if (System.currentTimeMillis() - lastSaveRequestMs < SAVE_DEBOUNCE_MS) continue;
+                flushPending();
+            }
+        }, "PhantomAddons-ConfigWriter");
+        writer.setDaemon(true);
+        writer.start();
+
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(PhantomConfig::flushPending, "PhantomAddons-ConfigFlush"));
+    }
+
+    private static synchronized void flushPending() {
+        Data d = pendingWrite;
+        if (d == null) return;
+        pendingWrite = null;
         try (Writer w = new FileWriter(CONFIG_PATH.toFile())) {
             GSON.toJson(d, w);
         } catch (IOException e) { PhantomAddons.LOGGER.error("Failed to save config", e); }
+    }
+
+    /** Writes any pending config changes to disk immediately, on the calling thread. */
+    public static void saveNow() {
+        flushPending();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -1656,6 +1739,7 @@ public class PhantomConfig {
         boolean eatenTimerSubtractPingEnabled = false;
         boolean pickoblockEnabled             = false;
         boolean etherwarpLavaBlock = true;
+        boolean etherwarpLavaBlockOnlyInKuudra = false;
         boolean hideElleDialogue   = false;
         boolean autoGfsEnabled     = true;
 
@@ -1742,8 +1826,10 @@ public class PhantomConfig {
         Boolean stunPreviewLeftEnabled     = null; // null = not yet saved under its own key; see load()
         Boolean stunPreviewRightEnabled    = null;
         Boolean stunPreviewBackEnabled     = null;
+        boolean dpsWaypointEnabled    = false;
         boolean buildBeaconsEnabled        = false;
         boolean elleHighlightEnabled       = false;
+        boolean elleHighlightBeaconEnabled = true;
         boolean rendDamageEnabled          = false;
         boolean rendTrackerEnabled         = false;
         boolean backboneProgressBarEnabled = false;
@@ -1770,6 +1856,7 @@ public class PhantomConfig {
         boolean preventPlacingPlayerHeadsEnabled      = false;
         boolean preventPlacingPlayerHeadsExceptGarden = true;
         boolean preventPlacingWeaponsEnabled          = false;
+        boolean blockCloseItemEnabled                 = false;
         boolean supplyGiantHitboxEnabled              = false;
         boolean giantHitboxEnabled                    = false;
         boolean giantHitboxFilled                     = false;
@@ -1825,6 +1912,9 @@ public class PhantomConfig {
         boolean hideArmorStandsLeftCannon  = true;
         boolean hideArmorStandsShop        = true;
         boolean hideArmorStandsOthers      = true;
+        boolean cannonHitboxesEnabled      = true;
+        boolean cannonHitboxesLeftEnabled  = true;
+        boolean cannonHitboxesRightEnabled = false;
         boolean kuudraHpHudEnabled       = false;
         boolean kuudraHpShowRaw          = false;
         boolean kuudraHpHideBar          = false;
@@ -1877,7 +1967,7 @@ public class PhantomConfig {
         boolean profitShowDuringRun    = false;
         boolean profitArmorSalvage     = true;
         boolean profitFactionMage      = true;
-        boolean profitHighlightChests  = true;
+        boolean highlightUnopenedChestsEnabled  = true;
         boolean profitRerollCalc       = true;
         boolean blockExpensiveReroll   = true;
         boolean profitBazaarInstaSell  = true;

@@ -1,5 +1,6 @@
 package com.phantomaddons.features.boss;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -42,7 +43,7 @@ public final class IchorRadiusTracker {
         if (!PhantomConfig.isIchorRadiusEnabled()) return;
         if (!isActivePhase()) return;
 
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         if (clean.contains(CAST_MESSAGE)) {
             Minecraft mc = Minecraft.getInstance();

@@ -1,11 +1,11 @@
 package com.phantomaddons;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.build.AnnounceFresh;
 import com.phantomaddons.features.stundps.AutoGFS;
 import com.phantomaddons.features.misckuudra.AutoRequeue;
 import com.phantomaddons.features.build.buildprogress.BuildProgressHud;
 import com.phantomaddons.features.build.buildprogress.BuildProgressTracker;
-import com.phantomaddons.features.misckuudra.EtherwarpPredictor;
 import com.phantomaddons.features.stundps.FastDpsWarning;
 import com.phantomaddons.features.misckuudra.HollowWandAnnouncer;
 import com.phantomaddons.features.stundps.MountTimerHud;
@@ -108,6 +108,7 @@ public class PhantomAddons implements ClientModInitializer {
         ShopKeybinds.register();
         WardrobeKeybinds.register();
         FastDpsWarning.register();
+        com.phantomaddons.features.stundps.DpsWaypoint.register();
         PartyCommands.register();
         AutoRequeue.register();
         KuudraSplitTimer.register();
@@ -152,7 +153,7 @@ public class PhantomAddons implements ClientModInitializer {
     private static void registerChatEvents() {
         ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> {
             String raw = message.getString();
-            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String clean = TextUtil.stripColor(raw);
             if (isInSuppliesPhase()) NoPre.onChat(raw);
             NoPreAnnounce.onChat(raw);
             SupplyWaypointTracker.onChat(raw);
@@ -165,7 +166,7 @@ public class PhantomAddons implements ClientModInitializer {
         });
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             String raw = message.getString();
-            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String clean = TextUtil.stripColor(raw);
             if (!overlay && isInSuppliesPhase()) NoPre.onChat(raw);
             if (!overlay) NoPreAnnounce.onChat(raw);
             if (!overlay) DoublePearlCoords.onChat(raw);
@@ -228,8 +229,12 @@ public class PhantomAddons implements ClientModInitializer {
 
     private static void registerElleFilter() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((text, overlay) -> {
-            String raw   = toLegacyString(text);
-            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            // Hypixel pushes an action-bar update roughly every tick. None of the lines this filter
+            // cares about (Elle dialogue, supply recovery) ever arrive as an overlay, so bail before
+            // doing any work — toLegacyString below walks the whole component tree.
+            if (overlay) return true;
+
+            String clean = TextUtil.stripColor(text.getString());
 
             if (isNpreElleLine(clean)) return true;
 
@@ -242,6 +247,9 @@ public class PhantomAddons implements ClientModInitializer {
                     String playerName = m.group(1);
                     String countStr   = m.group(2);
 
+                    // Only now is the colour-preserving form needed (for the rank prefix), so it's
+                    // built per supply pickup rather than per message.
+                    String raw = toLegacyString(text);
                     java.util.regex.Matcher rm = RANK_NAME_PATTERN.matcher(raw);
                     String rawPrefix = rm.find() ? rm.group(1) : playerName;
                     rawPrefix = rawPrefix.replaceAll("§r$", "").stripTrailing();
@@ -276,7 +284,7 @@ public class PhantomAddons implements ClientModInitializer {
             return true;
         });
         ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signed, sender, params, ts) -> {
-            String msg = message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+            String msg = TextUtil.stripColor(message.getString());
             if (isNpreElleLine(msg)) return true;
             return !(PhantomConfig.isHideElleDialogueEnabled()
                     && msg.toLowerCase().contains("[npc] elle:"));
@@ -395,7 +403,7 @@ public class PhantomAddons implements ClientModInitializer {
         PearlWaypointManager.reset();
         PearlTitleListener.reset();
         SoloDetector.onPhaseEnd();
-        KuudraTierDetector.init();
+        KuudraTierDetector.reset();
         KuudraSplitTimer.reset();
         CannonAutoClose.reset();
         PartyCommands.reset();
@@ -425,6 +433,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.supplies.etherwarp.EtherwarpWaypointManager.reset();
         NotificationHud.reset();
         CratePriority.reset();
+        com.phantomaddons.features.stundps.DpsWaypoint.reset();
     }
 
     private void registerTickEvents() {
@@ -458,7 +467,6 @@ public class PhantomAddons implements ClientModInitializer {
             }
             Phase2BuildTracker.tick(client);
             PickoblockManager.tick(client);
-            EtherwarpPredictor.tick(client);
             PhaseLogger.tick(client);
             SupplyWaypointTracker.tick(client);
             com.phantomaddons.features.supplies.nopre.NoPreAnnounce.tick(client);

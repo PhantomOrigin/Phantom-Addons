@@ -1,5 +1,6 @@
 package com.phantomaddons.features.stundps;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.features.boss.KuudraHpHud;
@@ -28,8 +29,7 @@ public final class AutoGFS {
         if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         ClientReceiveMessageEvents.GAME.register((msg, overlay) -> {
             if (overlay || !active) return;
-            String text = msg.getString()
-                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "")
+            String text = TextUtil.stripColor(msg.getString())
                     .trim();
 
             if (text.contains("no Toxic Arrow Poison in your Sacks")) {

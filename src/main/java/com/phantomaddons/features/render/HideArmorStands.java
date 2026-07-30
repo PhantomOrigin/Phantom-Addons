@@ -8,9 +8,10 @@ public final class HideArmorStands {
 
     public static void activate()   { active = true;  }
     public static void deactivate() { active = false; }
+    public static boolean isActive() { return active; }
 
     private static final double BUILD_X0 = -113, BUILD_X1 = -91, BUILD_Z0 = -116, BUILD_Z1 = -96;
-    private static final double R_CANNON_X0 = -132, R_CANNON_X1 = -126, R_CANNON_Z0 = -115, R_CANNON_Z1 = -108;
+    private static final double R_CANNON_X0 = -133, R_CANNON_X1 = -126, R_CANNON_Z0 = -115, R_CANNON_Z1 = -108;
     private static final double L_CANNON_X0 = -72,  L_CANNON_X1 = -67,  L_CANNON_Z0 = -105, L_CANNON_Z1 = -100;
     private static final double SHOP_X0 = -98, SHOP_X1 = -93, SHOP_Z0 = -132, SHOP_Z1 = -129;
 
@@ -40,6 +41,14 @@ public final class HideArmorStands {
         }
 
         return false;
+    }
+
+    public static boolean isInLeftCannon(double x, double z) {
+        return inBox(x, z, L_CANNON_X0, L_CANNON_X1, L_CANNON_Z0, L_CANNON_Z1);
+    }
+
+    public static boolean isInRightCannon(double x, double z) {
+        return inBox(x, z, R_CANNON_X0, R_CANNON_X1, R_CANNON_Z0, R_CANNON_Z1);
     }
 
     private static boolean inBox(double x, double z,

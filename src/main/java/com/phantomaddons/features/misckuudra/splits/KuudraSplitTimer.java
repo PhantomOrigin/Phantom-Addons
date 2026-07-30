@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.splits;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import com.phantomaddons.utils.KuudraTierDetector;
@@ -76,7 +77,7 @@ public final class KuudraSplitTimer {
 
             if (runStartMs <= 0) return;
 
-            String text = msg.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            String text = TextUtil.stripColor(msg.getString()).trim();
 
             if (activeSplit == Split.SUPPLIES && !com.phantomaddons.PhantomConfig.isSupplyRecoveryMsgEnabled()) {
                 Matcher rm = RECOVERED.matcher(text);
@@ -94,7 +95,7 @@ public final class KuudraSplitTimer {
         net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.CHAT.register(
                 (msg, signed, sender, params, ts) -> {
             if (runStartMs <= 0) return;
-            String text = msg.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            String text = TextUtil.stripColor(msg.getString()).trim();
             handleFreshMessage(text);
         });
 

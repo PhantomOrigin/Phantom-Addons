@@ -13,6 +13,8 @@ public class PhaseLogAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent event) {
+        if (!PhaseLogger.isActive()) return;
+
         String msg = event.getMessage().getFormattedMessage();
         if (!msg.contains("Phase")) return;
 

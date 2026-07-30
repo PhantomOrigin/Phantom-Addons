@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.chesttracking.ChestTracker;
 import com.phantomaddons.features.misckuudra.profile.AutoKickManager;
@@ -79,10 +80,10 @@ public final class PartyCommands {
     public static void register() {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
-            handle(message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim());
+            handle(TextUtil.stripColor(message.getString()).trim());
         });
         ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, ts) -> {
-            handle(message.getString().replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim());
+            handle(TextUtil.stripColor(message.getString()).trim());
         });
     }
 

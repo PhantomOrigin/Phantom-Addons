@@ -1,5 +1,6 @@
 package com.phantomaddons.features.build;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.build.buildprogress.BuildProgressHud;
 import com.phantomaddons.features.misckuudra.NotificationHud;
@@ -47,7 +48,7 @@ public final class AnnounceFresh {
     public static void onChat(String raw) {
         if (!PhantomConfig.isAnnounceFreshEnabled()) return;
 
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         if (clean.equals(FRESH_SERVER_MSG)) {
             if (!buildActive) return;

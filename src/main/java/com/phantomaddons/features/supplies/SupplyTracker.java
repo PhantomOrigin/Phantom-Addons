@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlLocation;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
@@ -35,7 +36,7 @@ public final class SupplyTracker {
     public static boolean isCompleted(PearlLocation loc) { return completed.contains(loc); }
 
     public static boolean onChat(String raw) {
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
         Matcher m = RECOVERED.matcher(clean);
         if (!m.find()) return false;
 

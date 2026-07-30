@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.21  
+Latest Version: 1.6.23  
 Supported Minecraft Versions: 26.1.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
@@ -40,6 +40,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Cannon Auto Close
 - Fast DPS Warning
 - Fast DPS Notification
+- Individual DPS Waypoint
 ### Boss
 - Kuudra Direction
 - Rend Damage Tracker
@@ -76,6 +77,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Shitter List with auto kick
 - Tux Warning
 - Ichor Radius
+- Show Cannon Hitboxes
 ### Other Features
 - M7 Dragons Auto GFS Poisons
 - Held Item Animation / Position / Scale Customiser
@@ -94,6 +96,7 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Mob Fire Hider
 - Visual Words
 - Skyblock Kicked Cooldown and Announcer
+- Block Close Items in Menus
 
 Credits:
 Auctionhouse prices provided by SkyCofl 

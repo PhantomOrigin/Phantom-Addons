@@ -16,6 +16,8 @@ import com.phantomaddons.features.stundps.StunPreviewRenderer;
 import com.phantomaddons.features.miscskyblock.PredictedBobber;
 import com.phantomaddons.features.miscskyblock.BobberComparisonRenderer;
 import com.phantomaddons.features.boss.IchorRadiusRenderer;
+import com.phantomaddons.features.render.CannonHitboxRenderer;
+import com.phantomaddons.features.stundps.DpsWaypoint;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -58,6 +60,8 @@ public abstract class WorldRendererMixin {
         WaypointLinesRenderer.render(matrices, camera, tickDelta);
         BoneTimingHitboxOutline.render(matrices, camera, tickDelta);
         IchorRadiusRenderer.render(matrices, camera, tickDelta);
+        CannonHitboxRenderer.render(matrices, camera, tickDelta);
+        DpsWaypoint.render(matrices, camera, tickDelta);
         BobberComparisonRenderer.render(matrices, camera);
         PredictedBobber.tick();
     }

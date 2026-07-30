@@ -1,5 +1,6 @@
 package com.phantomaddons.features.dungeons;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import net.minecraft.client.Minecraft;
 
@@ -17,7 +18,7 @@ public final class DungeonsGfs {
 
     public static void onChat(String raw) {
         if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         if (PhantomConfig.isAutoGfsToxicEnabled() && clean.equals(TOXIC_TRIGGER)) {
             runGfs("toxic_arrow_poison", PhantomConfig.getToxicAmount());

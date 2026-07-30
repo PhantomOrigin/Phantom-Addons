@@ -1,5 +1,6 @@
 package com.phantomaddons.features.boss;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.NotificationHud;
 import com.phantomaddons.PhantomAddons;
@@ -33,7 +34,7 @@ public final class SoloDetector {
         if (!active || !PhantomConfig.isSoloDetectorEnabled()) return;
         if (announced) return;
 
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").toLowerCase();
+        String clean = TextUtil.stripColor(raw).toLowerCase();
 
         if (clean.contains(TRIGGER)) {
             finalKills++;

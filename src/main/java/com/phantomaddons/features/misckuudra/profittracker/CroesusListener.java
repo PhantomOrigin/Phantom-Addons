@@ -17,7 +17,7 @@ public final class CroesusListener {
 
     public static boolean isCroesusMain(AbstractContainerScreen<?> screen) {
         String title = stripColor(screen.getTitle().getString()).toLowerCase();
-        return title.contains("croesus");
+        return title.contains("croesus") || title.contains("vesuvius");
     }
 
     public static boolean isKuudraChest(AbstractContainerScreen<?> screen) {

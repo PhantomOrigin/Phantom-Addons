@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.profile;
 
+import com.phantomaddons.utils.TextUtil;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -81,6 +82,6 @@ public final class PartyFinderProfileHook {
     }
 
     private static String strip(String s) {
-        return s.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        return TextUtil.stripColor(s);
     }
 }

@@ -1,5 +1,7 @@
 package com.phantomaddons.features.misckuudra.chesttracking;
 
+import com.phantomaddons.utils.TextUtil;
+import com.phantomaddons.utils.KuudraTierDetector;
 import com.phantomaddons.PhantomAddons;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -13,6 +15,9 @@ public final class TabListChestSync {
 
     private static final Pattern CHEST_PATTERN =
             Pattern.compile("Chests:[\\s\\u00a0]*(\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern WHITESPACE_RUN = Pattern.compile("\\s+");
+
+    private static final String CHEST_MARKER = "Chests";
 
     private static int tickCooldown = 0;
     private static final int CHECK_INTERVAL = 20;
@@ -22,6 +27,7 @@ public final class TabListChestSync {
     public static void init() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.getConnection() == null) return;
+            if (!KuudraTierDetector.isInDungeonHub()) return;
             if (tickCooldown > 0) { tickCooldown--; return; }
             tickCooldown = CHECK_INTERVAL;
             checkTabList(client);
@@ -35,10 +41,12 @@ public final class TabListChestSync {
         for (PlayerInfo entry : entries) {
             if (entry.getTabListDisplayName() == null) continue;
 
-            String line = entry.getTabListDisplayName().getString()
-                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "")
-                    .replace('\u00a0', ' ')   // normalize non-breaking spaces
-                    .replaceAll("\\s+", " ")  // collapse multiple spaces
+            String stripped = TextUtil.stripColor(entry.getTabListDisplayName().getString());
+            if (!containsIgnoreCase(stripped, CHEST_MARKER)) continue;
+
+            String line = WHITESPACE_RUN
+                    .matcher(stripped.replace('\u00a0', ' ')) // normalize non-breaking spaces
+                    .replaceAll(" ")                          // collapse multiple spaces
                     .trim();
 
             Matcher m = CHEST_PATTERN.matcher(line);
@@ -53,5 +61,13 @@ public final class TabListChestSync {
             }
             return;
         }
+    }
+
+    private static boolean containsIgnoreCase(String haystack, String needle) {
+        int limit = haystack.length() - needle.length();
+        for (int i = 0; i <= limit; i++) {
+            if (haystack.regionMatches(true, i, needle, 0, needle.length())) return true;
+        }
+        return false;
     }
 }

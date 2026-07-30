@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies.pearlwaypoints;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.supplies.smoothcrate.SmoothCratePickup;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.minecraft.network.chat.Component;
@@ -26,7 +27,7 @@ public final class PearlTitleListener {
                 != KuudraPhaseTracker.Phase.SUPPLIES)
             return;
 
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+        String clean = TextUtil.stripColor(raw).trim();
 
         if (!clean.contains("[|")) return;
 
@@ -101,7 +102,7 @@ public final class PearlTitleListener {
 
     public static boolean isMatchingTitle(String stripped) {
         if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return false;
-        return stripped.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim().contains("[|");
+        return TextUtil.stripColor(stripped).trim().contains("[|");
     }
 
     public static void setActiveComponent(Component comp) {

@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.misckuudra.NotificationHud;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -65,7 +66,7 @@ public final class SupplyProgressHud {
             } else {
                 raw = owner;
             }
-            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            String clean = TextUtil.stripColor(raw).trim();
             if (clean.contains(substring)) return clean;
         }
         return null;

@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies.nopre;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
 import net.minecraft.client.Minecraft;
@@ -123,7 +124,7 @@ public final class NoPreAnnounce {
 
     public static void onChat(String raw) {
         if (!PhantomConfig.isNoPreAnnounceEnabled()) return;
-        String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
+        String clean = TextUtil.stripColor(raw);
 
         if (clean.contains(ELLE_NOT_AGAIN)) {
             if (prePos == null) return;

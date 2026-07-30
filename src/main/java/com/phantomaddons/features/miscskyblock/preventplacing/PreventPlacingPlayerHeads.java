@@ -1,5 +1,6 @@
 package com.phantomaddons.features.miscskyblock.preventplacing;
 
+import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -53,7 +54,7 @@ public final class PreventPlacingPlayerHeads {
             } else {
                 raw = owner;
             }
-            String clean = raw.replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+            String clean = TextUtil.stripColor(raw).trim();
             Matcher m = AREA_PATTERN.matcher(clean);
             if (m.matches() && m.group(1).toLowerCase().equals("garden")) return true;
         }
