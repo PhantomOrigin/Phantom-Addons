@@ -2076,7 +2076,7 @@ public class PhantomScreen extends Screen {
                 .withTooltip("Should be set to the lowest ping that you would get under normal conditions")));
         roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
-                () -> Minecraft.getInstance().setScreen(new HudEditorScreen(PhantomScreen.this)))));
+                () -> Minecraft.getInstance().gui.setScreen(new HudEditorScreen(PhantomScreen.this)))));
         roots.add(leaf(new Cycle("Theme", T,
                 () -> switch (PhantomConfig.getUiTheme()) {
                     case DARK -> "Dark";
@@ -2939,18 +2939,51 @@ public class PhantomScreen extends Screen {
         cornerTile(ctx, x2 - r, y2 - r, r, roundBR, CORNER_BR, radialSample(x2 - r / 2.0,     y2 - r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
     }
 
-    private static final int RADIAL_CELL = 6;
+    // A pre-baked radial falloff mask (white RGB, alpha 255 at its center fading linearly to 0 at
+    // its edge — see radialSample's own t = dist/radius falloff, which this mirrors exactly) blitted
+    // once per rect instead of manually filling a cell grid. Alpha-compositing this (tinted with
+    // colorNear) over a colorFar base is mathematically identical to per-pixel-lerping the two colors,
+    // as long as both are fully opaque — true for every caller here — so this is a pure performance
+    // change: cost drops from O(panel area) to a fixed handful of draw calls, independent of GUI Scale.
+    private static final Identifier GRADIENT_TEX =
+            Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/radial_gradient.png");
+    private static final int GRADIENT_TEX_SIZE = 128;
 
     private static void radialCellFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2,
                                         double centerX, double centerY, double radius, int colorNear, int colorFar) {
-        for (int gy = y1; gy < y2; gy += RADIAL_CELL) {
-            int cellH = Math.min(RADIAL_CELL, y2 - gy);
-            for (int gx = x1; gx < x2; gx += RADIAL_CELL) {
-                int cellW = Math.min(RADIAL_CELL, x2 - gx);
-                int color = radialSample(gx + cellW / 2.0, gy + cellH / 2.0, centerX, centerY, radius, colorNear, colorFar);
-                ctx.fill(gx, gy, gx + cellW, gy + cellH, color);
-            }
-        }
+        ctx.fill(x1, y1, x2, y2, colorFar);
+
+        // The texture represents the world-space square [centerX-radius, centerX+radius] x
+        // [centerY-radius, centerY+radius]. Only the portion of that square overlapping this rect
+        // needs to be blitted — anywhere outside it is already correctly colorFar from the fill above
+        // (matching radialSample's t clamped to 1.0 beyond `radius`).
+        double vx0 = centerX - radius, vy0 = centerY - radius;
+        double vx1 = centerX + radius, vy1 = centerY + radius;
+
+        double ix0 = Math.max(x1, vx0), iy0 = Math.max(y1, vy0);
+        double ix1 = Math.min(x2, vx1), iy1 = Math.min(y2, vy1);
+        if (ix1 <= ix0 || iy1 <= iy0) return;
+
+        double span = 2.0 * radius;
+        float u0 = (float) ((ix0 - vx0) / span);
+        float v0 = (float) ((iy0 - vy0) / span);
+        float u1 = (float) ((ix1 - vx0) / span);
+        float v1 = (float) ((iy1 - vy0) / span);
+
+        int targetX = (int) Math.round(ix0), targetY = (int) Math.round(iy0);
+        int targetW = (int) Math.round(ix1 - ix0), targetH = (int) Math.round(iy1 - iy0);
+        int regionW = Math.max(1, Math.round((u1 - u0) * GRADIENT_TEX_SIZE));
+        int regionH = Math.max(1, Math.round((v1 - v0) * GRADIENT_TEX_SIZE));
+        if (targetW <= 0 || targetH <= 0) return;
+
+        // Argument order here is (..., width, height, regionWidth, regionHeight, textureWidth,
+        // textureHeight, color) — verified against the method's actual bytecode, not just its
+        // erased signature, since regionWidth/regionHeight and textureWidth/textureHeight are
+        // easy to swap (cornerTile's own call can't distinguish the order since it passes the
+        // same value for all four).
+        ctx.blit(RenderPipelines.GUI_TEXTURED, GRADIENT_TEX, targetX, targetY,
+                u0 * GRADIENT_TEX_SIZE, v0 * GRADIENT_TEX_SIZE, targetW, targetH,
+                regionW, regionH, GRADIENT_TEX_SIZE, GRADIENT_TEX_SIZE, colorNear);
     }
 
     private static int radialSample(double x, double y, double centerX, double centerY, double radius, int colorNear, int colorFar) {

@@ -4,11 +4,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BobberComparisonRenderer {
 
@@ -25,18 +26,14 @@ public final class BobberComparisonRenderer {
 
         Vec3 cam = camera.position();
         Matrix4f m = matrices.last().pose();
-        Minecraft mc = Minecraft.getInstance();
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
-        VertexConsumer vc = imm.getBuffer(RenderTypes.lines());
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
-        GL11.glDepthFunc(GL11.GL_ALWAYS);
-
-        drawPair(vc, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
-        drawPair(vc, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
-        drawPair(vc, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
-
-        imm.endBatch(RenderTypes.lines());
-        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, vc) -> {
+            drawPair(vc, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
+            drawPair(vc, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
+            drawPair(vc, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
+        });
     }
 
     private static void drawPair(VertexConsumer vc, Matrix4f m, Vec3 cam, Vec3 ghost, Vec3 real) {

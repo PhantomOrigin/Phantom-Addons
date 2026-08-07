@@ -135,7 +135,7 @@ public final class ShitterList {
 
     private static boolean active() {
         if (NAMES.isEmpty()) return false;
-        var screen = Minecraft.getInstance().screen;
+        var screen = Minecraft.getInstance().gui.screen();
         if (screen instanceof PhantomScreen || screen instanceof HudEditorScreen) return false;
         return true;
     }

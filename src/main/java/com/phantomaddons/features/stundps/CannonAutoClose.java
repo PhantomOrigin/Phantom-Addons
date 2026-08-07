@@ -35,8 +35,8 @@ public final class CannonAutoClose {
 
             if (System.currentTimeMillis() > windowEnd) { closesLeft = 0; return; }
 
-            if (!(client.screen instanceof AbstractContainerScreen)) return;
-            if (client.screen instanceof InventoryScreen)  return;
+            if (!(client.gui.screen() instanceof AbstractContainerScreen)) return;
+            if (client.gui.screen() instanceof InventoryScreen)  return;
             if (client.player != null && client.player.isUsingItem()) return;
             if (client.options.keyAttack.isDown()) return;
 

@@ -89,6 +89,7 @@ public class PhantomAddons implements ClientModInitializer {
         MountTimerHud.register();
 
         KuudraPhaseTracker.init();
+        LevelRenderDispatch.register();
 
         registerElleFilter();
         registerChatEvents();
@@ -209,8 +210,9 @@ public class PhantomAddons implements ClientModInitializer {
             } else {
                 int rgb = tc.getValue();
                 for (net.minecraft.ChatFormatting cf : net.minecraft.ChatFormatting.values()) {
-                    if (cf.isColor() && cf.getColor() != null && cf.getColor() == rgb) {
-                        sb.append('§').append(cf.getChar());
+                    net.minecraft.network.chat.TextColor legacy = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
+                    if (legacy != null && legacy.getValue() == rgb) {
+                        sb.append(cf.toString());
                         break;
                     }
                 }
@@ -442,14 +444,14 @@ public class PhantomAddons implements ClientModInitializer {
 
             if (openGuiNextTick) {
                 openGuiNextTick = false;
-                if (client.player != null && client.level != null && client.screen == null) {
-                    client.setScreen(new PhantomScreen());
+                if (client.player != null && client.level != null && client.gui.screen() == null) {
+                    client.gui.setScreen(new PhantomScreen());
                 }
             }
 
             while (OPEN_GUI_KEY.consumeClick()) {
-                if (client.player != null && client.level != null && client.screen == null) {
-                    client.setScreen(new PhantomScreen());
+                if (client.player != null && client.level != null && client.gui.screen() == null) {
+                    client.gui.setScreen(new PhantomScreen());
                 }
             }
 

@@ -364,12 +364,12 @@ public final class PhantomCommands {
     private static void openProfile(String name) {
         if (!PhantomConfig.isProfileViewerEnabled()) return;
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.setScreen(new KuudraProfileScreen(List.of(name))));
+        mc.execute(() -> mc.gui.setScreen(new KuudraProfileScreen(List.of(name))));
     }
 
     private static void openPbEditor(int tier) {
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.setScreen(new PbEditorScreen(mc.screen, tier)));
+        mc.execute(() -> mc.gui.setScreen(new PbEditorScreen(mc.gui.screen(), tier)));
     }
 
     private static void forcePhase(KuudraPhaseTracker.Phase phase) {

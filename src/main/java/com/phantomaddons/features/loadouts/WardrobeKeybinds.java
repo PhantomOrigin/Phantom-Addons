@@ -68,8 +68,8 @@ public final class WardrobeKeybinds {
                 }
             }
 
-            boolean wardrobeEligible = PhantomConfig.isWardrobeEnabled() && client.screen == null;
-            boolean loadoutsEligible = PhantomConfig.isLoadoutsEnabled() && client.screen == null;
+            boolean wardrobeEligible = PhantomConfig.isWardrobeEnabled() && client.gui.screen() == null;
+            boolean loadoutsEligible = PhantomConfig.isLoadoutsEnabled() && client.gui.screen() == null;
 
             long handle = GLFW.glfwGetCurrentContext();
             checkOpenKey(client, handle, 0, PhantomConfig.getWardrobeOpenKey(),    "wardrobe", wardrobeEligible);
@@ -110,7 +110,7 @@ public final class WardrobeKeybinds {
     }
 
     private static void closeContainerNow(Minecraft client) {
-        if (client.screen instanceof AbstractContainerScreen && client.player != null) {
+        if (client.gui.screen() instanceof AbstractContainerScreen && client.player != null) {
             client.player.closeContainer();
         }
     }

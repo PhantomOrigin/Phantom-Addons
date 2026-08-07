@@ -1631,7 +1631,9 @@ public class PhantomConfig {
 
     private static void rebuildChunks() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.levelRenderer != null) mc.levelRenderer.allChanged();
+        if (mc.levelRenderer != null && mc.level != null && mc.gameRenderer != null) {
+            mc.levelRenderer.invalidateCompiledGeometry(mc.level, mc.options, mc.gameRenderer.mainCamera(), mc.getBlockColors());
+        }
     }
 
     // ── PB data model ─────────────────────────────────────────────────────────

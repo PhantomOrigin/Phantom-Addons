@@ -5,9 +5,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
+import com.phantomaddons.utils.WorldRenderCollector;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.Items;
@@ -38,7 +39,8 @@ public final class CannonHitboxRenderer {
 
         Vec3 camPos = camera.position();
         Matrix4f m  = matrices.last().pose();
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         java.util.List<ArmorStand> leftStands  = new java.util.ArrayList<>();
         java.util.List<ArmorStand> rightStands = new java.util.ArrayList<>();
@@ -58,15 +60,12 @@ public final class CannonHitboxRenderer {
             }
         }
 
-        boolean drewAny = false;
-        drewAny |= renderGroup(leftStands, leftAnchor, camPos, m, imm);
-        drewAny |= renderGroup(rightStands, rightAnchor, camPos, m, imm);
-        if (drewAny) imm.endBatch();
+        renderGroup(leftStands, leftAnchor, camPos, m, matrices, collector);
+        renderGroup(rightStands, rightAnchor, camPos, m, matrices, collector);
     }
 
-    private static boolean renderGroup(java.util.List<ArmorStand> stands, ArmorStand anchor,
-                                        Vec3 camPos, Matrix4f m, MultiBufferSource.BufferSource imm) {
-        boolean drewAny = false;
+    private static void renderGroup(java.util.List<ArmorStand> stands, ArmorStand anchor,
+                                     Vec3 camPos, Matrix4f m, PoseStack matrices, SubmitNodeCollector collector) {
         for (ArmorStand stand : stands) {
             boolean highlighted = anchor != null
                     && Math.abs(stand.getX() - anchor.getX()) <= GROUP_XZ_TOLERANCE
@@ -77,11 +76,11 @@ public final class CannonHitboxRenderer {
             double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
             double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
 
-            addOutline(imm.getBuffer(RenderTypes.lines()), m, x1, y1, z1, x2, y2, z2, r, g, b, OUTLINE_A);
-            addFill(imm.getBuffer(RenderTypes.debugQuads()), m, x1, y1, z1, x2, y2, z2, r, g, b, FILL_A);
-            drewAny = true;
+            collector.submitCustomGeometry(matrices, RenderTypes.lines(),
+                    (pose, vc) -> addOutline(vc, m, x1, y1, z1, x2, y2, z2, r, g, b, OUTLINE_A));
+            collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                    (pose, vc) -> addFill(vc, m, x1, y1, z1, x2, y2, z2, r, g, b, FILL_A));
         }
-        return drewAny;
     }
 
     private static void addOutline(VertexConsumer vc, Matrix4f m,

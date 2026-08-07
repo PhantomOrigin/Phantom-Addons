@@ -5,10 +5,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class SupplyBeaconRenderer {
 
@@ -29,17 +30,18 @@ public final class SupplyBeaconRenderer {
         double cx = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m = matrices.last().pose();
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
         int alpha = (int)(PhantomConfig.getBeaconAlpha() * 255);
 
         for (Vec3 pos : SupplyWaypointTracker.pingBeacons.values()) {
-            drawBeacon(imm, m, pos.x - cx, pos.z - cz, cy, 255, 170, 0, alpha);
+            drawBeacon(matrices, collector, m, pos.x - cx, pos.z - cz, cy, 255, 170, 0, alpha);
         }
 
         Vec3 playerPos = mc.player.position();
         for (SupplyCluster cluster : SupplyWaypointTracker.detectedClusters) {
             if (cluster.center.distanceTo(playerPos) > 3.0) {
-                drawBeacon(imm, m,
+                drawBeacon(matrices, collector, m,
                         cluster.center.x - cx,
                         cluster.center.z - cz,
                         cy, 0, 200, 255, alpha);
@@ -47,15 +49,14 @@ public final class SupplyBeaconRenderer {
         }
     }
 
-    private static void drawBeacon(MultiBufferSource.BufferSource imm, Matrix4f m,
+    private static void drawBeacon(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
                                     double bx, double bz, double cy,
                                     int r, int g, int b, int a) {
         double y0 = BEACON_BOTTOM_Y - cy;
         double y1 = BEACON_TOP_Y   - cy;
 
-        VertexConsumer vc = imm.getBuffer(RenderTypes.debugQuads());
-        addBeam(vc, m, bx, y0, y1, bz, r, g, b, a);
-        imm.endBatch();
+        collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                (pose, vc) -> addBeam(vc, m, bx, y0, y1, bz, r, g, b, a));
     }
 
     private static void addBeam(VertexConsumer vc, Matrix4f m,

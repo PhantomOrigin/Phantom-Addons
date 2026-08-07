@@ -7,20 +7,23 @@ import com.phantomaddons.features.supplies.TrajectorySolver;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import com.phantomaddons.phase.KuudraPhaseTracker.Phase;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.List;
 
@@ -52,8 +55,10 @@ public final class PearlWaypointRenderer {
         int fillA       = Math.max(1, (int)(255f * PhantomConfig.getWaypointFillAlpha()));
         int beaconA     = Math.max(1, (int)(255f * PhantomConfig.getBeaconAlpha()));
 
-        MultiBufferSource.BufferSource imm    = mc.renderBuffers().bufferSource();
-        List<PearlWaypointState>       states = PearlWaypointManager.getSnapshot();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
+
+        List<PearlWaypointState> states = PearlWaypointManager.getSnapshot();
 
         PearlLocation myTargetLoc = null;
         for (PearlWaypointState s : states) {
@@ -65,7 +70,7 @@ public final class PearlWaypointRenderer {
                 if (SupplyTracker.isCompleted(loc)) continue;
                 boolean isTarget   = (loc == myTargetLoc);
                 float   beamHeight = 320f - (float) loc.landingPos.y;
-                drawBeaconBeam(matrices, imm, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
+                drawBeaconBeam(matrices, collector, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
             }
         }
 
@@ -93,11 +98,14 @@ public final class PearlWaypointRenderer {
             if (aimed) { anyAimed = true; if (throwIn <= 0L) aimedThrow = true; }
             if (state.isMyTarget() && throwIn <= 0L) targetThrow = true;
 
-            if (square) drawSquare(matrices, imm, camPos, wp, argb, radius, doFill, fillA);
-            else        drawCircle(matrices, imm, camPos, wp, argb, radius, doFill, fillA);
+            for (int pass = 0; pass < 2; pass++) {
+                boolean alwaysOnTop = pass == 1;
+                if (square) drawSquare(matrices, collector, camPos, wp, argb, radius, doFill, fillA, alwaysOnTop);
+                else        drawCircle(matrices, collector, camPos, wp, argb, radius, doFill, fillA, alwaysOnTop);
+            }
 
             if (PhantomConfig.isPearlTimerEnabled())
-                drawTimer(matrices, imm, camPos, mc.font, state, wp, radius, throwIn, aimed, camPitch, camYaw);
+                drawTimer(matrices, collector, camPos, mc.font, state, wp, radius, throwIn, aimed, camPitch, camYaw);
         }
 
         boolean frameShouldThrow = anyAimed ? aimedThrow : targetThrow;
@@ -110,38 +118,6 @@ public final class PearlWaypointRenderer {
             }
         }
         prevShouldThrow = frameShouldThrow;
-
-        imm.endBatch();
-
-        org.lwjgl.opengl.GL11.glDepthFunc(519);
-
-        for (PearlWaypointState state2 : states) {
-            Vec3 aim2 = state2.centerAimDir();
-            if (aim2 == null) continue;
-
-            Vec3 landing2 = state2.target().landingPos;
-            if (sq(mc.player.getX() - landing2.x) + sq(mc.player.getZ() - landing2.z) < 25.0) continue;
-
-            Vec3    wp2      = spawn.add(aim2.scale(50.0));
-            boolean aimed2   = crosshairHits(mc, wp2, radius);
-            long    throwIn2 = state2.throwInMs();
-            if (aimed2) {
-                Vec3 look2 = mc.player.getLookAngle();
-                long fl2 = TrajectorySolver.estimateFlightMs(spawn, look2, state2.target().targetPos);
-                if (fl2 > 0L) throwIn2 = PearlWaypointManager.computeThrowForFlight(fl2);
-            }
-
-            int argb2 = resolveColor(state2.isMyTarget(), aimed2, throwIn2);
-
-            if (square) drawSquare(matrices, imm, camPos, wp2, argb2, radius, doFill, fillA);
-            else        drawCircle(matrices, imm, camPos, wp2, argb2, radius, doFill, fillA);
-
-            if (PhantomConfig.isPearlTimerEnabled())
-                drawTimer(matrices, imm, camPos, mc.font, state2, wp2, radius, throwIn2, aimed2, camPitch, camYaw);
-        }
-
-        imm.endBatch();
-        org.lwjgl.opengl.GL11.glDepthFunc(515);
     }
 
     private static int resolveColor(boolean myTarget, boolean aimed, long throwIn) {
@@ -162,9 +138,9 @@ public final class PearlWaypointRenderer {
         matrices.mulPose(new Quaternionf().rotationX(-pitch));
     }
 
-    private static void drawCircle(PoseStack matrices, MultiBufferSource provider,
+    private static void drawCircle(PoseStack matrices, SubmitNodeCollector collector,
                                    Vec3 camPos, Vec3 wp,
-                                   int argb, float r, boolean doFill, int fillA) {
+                                   int argb, float r, boolean doFill, int fillA, boolean alwaysOnTop) {
         int a  = (argb >> 24) & 0xFF, rc = (argb >> 16) & 0xFF;
         int g  = (argb >>  8) & 0xFF, b  =  argb        & 0xFF;
         matrices.pushPose();
@@ -172,33 +148,37 @@ public final class PearlWaypointRenderer {
         Matrix4f mat = matrices.last().pose();
 
         if (!doFill) {
-            VertexConsumer line = provider.getBuffer(RenderTypes.lines());
-            for (int i = 0; i < SEGS; i++) {
-                double a0 = 2 * Math.PI * i / SEGS, a1 = 2 * Math.PI * (i + 1) / SEGS;
-                float x0 = (float)(Math.cos(a0) * r), y0 = (float)(Math.sin(a0) * r);
-                float x1 = (float)(Math.cos(a1) * r), y1 = (float)(Math.sin(a1) * r);
-                line.addVertex(mat, x0, y0, 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
-                line.addVertex(mat, x1, y1, 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
-            }
+            RenderType type = alwaysOnTop ? AlwaysOnTopRenderTypes.lines() : RenderTypes.lines();
+            collector.submitCustomGeometry(matrices, type, (pose, line) -> {
+                for (int i = 0; i < SEGS; i++) {
+                    double a0 = 2 * Math.PI * i / SEGS, a1 = 2 * Math.PI * (i + 1) / SEGS;
+                    float x0 = (float)(Math.cos(a0) * r), y0 = (float)(Math.sin(a0) * r);
+                    float x1 = (float)(Math.cos(a1) * r), y1 = (float)(Math.sin(a1) * r);
+                    line.addVertex(mat, x0, y0, 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
+                    line.addVertex(mat, x1, y1, 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
+                }
+            });
         }
         if (doFill) {
-            VertexConsumer fv = provider.getBuffer(RenderTypes.debugQuads());
-            for (int i = 0; i < SEGS; i++) {
-                double a0 = 2 * Math.PI * i / SEGS, a1 = 2 * Math.PI * (i + 1) / SEGS;
-                float x0 = (float)(Math.cos(a0) * r), y0 = (float)(Math.sin(a0) * r);
-                float x1 = (float)(Math.cos(a1) * r), y1 = (float)(Math.sin(a1) * r);
-                fv.addVertex(mat, 0f, 0f, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
-                fv.addVertex(mat, x0, y0, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
-                fv.addVertex(mat, x1, y1, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
-                fv.addVertex(mat, 0f, 0f, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
-            }
+            RenderType type = alwaysOnTop ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
+            collector.submitCustomGeometry(matrices, type, (pose, fv) -> {
+                for (int i = 0; i < SEGS; i++) {
+                    double a0 = 2 * Math.PI * i / SEGS, a1 = 2 * Math.PI * (i + 1) / SEGS;
+                    float x0 = (float)(Math.cos(a0) * r), y0 = (float)(Math.sin(a0) * r);
+                    float x1 = (float)(Math.cos(a1) * r), y1 = (float)(Math.sin(a1) * r);
+                    fv.addVertex(mat, 0f, 0f, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
+                    fv.addVertex(mat, x0, y0, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
+                    fv.addVertex(mat, x1, y1, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
+                    fv.addVertex(mat, 0f, 0f, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, 1f);
+                }
+            });
         }
         matrices.popPose();
     }
 
-    private static void drawSquare(PoseStack matrices, MultiBufferSource provider,
+    private static void drawSquare(PoseStack matrices, SubmitNodeCollector collector,
                                    Vec3 camPos, Vec3 wp,
-                                   int argb, float r, boolean doFill, int fillA) {
+                                   int argb, float r, boolean doFill, int fillA, boolean alwaysOnTop) {
         int a  = (argb >> 24) & 0xFF, rc = (argb >> 16) & 0xFF;
         int g  = (argb >>  8) & 0xFF, b  =  argb        & 0xFF;
         float[][] C = {{-r,-r},{r,-r},{r,r},{-r,r}};
@@ -207,28 +187,32 @@ public final class PearlWaypointRenderer {
         Matrix4f mat = matrices.last().pose();
 
         if (!doFill) {
-            VertexConsumer line = provider.getBuffer(RenderTypes.lines());
-            for (int i = 0; i < 4; i++) {
-                float[] p0 = C[i], p1 = C[(i + 1) % 4];
-                line.addVertex(mat, p0[0], p0[1], 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
-                line.addVertex(mat, p1[0], p1[1], 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
-            }
+            RenderType type = alwaysOnTop ? AlwaysOnTopRenderTypes.lines() : RenderTypes.lines();
+            collector.submitCustomGeometry(matrices, type, (pose, line) -> {
+                for (int i = 0; i < 4; i++) {
+                    float[] p0 = C[i], p1 = C[(i + 1) % 4];
+                    line.addVertex(mat, p0[0], p0[1], 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
+                    line.addVertex(mat, p1[0], p1[1], 0f).setColor(rc, g, b, a).setNormal(0f, 0f, 1f).setLineWidth(2.0f);
+                }
+            });
         }
         if (doFill) {
-            VertexConsumer fv = provider.getBuffer(RenderTypes.debugQuads());
-            fv.addVertex(mat, -r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
-            fv.addVertex(mat,  r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
-            fv.addVertex(mat,  r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
-            fv.addVertex(mat, -r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
-            fv.addVertex(mat, -r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
-            fv.addVertex(mat,  r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
-            fv.addVertex(mat,  r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
-            fv.addVertex(mat, -r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
+            RenderType type = alwaysOnTop ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
+            collector.submitCustomGeometry(matrices, type, (pose, fv) -> {
+                fv.addVertex(mat, -r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
+                fv.addVertex(mat,  r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
+                fv.addVertex(mat,  r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
+                fv.addVertex(mat, -r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f,  1f);
+                fv.addVertex(mat, -r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
+                fv.addVertex(mat,  r,  r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
+                fv.addVertex(mat,  r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
+                fv.addVertex(mat, -r, -r, 0f).setColor(rc, g, b, fillA).setNormal(0f, 0f, -1f);
+            });
         }
         matrices.popPose();
     }
 
-    private static void drawBeaconBeam(PoseStack matrices, MultiBufferSource provider,
+    private static void drawBeaconBeam(PoseStack matrices, SubmitNodeCollector collector,
                                        Vec3 camPos, Vec3 pos,
                                        int alpha, boolean isTarget, float beamHeight) {
         float hw = 0.075f;
@@ -239,32 +223,34 @@ public final class PearlWaypointRenderer {
         matrices.pushPose();
         matrices.translate(pos.x - camPos.x, pos.y - camPos.y, pos.z - camPos.z);
         Matrix4f mat = matrices.last().pose();
-        VertexConsumer vc = provider.getBuffer(
-                RenderTypes.beaconBeam(Identifier.withDefaultNamespace("textures/entity/beacon/beacon_beam.png"), true));
-        // East face
-        vc.addVertex(mat,  hw, 0,          -hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal( 1,0,0);
-        vc.addVertex(mat,  hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal( 1,0,0);
-        vc.addVertex(mat,  hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal( 1,0,0);
-        vc.addVertex(mat,  hw, 0,           hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal( 1,0,0);
-        // West face
-        vc.addVertex(mat, -hw, 0,           hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(-1,0,0);
-        vc.addVertex(mat, -hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(-1,0,0);
-        vc.addVertex(mat, -hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(-1,0,0);
-        vc.addVertex(mat, -hw, 0,          -hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(-1,0,0);
-        // South face
-        vc.addVertex(mat,  hw, 0,           hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(0,0, 1);
-        vc.addVertex(mat,  hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(0,0, 1);
-        vc.addVertex(mat, -hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(0,0, 1);
-        vc.addVertex(mat, -hw, 0,           hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(0,0, 1);
-        // North face
-        vc.addVertex(mat, -hw, 0,          -hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(0,0,-1);
-        vc.addVertex(mat, -hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(0,0,-1);
-        vc.addVertex(mat,  hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(0,0,-1);
-        vc.addVertex(mat,  hw, 0,          -hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(0,0,-1);
+        RenderType type = RenderTypes.beaconBeam(
+                Identifier.withDefaultNamespace("textures/entity/beacon/beacon_beam.png"), true);
+        collector.submitCustomGeometry(matrices, type, (pose, vc) -> {
+            // East face
+            vc.addVertex(mat,  hw, 0,          -hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal( 1,0,0);
+            vc.addVertex(mat,  hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal( 1,0,0);
+            vc.addVertex(mat,  hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal( 1,0,0);
+            vc.addVertex(mat,  hw, 0,           hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal( 1,0,0);
+            // West face
+            vc.addVertex(mat, -hw, 0,           hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(-1,0,0);
+            vc.addVertex(mat, -hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(-1,0,0);
+            vc.addVertex(mat, -hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(-1,0,0);
+            vc.addVertex(mat, -hw, 0,          -hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(-1,0,0);
+            // South face
+            vc.addVertex(mat,  hw, 0,           hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(0,0, 1);
+            vc.addVertex(mat,  hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(0,0, 1);
+            vc.addVertex(mat, -hw, beamHeight,  hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(0,0, 1);
+            vc.addVertex(mat, -hw, 0,           hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(0,0, 1);
+            // North face
+            vc.addVertex(mat, -hw, 0,          -hw).setColor(r,g,b,alpha).setUv(0,0).setLight(15728880).setNormal(0,0,-1);
+            vc.addVertex(mat, -hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(0,1).setLight(15728880).setNormal(0,0,-1);
+            vc.addVertex(mat,  hw, beamHeight, -hw).setColor(r,g,b,alpha).setUv(1,1).setLight(15728880).setNormal(0,0,-1);
+            vc.addVertex(mat,  hw, 0,          -hw).setColor(r,g,b,alpha).setUv(1,0).setLight(15728880).setNormal(0,0,-1);
+        });
         matrices.popPose();
     }
 
-    private static void drawTimer(PoseStack matrices, MultiBufferSource provider,
+    private static void drawTimer(PoseStack matrices, SubmitNodeCollector collector,
                                   Vec3 camPos, Font font,
                                   PearlWaypointState state, Vec3 wp,
                                   float radius, long throwIn, boolean aimed,
@@ -294,9 +280,9 @@ public final class PearlWaypointRenderer {
         matrices.mulPose(new Quaternionf().rotationX((float) Math.toRadians( camPitch)));
         matrices.scale(-scale, -scale, scale);
         int tw = font.width(text);
-        font.drawInBatch(Component.literal(text), -tw / 2f, 0f, color, false,
-                matrices.last().pose(), provider,
-                Font.DisplayMode.SEE_THROUGH, 0, 15728880);
+        FormattedCharSequence seq = Component.literal(text).getVisualOrderText();
+        collector.submitText(matrices, -tw / 2f, 0f, seq, false,
+                Font.DisplayMode.SEE_THROUGH, 15728880, color, 0, 0);
         matrices.popPose();
     }
 

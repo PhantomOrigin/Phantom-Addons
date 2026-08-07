@@ -9,11 +9,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BuildBeaconRenderer {
 
@@ -33,7 +34,8 @@ public final class BuildBeaconRenderer {
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m   = matrices.last().pose();
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         for (PearlLocation loc : PearlLocation.values()) {
             if (BuildProgressTracker.isComplete(loc)) continue;
@@ -47,14 +49,9 @@ public final class BuildBeaconRenderer {
             double bz = loc.landingPos.z - cz;
 
             for (int pass = 0; pass < 2; pass++) {
-                if (pass == 1) GL11.glDepthFunc(519);
-
-                VertexConsumer vc = imm.getBuffer(RenderTypes.debugQuads());
-                addBeam(vc, m, bx, by, bz, r, g, b,
-                        (int)(PhantomConfig.getBuildBeaconAlpha() * 255));
-                imm.endBatch();
-
-                if (pass == 1) GL11.glDepthFunc(515);
+                var type = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
+                collector.submitCustomGeometry(matrices, type, (pose, vc) -> addBeam(vc, m, bx, by, bz, r, g, b,
+                        (int)(PhantomConfig.getBuildBeaconAlpha() * 255)));
             }
         }
     }

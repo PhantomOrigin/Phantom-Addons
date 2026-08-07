@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.Giant;
@@ -16,7 +16,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -62,33 +63,32 @@ public final class GiantHitboxOutline {
 
         Vec3 cam = camera.position();
         Matrix4f m = matrices.last().pose();
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         if (filled) {
-            VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
+            collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(), (pose, vf) -> {
+                for (Giant g : giants) {
+                    if (g.isRemoved()) continue;
+                    AABB bb = g.getBoundingBox();
+                    addFill(vf, m,
+                            bb.minX - cam.x, bb.minY - cam.y, bb.minZ - cam.z,
+                            bb.maxX - cam.x, bb.maxY - cam.y, bb.maxZ - cam.z,
+                            rc, gc, bc, fillA);
+                }
+            });
+        }
+
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, vl) -> {
             for (Giant g : giants) {
                 if (g.isRemoved()) continue;
                 AABB bb = g.getBoundingBox();
-                addFill(vf, m,
+                addOutline(vl, m,
                         bb.minX - cam.x, bb.minY - cam.y, bb.minZ - cam.z,
                         bb.maxX - cam.x, bb.maxY - cam.y, bb.maxZ - cam.z,
-                        rc, gc, bc, fillA);
+                        rc, gc, bc);
             }
-            imm.endBatch();
-        }
-
-        GL11.glDepthFunc(GL11.GL_ALWAYS);
-        VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
-        for (Giant g : giants) {
-            if (g.isRemoved()) continue;
-            AABB bb = g.getBoundingBox();
-            addOutline(vl, m,
-                    bb.minX - cam.x, bb.minY - cam.y, bb.minZ - cam.z,
-                    bb.maxX - cam.x, bb.maxY - cam.y, bb.maxZ - cam.z,
-                    rc, gc, bc);
-        }
-        imm.endBatch();
-        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        });
     }
 
     private static boolean isCarryingSupply(Giant g) {

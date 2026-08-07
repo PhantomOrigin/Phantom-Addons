@@ -6,13 +6,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class ElleHighlightRenderer {
 
@@ -38,17 +39,15 @@ public final class ElleHighlightRenderer {
 
         Vec3     cam = camera.position();
         Matrix4f m   = matrices.last().pose();
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         AABB bb = elle.getBoundingBox();
         double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
         double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
 
-        GL11.glDepthFunc(GL11.GL_ALWAYS);
-        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
-        addOutline(lines, m, x1, y1, z1, x2, y2, z2);
-        imm.endBatch();
-        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
+                (pose, lines) -> addOutline(lines, m, x1, y1, z1, x2, y2, z2));
 
         if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
 
@@ -57,11 +56,8 @@ public final class ElleHighlightRenderer {
         double bz = (bb.minZ + bb.maxZ) / 2.0 - cam.z;
 
         for (int pass = 0; pass < 2; pass++) {
-            if (pass == 1) GL11.glDepthFunc(GL11.GL_ALWAYS);
-            VertexConsumer quads = imm.getBuffer(RenderTypes.debugQuads());
-            addBeam(quads, m, bx, by, bz);
-            imm.endBatch();
-            if (pass == 1) GL11.glDepthFunc(GL11.GL_LEQUAL);
+            var type = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
+            collector.submitCustomGeometry(matrices, type, (pose, quads) -> addBeam(quads, m, bx, by, bz));
         }
     }
 

@@ -3,8 +3,10 @@ package com.phantomaddons.features.misckuudra.profittracker;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class PriceCache {
+    
+    public static final long REFRESH_INTERVAL_MS = 10L * 60 * 1000;
 
-    public static final long TTL_MS = 10L * 60 * 1000;
+    public static final long MAX_SERVE_AGE_MS = 6L * 60 * 60 * 1000;
 
     private record Entry(double price, long ts) {}
 
@@ -27,12 +29,12 @@ public final class PriceCache {
         if (id == null) return -1;
         Entry e = map.get(id.toUpperCase());
         if (e == null) return -1;
-        if (System.currentTimeMillis() - e.ts > TTL_MS) return -1;
+        if (System.currentTimeMillis() - e.ts > MAX_SERVE_AGE_MS) return -1;
         return e.price;
     }
 
-    public static boolean bazaarNeedsFetch() { return System.currentTimeMillis() - lastBazaarFetchMs > TTL_MS; }
-    public static boolean binsNeedFetch()    { return System.currentTimeMillis() - lastBinsFetchMs   > TTL_MS; }
+    public static boolean bazaarNeedsFetch() { return System.currentTimeMillis() - lastBazaarFetchMs > REFRESH_INTERVAL_MS; }
+    public static boolean binsNeedFetch()    { return System.currentTimeMillis() - lastBinsFetchMs   > REFRESH_INTERVAL_MS; }
     public static boolean areBinsLoaded()    { return !bins.isEmpty(); }
 
     public static void markBazaarFetched() { lastBazaarFetchMs = System.currentTimeMillis(); }

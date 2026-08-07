@@ -7,8 +7,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
@@ -65,44 +66,52 @@ public final class SupplyRenderHelper {
             zombies.add(z);
         }
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         if (showHitbox || showPearlHitbox) {
-            for (Zombie z : zombies) {
-                AABB bb = z.getBoundingBox();
-                double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
-                double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
+            collector.submitCustomGeometry(matrices, RenderTypes.lines(), (pose, vc) -> {
+                for (Zombie z : zombies) {
+                    AABB bb = z.getBoundingBox();
+                    double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
+                    double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
 
-                if (showHitbox) {
-                    addOutline(imm.getBuffer(RenderTypes.lines()), m,
-                            x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, OUTLINE_A);
-                    addFill(imm.getBuffer(RenderTypes.debugQuads()), m,
-                            x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, FILL_A);
+                    if (showHitbox) {
+                        addOutline(vc, m, x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, OUTLINE_A);
+                    }
+                    if (showPearlHitbox) {
+                        addOutline(vc, m, x1, y1, z1, x2, y2, z2, PH_R, PH_G, PH_B, PH_A);
+                    }
                 }
+            });
 
-                if (showPearlHitbox) {
-                    addOutline(imm.getBuffer(RenderTypes.lines()), m,
-                            x1, y1, z1, x2, y2, z2, PH_R, PH_G, PH_B, PH_A);
-                }
+            if (showHitbox) {
+                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(), (pose, vc) -> {
+                    for (Zombie z : zombies) {
+                        AABB bb = z.getBoundingBox();
+                        double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
+                        double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
+                        addFill(vc, m, x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, FILL_A);
+                    }
+                });
             }
-            imm.endBatch();
         }
 
         if (showRodRadius && !zombies.isEmpty()) {
             Vec3 bobberInLava = getBobberPosInLava(mc);
             List<Vec3> centers = clusterCenters(zombies);
-            VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
-            for (Vec3 ctr : centers) {
-                double drawY = Math.max(ctr.y, LAVA_SURFACE);
-                boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
-                int r = inRange ? RD_R : LB_R;
-                int g = inRange ? RD_G : LB_G;
-                int b = inRange ? RD_B : LB_B;
-                drawHorizontalCircle(lines, m,
-                        ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
-                        ROD_RADIUS, r, g, b, OUTLINE_A);
-            }
-            imm.endBatch();
+            collector.submitCustomGeometry(matrices, RenderTypes.lines(), (pose, lines) -> {
+                for (Vec3 ctr : centers) {
+                    double drawY = Math.max(ctr.y, LAVA_SURFACE);
+                    boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
+                    int r = inRange ? RD_R : LB_R;
+                    int g = inRange ? RD_G : LB_G;
+                    int b = inRange ? RD_B : LB_B;
+                    drawHorizontalCircle(lines, m,
+                            ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
+                            ROD_RADIUS, r, g, b, OUTLINE_A);
+                }
+            });
         }
     }
 

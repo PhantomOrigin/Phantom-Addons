@@ -89,7 +89,7 @@ public final class VisualWords {
 
     private static boolean active() {
         if (!enabled || RULES.isEmpty()) return false;
-        var screen = Minecraft.getInstance().screen;
+        var screen = Minecraft.getInstance().gui.screen();
         if (screen instanceof PhantomScreen || screen instanceof HudEditorScreen) return false;
         return true;
     }

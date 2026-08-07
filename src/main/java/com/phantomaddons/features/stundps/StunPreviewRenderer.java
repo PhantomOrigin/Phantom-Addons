@@ -7,11 +7,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class StunPreviewRenderer {
 
@@ -47,24 +48,24 @@ public final class StunPreviewRenderer {
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m   = matrices.last().pose();
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         for (int pass = 0; pass < 2; pass++) {
-            if (pass == 1) GL11.glDepthFunc(519);
+            var quadsType = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
+            var linesType = pass == 1 ? AlwaysOnTopRenderTypes.lines()      : RenderTypes.lines();
 
-            VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
-            if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodFill(vf, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewRightEnabled()) renderPodFill(vf, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewBackEnabled())  renderPodFill(vf, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
-            imm.endBatch(RenderTypes.debugQuads());
+            collector.submitCustomGeometry(matrices, quadsType, (pose, vf) -> {
+                if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodFill(vf, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
+                if (PhantomConfig.isStunPreviewRightEnabled()) renderPodFill(vf, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
+                if (PhantomConfig.isStunPreviewBackEnabled())  renderPodFill(vf, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
+            });
 
-            VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
-            if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodOutline(vl, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewRightEnabled()) renderPodOutline(vl, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewBackEnabled())  renderPodOutline(vl, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
-            imm.endBatch(RenderTypes.lines());
-
-            if (pass == 1) GL11.glDepthFunc(515);
+            collector.submitCustomGeometry(matrices, linesType, (pose, vl) -> {
+                if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodOutline(vl, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
+                if (PhantomConfig.isStunPreviewRightEnabled()) renderPodOutline(vl, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
+                if (PhantomConfig.isStunPreviewBackEnabled())  renderPodOutline(vl, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
+            });
         }
     }
 

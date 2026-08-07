@@ -7,7 +7,6 @@
     "UseItemMixin",
     "TitleMixin",
     "FontDrawMixin",
-    "WorldRendererMixin",
     "ClientWorldExplosionMixin",
     "HeldItemRendererMixin",
     "HandledScreenMixin",

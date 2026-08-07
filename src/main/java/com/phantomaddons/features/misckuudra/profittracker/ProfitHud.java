@@ -46,7 +46,7 @@ public final class ProfitHud {
     }
 
     private static void render(GuiGraphicsExtractor ctx, DeltaTracker dt) {
-        if (Minecraft.getInstance().screen != null) return;
+        if (Minecraft.getInstance().gui.screen() != null) return;
         renderInScreen(ctx);
     }
 

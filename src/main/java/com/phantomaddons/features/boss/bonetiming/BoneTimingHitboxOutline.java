@@ -6,14 +6,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.cubemob.Slime;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BoneTimingHitboxOutline {
 
@@ -47,7 +48,8 @@ public final class BoneTimingHitboxOutline {
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m   = matrices.last().pose();
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         for (AABB box : boxes) {
             int col;
@@ -64,16 +66,12 @@ public final class BoneTimingHitboxOutline {
             double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
 
             if (filled) {
-                VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
-                addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b);
-                imm.endBatch();
+                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                        (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b));
             }
 
-            GL11.glDepthFunc(GL11.GL_ALWAYS);
-            VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
-            addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b);
-            imm.endBatch();
-            GL11.glDepthFunc(GL11.GL_LEQUAL);
+            collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
+                    (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b));
         }
     }
 

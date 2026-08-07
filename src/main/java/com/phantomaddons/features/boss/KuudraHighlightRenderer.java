@@ -5,14 +5,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.cubemob.Slime;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class KuudraHighlightRenderer {
 
@@ -34,7 +35,8 @@ public final class KuudraHighlightRenderer {
         Matrix4f m   = matrices.last().pose();
 
         boolean filled = PhantomConfig.isKuudraHighlightFilled();
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         for (Entity entity : mc.level.entitiesForRendering()) {
             if (!(entity instanceof Slime slime) || slime.getSize() != KUUDRA_SIZE) continue;
@@ -44,16 +46,12 @@ public final class KuudraHighlightRenderer {
             double x2 = bb.maxX - cx, y2 = bb.maxY - cy, z2 = bb.maxZ - cz;
 
             if (filled) {
-                VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
-                addFill(vf, m, x1, y1, z1, x2, y2, z2);
-                imm.endBatch();
+                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                        (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2));
             }
 
-            GL11.glDepthFunc(GL11.GL_ALWAYS);
-            VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
-            addOutline(vl, m, x1, y1, z1, x2, y2, z2);
-            imm.endBatch();
-            GL11.glDepthFunc(GL11.GL_LEQUAL);
+            collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
+                    (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2));
         }
     }
 

@@ -42,7 +42,7 @@ public final class PartyFinderProfileHook {
         if (members.isEmpty()) return;
 
         wasTriggered = true;
-        mc.execute(() -> mc.setScreen(new KuudraProfileScreen(members)));
+        mc.execute(() -> mc.gui.setScreen(new KuudraProfileScreen(members)));
     }
 
     private static boolean isShiftDown(Minecraft mc) {

@@ -163,7 +163,7 @@ public final class ChestTracker {
         if (!shouldShowHud()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
 
         Font tr = mc.font;
         int screenW = mc.getWindow().getGuiScaledWidth();

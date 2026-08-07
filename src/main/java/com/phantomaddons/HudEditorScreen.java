@@ -159,7 +159,7 @@ public class HudEditorScreen extends Screen {
         PhantomConfig.setBackboneProgressBarHudScale(ps[10]);
 
         PhantomConfig.save();
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override

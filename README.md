@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.23  
+Latest Version: 1.6.24  
 Supported Minecraft Versions: 26.1.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
@@ -97,6 +97,8 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - Visual Words
 - Skyblock Kicked Cooldown and Announcer
 - Block Close Items in Menus
+- Legacy Rod Physics
+- Lava Bobber Fix
 
 Credits:
 Auctionhouse prices provided by SkyCofl 

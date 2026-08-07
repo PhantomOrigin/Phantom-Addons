@@ -6,12 +6,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.List;
 
@@ -50,7 +51,8 @@ public final class EtherwarpWaypointRenderer {
         Vec3 playerPos = mc.player.position();
         Matrix4f m     = matrices.last().pose();
 
-        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
 
         EtherwarpWaypointManager.updatePriority();
         String priorityDest = EtherwarpWaypointManager.getStickyPriorityZone();
@@ -59,8 +61,6 @@ public final class EtherwarpWaypointRenderer {
 
         Vec3 pearlDest = EtherwarpWaypointManager.getEffectivePearlDest(playerPos);
 
-        GL11.glDepthFunc(GL11.GL_ALWAYS);
-
         for (int gi = 0; gi < groups.size(); gi++) {
             EtherwarpWaypointManager.EtherwarpGroup group = groups.get(gi);
             boolean isPriority = priorityDest != null && priorityDest.equals(group.zone());
@@ -68,9 +68,8 @@ public final class EtherwarpWaypointRenderer {
             for (Vec3 target : group.targets()) {
                 boolean hovered = hoverCheck(mc, target);
                 int[] col = staticColor(gi, hovered, isPriority);
-                drawTopFace(imm, m, target, camPos, col[0], col[1], col[2]);
+                drawTopFace(matrices, collector, m, target, camPos, col[0], col[1], col[2]);
             }
-            imm.endBatch();
 
             if (pearlDest == null) continue;
 
@@ -78,12 +77,9 @@ public final class EtherwarpWaypointRenderer {
                 Vec3 relPos = playerPos.add(target.subtract(pearlDest));
                 boolean hovered = hoverCheck(mc, target) || hoverCheck(mc, relPos);
                 int[] col = relColor(gi, hovered, isPriority);
-                drawTopFace(imm, m, relPos, camPos, col[0], col[1], col[2]);
+                drawTopFace(matrices, collector, m, relPos, camPos, col[0], col[1], col[2]);
             }
-            imm.endBatch();
         }
-
-        GL11.glDepthFunc(GL11.GL_LEQUAL);
     }
 
     private static int[] staticColor(int gi, boolean hovered, boolean priority) {
@@ -98,7 +94,7 @@ public final class EtherwarpWaypointRenderer {
         return GROUP_BRIGHT[gi];
     }
 
-    private static void drawTopFace(MultiBufferSource.BufferSource imm, Matrix4f m,
+    private static void drawTopFace(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
                                      Vec3 center, Vec3 camPos, int r, int g, int b) {
         float x0 = (float)(center.x - 0.5 - camPos.x);
         float x1 = (float)(center.x + 0.5 - camPos.x);
@@ -106,17 +102,17 @@ public final class EtherwarpWaypointRenderer {
         float z0 = (float)(center.z - 0.5 - camPos.z);
         float z1 = (float)(center.z + 0.5 - camPos.z);
 
-        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
-        edge(lines, m, x0, y, z0, x1, y, z0, r, g, b);
-        edge(lines, m, x1, y, z0, x1, y, z1, r, g, b);
-        edge(lines, m, x1, y, z1, x0, y, z1, r, g, b);
-        edge(lines, m, x0, y, z1, x0, y, z0, r, g, b);
-        imm.endBatch(RenderTypes.lines());
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, lines) -> {
+            edge(lines, m, x0, y, z0, x1, y, z0, r, g, b);
+            edge(lines, m, x1, y, z0, x1, y, z1, r, g, b);
+            edge(lines, m, x1, y, z1, x0, y, z1, r, g, b);
+            edge(lines, m, x0, y, z1, x0, y, z0, r, g, b);
+        });
 
-        VertexConsumer quads = imm.getBuffer(RenderTypes.debugQuads());
-        quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1, r, g, b, FILL_A,  0, 1, 0);
-        quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
-        imm.endBatch(RenderTypes.debugQuads());
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.debugQuads(), (pose, quads) -> {
+            quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1, r, g, b, FILL_A,  0, 1, 0);
+            quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
+        });
     }
 
     private static boolean hoverCheck(Minecraft mc, Vec3 center) {

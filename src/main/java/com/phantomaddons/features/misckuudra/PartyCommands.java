@@ -70,11 +70,15 @@ public final class PartyCommands {
         return partyLeader.equalsIgnoreCase(mc.player.getScoreboardName());
     }
 
-    private static void assumeSelfLeaderIfUnknown() {
+    private static long lastLeaderQueryMs = 0L;
+    private static final long LEADER_QUERY_COOLDOWN_MS = 3_000L;
+
+    private static void queryLeaderIfUnknown() {
         if (partyLeader != null) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        partyLeader = mc.player.getScoreboardName();
+        long now = System.currentTimeMillis();
+        if (now - lastLeaderQueryMs < LEADER_QUERY_COOLDOWN_MS) return;
+        lastLeaderQueryMs = now;
+        com.phantomaddons.features.supplies.PartyChatQueue.sendCommand("party list");
     }
 
     public static void register() {
@@ -106,7 +110,7 @@ public final class PartyCommands {
         if (join.find()) {
             String joinedName = join.group(1);
             partyMembers.add(joinedName);
-            assumeSelfLeaderIfUnknown();
+            queryLeaderIfUnknown();
             ShitterList.checkAutoKick(joinedName);
             return;
         }
@@ -115,7 +119,7 @@ public final class PartyCommands {
         if (finderJoin.find()) {
             String joined = finderJoin.group(1);
             partyMembers.add(joined);
-            assumeSelfLeaderIfUnknown();
+            queryLeaderIfUnknown();
             ShitterList.checkAutoKick(joined);
             onPartyFinderJoin(joined);
             return;
@@ -298,10 +302,12 @@ public final class PartyCommands {
 
     private static void onPartyFinderJoin(String name) {
         boolean profileViewerOn = PhantomConfig.isProfileViewerEnabled();
-        boolean autoKickOn      = PhantomConfig.isAutoKickEnabled();
+        boolean autoKickOn = PhantomConfig.isAutoKickEnabled() && isPartyLeader();
         if (!profileViewerOn && !autoKickOn) return;
 
-        KuudraProfileFetcher.fetchAsync(name, data -> AutoKickManager.evaluate(name, data));
+        KuudraProfileFetcher.fetchAsync(name, data -> {
+            if (autoKickOn) AutoKickManager.evaluate(name, data);
+        });
         if (profileViewerOn) announceProfileLink(name);
     }
 
