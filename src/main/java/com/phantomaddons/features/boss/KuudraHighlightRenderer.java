@@ -5,15 +5,24 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class KuudraHighlightRenderer {
 
@@ -35,15 +44,41 @@ public final class KuudraHighlightRenderer {
         Matrix4f m   = matrices.last().pose();
 
         boolean filled = PhantomConfig.isKuudraHighlightFilled();
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
         for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof Slime slime) || slime.getSize() != KUUDRA_SIZE) continue;
+            if (!(entity instanceof AbstractCubeMob slime) || slime.getSize() != KUUDRA_SIZE) continue;
 
             AABB bb = slime.getBoundingBox().inflate(-0.15);
             double x1 = bb.minX - cx, y1 = bb.minY - cy, z1 = bb.minZ - cz;
             double x2 = bb.maxX - cx, y2 = bb.maxY - cy, z2 = bb.maxZ - cz;
+
+            if (filled) {
+                VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
+                addFill(vf, m, x1, y1, z1, x2, y2, z2);
+                imm.endBatch();
+            }
+
+            GL11.glDepthFunc(GL11.GL_ALWAYS);
+            VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
+            addOutline(vl, m, x1, y1, z1, x2, y2, z2);
+            imm.endBatch();
+            GL11.glDepthFunc(GL11.GL_LEQUAL);
+        }
+        *///?} else {
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
+
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof AbstractCubeMob slime) || slime.getSize() != KUUDRA_SIZE) continue;
+
+            AABB bb = slime.getBoundingBox().inflate(-0.15);
+            double x1 = bb.minX - cx, y1 = bb.minY - cy, z1 = bb.minZ - cz;
+            double x2 = bb.maxX - cx, y2 = bb.maxY - cy, z2 = bb.maxZ - cz;
+
+            matrices.pushPose();
+            matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
 
             if (filled) {
                 collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
@@ -52,7 +87,10 @@ public final class KuudraHighlightRenderer {
 
             collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
                     (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2));
+
+            matrices.popPose();
         }
+        //?}
     }
 
     private static void addOutline(VertexConsumer vc, Matrix4f m,

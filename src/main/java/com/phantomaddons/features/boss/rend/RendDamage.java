@@ -9,7 +9,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 
 
 public final class RendDamage {
@@ -51,7 +55,7 @@ public final class RendDamage {
                     || phase == Phase.EATEN || phase == Phase.SKIP
                     || phase == Phase.END || phase == Phase.NONE) return;
 
-            Slime kuudra = findKuudra(client);
+            AbstractCubeMob kuudra = findKuudra(client);
             if (kuudra == null) return;
 
             int hp = Math.min((int) kuudra.getHealth(), KUUDRA_MAX_HP);
@@ -81,10 +85,10 @@ public final class RendDamage {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
     }
 
-    private static Slime findKuudra(Minecraft mc) {
+    private static AbstractCubeMob findKuudra(Minecraft mc) {
         if (mc.level == null) return null;
         for (Entity entity : mc.level.entitiesForRendering()) {
-            if (entity instanceof Slime slime && slime.getSize() == 30)
+            if (entity instanceof AbstractCubeMob slime && slime.getSize() == 30)
                 return slime;
         }
         return null;

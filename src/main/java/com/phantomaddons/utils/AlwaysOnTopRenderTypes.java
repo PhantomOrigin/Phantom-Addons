@@ -13,19 +13,6 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Optional;
 
-// Several highlight/waypoint renderers draw with depth testing forced to ALWAYS (via
-// GL11.glDepthFunc) so they're visible through walls/terrain. Raw OpenGL calls stop functioning
-// once a version adds a Vulkan-capable backend (26.2+) — the correct replacement is a RenderPipeline
-// whose own DepthStencilState uses CompareOp.ALWAYS_PASS. The catch: turning a RenderPipeline into
-// something MultiBufferSource.getBuffer(...) accepts requires RenderType.create(String, RenderSetup),
-// which Mojang left package-private — not part of the public modding API, and never guaranteed to
-// keep this exact shape. This reflects into that one method to build always-on-top variants of the
-// two RenderTypes these features actually use, cloning every other property of the original
-// RenderSetup so nothing about how they draw changes besides the depth test.
-//
-// If the reflection ever breaks (a future Minecraft version restructures these classes), every
-// method here falls back to the normal, depth-tested RenderType instead of throwing — the affected
-// features simply stop rendering through walls rather than the mod breaking.
 public final class AlwaysOnTopRenderTypes {
 
     private static volatile RenderType linesAlwaysOnTop;
@@ -87,8 +74,7 @@ public final class AlwaysOnTopRenderTypes {
     }
 
     private static RenderPipeline withAlwaysDepth(RenderPipeline base, Identifier newLocation) {
-        DepthStencilState original = base.getDepthStencilState();
-        DepthStencilState alwaysOn = new DepthStencilState(CompareOp.ALWAYS_PASS, original.writeDepth());
+        DepthStencilState alwaysOn = new DepthStencilState(CompareOp.ALWAYS_PASS, false);
 
         com.mojang.blaze3d.pipeline.ColorTargetState[] colorTargets = base.getColorTargetStates();
 
@@ -146,9 +132,6 @@ public final class AlwaysOnTopRenderTypes {
         @SuppressWarnings("unchecked")
         Map<String, ?> textures = (Map<String, ?>) readField(baseSetup, "textures");
         if (!textures.isEmpty()) {
-            // lines()/debugQuads() are untextured in every version this was written against — if a
-            // future version adds textures to them, bail out to the safe fallback rather than risk
-            // silently dropping texture bindings.
             throw new IllegalStateException("Unexpected textures on base RenderSetup: " + textures.keySet());
         }
 

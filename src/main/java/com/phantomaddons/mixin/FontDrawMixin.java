@@ -4,6 +4,9 @@ import com.phantomaddons.features.misckuudra.ShitterList;
 import com.phantomaddons.features.customisation.VisualWords;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.Font;
+//? if <26.2 {
+/*import net.minecraft.network.chat.Component;
+*///?}
 import net.minecraft.util.FormattedCharSequence;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,17 +30,27 @@ public class FontDrawMixin {
         return ShitterList.apply(seq);
     }
 
-    // drawInBatch no longer exists in 26.2 (Font lost all rendering methods, only prepareText remains) —
-    // prepareText is now the single choke point all text (2D GUI and 3D world) funnels through before
-    // being submitted via SubmitNodeCollector.submitText, so the centering shift moves here too. This
-    // reads the FormattedCharSequence local after the two content-substitution mixins above have already
-    // run (since they're declared first), meaning the shift is computed against the actual substituted
-    // text rather than the pre-substitution original — centers what's really drawn, which is the more
-    // correct behavior anyway.
+    //? if <26.2 {
+    /*@ModifyVariable(
+            method = "drawInBatch(Lnet/minecraft/network/chat/Component;FFIZLorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/gui/Font$DisplayMode;II)V",
+            at = @At("HEAD"), ordinal = 0, argsOnly = true)
+    private float phantomaddons$recenterComponent(float x, @Local(argsOnly = true) Component text) {
+        return x + VisualWords.centerShift((Font) (Object) this, text.getVisualOrderText());
+    }
+
+    @ModifyVariable(
+            method = "drawInBatch(Lnet/minecraft/util/FormattedCharSequence;FFIZLorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/gui/Font$DisplayMode;II)V",
+            at = @At("HEAD"), ordinal = 0, argsOnly = true)
+    private float phantomaddons$recenterFcs(float x, @Local(argsOnly = true) FormattedCharSequence text) {
+        return x + VisualWords.centerShift((Font) (Object) this, text);
+    }
+    *///?} else {
+
     @ModifyVariable(
             method = "prepareText(Lnet/minecraft/util/FormattedCharSequence;FFIZZI)Lnet/minecraft/client/gui/Font$PreparedText;",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private float phantomaddons$recenter(float x, @Local(argsOnly = true) FormattedCharSequence text) {
         return x + VisualWords.centerShift((Font) (Object) this, text);
     }
+    //?}
 }

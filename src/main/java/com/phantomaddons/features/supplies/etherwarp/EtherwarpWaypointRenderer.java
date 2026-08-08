@@ -6,13 +6,18 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.List;
 
@@ -51,6 +56,42 @@ public final class EtherwarpWaypointRenderer {
         Vec3 playerPos = mc.player.position();
         Matrix4f m     = matrices.last().pose();
 
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        EtherwarpWaypointManager.updatePriority();
+        String priorityDest = EtherwarpWaypointManager.getStickyPriorityZone();
+
+        List<EtherwarpWaypointManager.EtherwarpGroup> groups = EtherwarpWaypointManager.GROUPS;
+
+        Vec3 pearlDest = EtherwarpWaypointManager.getEffectivePearlDest(playerPos);
+
+        GL11.glDepthFunc(GL11.GL_ALWAYS);
+
+        for (int gi = 0; gi < groups.size(); gi++) {
+            EtherwarpWaypointManager.EtherwarpGroup group = groups.get(gi);
+            boolean isPriority = priorityDest != null && priorityDest.equals(group.zone());
+
+            for (Vec3 target : group.targets()) {
+                boolean hovered = hoverCheck(mc, target);
+                int[] col = staticColor(gi, hovered, isPriority);
+                drawTopFace(imm, m, target, camPos, col[0], col[1], col[2]);
+            }
+            imm.endBatch();
+
+            if (pearlDest == null) continue;
+
+            for (Vec3 target : group.targets()) {
+                Vec3 relPos = playerPos.add(target.subtract(pearlDest));
+                boolean hovered = hoverCheck(mc, target) || hoverCheck(mc, relPos);
+                int[] col = relColor(gi, hovered, isPriority);
+                drawTopFace(imm, m, relPos, camPos, col[0], col[1], col[2]);
+            }
+            imm.endBatch();
+        }
+
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
@@ -68,7 +109,10 @@ public final class EtherwarpWaypointRenderer {
             for (Vec3 target : group.targets()) {
                 boolean hovered = hoverCheck(mc, target);
                 int[] col = staticColor(gi, hovered, isPriority);
+                matrices.pushPose();
+                matrices.translate(target.x - camPos.x, target.y - camPos.y, target.z - camPos.z);
                 drawTopFace(matrices, collector, m, target, camPos, col[0], col[1], col[2]);
+                matrices.popPose();
             }
 
             if (pearlDest == null) continue;
@@ -77,9 +121,13 @@ public final class EtherwarpWaypointRenderer {
                 Vec3 relPos = playerPos.add(target.subtract(pearlDest));
                 boolean hovered = hoverCheck(mc, target) || hoverCheck(mc, relPos);
                 int[] col = relColor(gi, hovered, isPriority);
+                matrices.pushPose();
+                matrices.translate(relPos.x - camPos.x, relPos.y - camPos.y, relPos.z - camPos.z);
                 drawTopFace(matrices, collector, m, relPos, camPos, col[0], col[1], col[2]);
+                matrices.popPose();
             }
         }
+        //?}
     }
 
     private static int[] staticColor(int gi, boolean hovered, boolean priority) {
@@ -94,6 +142,28 @@ public final class EtherwarpWaypointRenderer {
         return GROUP_BRIGHT[gi];
     }
 
+    //? if <26.2 {
+    /*private static void drawTopFace(MultiBufferSource.BufferSource imm, Matrix4f m,
+                                     Vec3 center, Vec3 camPos, int r, int g, int b) {
+        float x0 = (float)(center.x - 0.5 - camPos.x);
+        float x1 = (float)(center.x + 0.5 - camPos.x);
+        float y  = (float)(center.y         - camPos.y) + Y_OFFSET;
+        float z0 = (float)(center.z - 0.5 - camPos.z);
+        float z1 = (float)(center.z + 0.5 - camPos.z);
+
+        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
+        edge(lines, m, x0, y, z0, x1, y, z0, r, g, b);
+        edge(lines, m, x1, y, z0, x1, y, z1, r, g, b);
+        edge(lines, m, x1, y, z1, x0, y, z1, r, g, b);
+        edge(lines, m, x0, y, z1, x0, y, z0, r, g, b);
+        imm.endBatch(RenderTypes.lines());
+
+        VertexConsumer quads = imm.getBuffer(RenderTypes.debugQuads());
+        quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1, r, g, b, FILL_A,  0, 1, 0);
+        quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
+        imm.endBatch(RenderTypes.debugQuads());
+    }
+    *///?} else {
     private static void drawTopFace(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
                                      Vec3 center, Vec3 camPos, int r, int g, int b) {
         float x0 = (float)(center.x - 0.5 - camPos.x);
@@ -114,6 +184,7 @@ public final class EtherwarpWaypointRenderer {
             quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
         });
     }
+    //?}
 
     private static boolean hoverCheck(Minecraft mc, Vec3 center) {
         Entity cam = mc.getCameraEntity();

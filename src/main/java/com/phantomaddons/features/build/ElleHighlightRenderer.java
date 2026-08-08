@@ -6,14 +6,19 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class ElleHighlightRenderer {
 
@@ -39,15 +44,18 @@ public final class ElleHighlightRenderer {
 
         Vec3     cam = camera.position();
         Matrix4f m   = matrices.last().pose();
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
         AABB bb = elle.getBoundingBox();
         double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
         double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                (pose, lines) -> addOutline(lines, m, x1, y1, z1, x2, y2, z2));
+        GL11.glDepthFunc(GL11.GL_ALWAYS);
+        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
+        addOutline(lines, m, x1, y1, z1, x2, y2, z2);
+        imm.endBatch();
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
 
         if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
 
@@ -56,9 +64,40 @@ public final class ElleHighlightRenderer {
         double bz = (bb.minZ + bb.maxZ) / 2.0 - cam.z;
 
         for (int pass = 0; pass < 2; pass++) {
+            if (pass == 1) GL11.glDepthFunc(GL11.GL_ALWAYS);
+            VertexConsumer quads = imm.getBuffer(RenderTypes.debugQuads());
+            addBeam(quads, m, bx, by, bz);
+            imm.endBatch();
+            if (pass == 1) GL11.glDepthFunc(GL11.GL_LEQUAL);
+        }
+        *///?} else {
+        SubmitNodeCollector collector = WorldRenderCollector.get();
+        if (collector == null) return;
+
+        AABB bb = elle.getBoundingBox();
+        double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
+        double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
+
+        matrices.pushPose();
+        matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
+                (pose, lines) -> addOutline(lines, m, x1, y1, z1, x2, y2, z2));
+        matrices.popPose();
+
+        if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
+
+        double bx = (bb.minX + bb.maxX) / 2.0 - cam.x;
+        double by = bb.minY - cam.y;
+        double bz = (bb.minZ + bb.maxZ) / 2.0 - cam.z;
+
+        matrices.pushPose();
+        matrices.translate(bx, by, bz);
+        for (int pass = 0; pass < 2; pass++) {
             var type = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
             collector.submitCustomGeometry(matrices, type, (pose, quads) -> addBeam(quads, m, bx, by, bz));
         }
+        matrices.popPose();
+        //?}
     }
 
     private static Entity findElle(Minecraft mc) {

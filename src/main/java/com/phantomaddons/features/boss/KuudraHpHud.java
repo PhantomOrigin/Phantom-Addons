@@ -8,7 +8,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 
 public final class KuudraHpHud {
 
@@ -19,7 +23,7 @@ public final class KuudraHpHud {
     private static final float KUUDRA_RAW_MAX = 100_000f;
     private static final float DECOY_MAX_HP   = 2_000f;
 
-    private static Slime   cachedKuudra  = null;
+    private static AbstractCubeMob   cachedKuudra  = null;
     private static float   smoothProgress = -1f;
     private static long    lastFrameMs    = -1L;
     private static volatile float   displayHp      = 0f;
@@ -55,9 +59,9 @@ public final class KuudraHpHud {
                 return;
             }
 
-            Slime best = null;
+            AbstractCubeMob best = null;
             for (Entity e : client.level.entitiesForRendering()) {
-                if (!(e instanceof Slime s) || s.getSize() != 30) continue;
+                if (!(e instanceof AbstractCubeMob s) || s.getSize() != 30) continue;
                 if (best == null || s.getHealth() > best.getHealth()) best = s;
             }
             if (best != null && best.getHealth() >= DECOY_MAX_HP) {
@@ -153,7 +157,7 @@ public final class KuudraHpHud {
         return lastProgress < 0 ? -1f : lastProgress * 100f;
     }
 
-    public static Slime getKuudra() {
+    public static AbstractCubeMob getKuudra() {
         return cachedKuudra;
     }
 

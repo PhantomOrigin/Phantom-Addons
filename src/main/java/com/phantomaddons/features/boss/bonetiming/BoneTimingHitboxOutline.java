@@ -6,15 +6,24 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BoneTimingHitboxOutline {
 
@@ -48,6 +57,36 @@ public final class BoneTimingHitboxOutline {
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m   = matrices.last().pose();
 
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        for (AABB box : boxes) {
+            int col;
+            if (box == aimedBox) {
+                col = BoneTimingAssist.isAimedWallBlocking() ? 0xFF3333
+                    : BoneTimingAssist.isAimedInThrowRange()  ? 0x32CD32
+                    : defaultCol;
+            } else {
+                col = defaultCol;
+            }
+            int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+
+            double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
+            double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
+
+            if (filled) {
+                VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
+                addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b);
+                imm.endBatch();
+            }
+
+            GL11.glDepthFunc(GL11.GL_ALWAYS);
+            VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
+            addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b);
+            imm.endBatch();
+            GL11.glDepthFunc(GL11.GL_LEQUAL);
+        }
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
@@ -65,6 +104,9 @@ public final class BoneTimingHitboxOutline {
             double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
             double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
 
+            matrices.pushPose();
+            matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
+
             if (filled) {
                 collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
                         (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b));
@@ -72,13 +114,16 @@ public final class BoneTimingHitboxOutline {
 
             collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
                     (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b));
+
+            matrices.popPose();
         }
+        //?}
     }
 
     private static AABB closestToLiveKuudra(Minecraft mc) {
         Vec3 pos = null;
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (!(e instanceof Slime s)) continue;
+            if (!(e instanceof AbstractCubeMob s)) continue;
             if (s.getSize() != KUUDRA_SIZE || s.getHealth() <= 0) continue;
             pos = s.position();
             break;

@@ -17,6 +17,11 @@ public final class UpdateInstaller {
 
     private static final String STAGING_PREFIX = ".phantomaddons_staging-";
     private static final String PENDING_REMOVAL_FILE = "phantomaddons_pending_jar_removal.txt";
+    // Fabric Loader scans mods/<minecraft-version>/ in addition to the flat mods/ root, and some
+    // launchers nest jars a level or two further (e.g. a modpack-managed subfolder). A depth of 3
+    // (mods/, mods/*/, mods/*/*/) comfortably covers real-world layouts without risking a runaway
+    // walk if a mod ships a deeply nested resource/cache folder inside mods/.
+    private static final int MAX_SCAN_DEPTH = 3;
 
     private UpdateInstaller() {}
 
@@ -104,8 +109,12 @@ public final class UpdateInstaller {
             removePendingJars();
             removeDuplicatePhantomAddonsJars(modsDir);
 
-            try (var stream = Files.list(modsDir)) {
-                stream.forEach(p -> {
+            // Recursive (not Files.list): Fabric Loader itself scans mods/<minecraft-version>/ in
+            // addition to the flat mods/ root, and some launchers/modpacks nest jars in their own
+            // subfolders under mods/ too. A flat listing here would silently miss leftover staging
+            // files or .disabled jars sitting in any of those, leaving them stranded forever.
+            try (var stream = Files.walk(modsDir, MAX_SCAN_DEPTH)) {
+                stream.filter(Files::isRegularFile).forEach(p -> {
                     String name = p.getFileName().toString();
                     if (name.endsWith(".jar.disabled")) {
                         try {
@@ -138,8 +147,10 @@ public final class UpdateInstaller {
         String runningVersion = container == null ? null
                 : container.getMetadata().getVersion().getFriendlyString();
 
-        try (var stream = Files.list(modsDir)) {
-            stream.forEach(p -> {
+        // Recursive for the same reason as cleanupLeftoverJars — stale jars can be sitting in
+        // mods/<minecraft-version>/ or another launcher-specific subfolder, not just the flat root.
+        try (var stream = Files.walk(modsDir, MAX_SCAN_DEPTH)) {
+            stream.filter(Files::isRegularFile).forEach(p -> {
                 String name = p.getFileName().toString();
                 if (!name.startsWith("PhantomAddons-") || !name.endsWith(".jar")) return;
                 if (currentJar != null && p.toAbsolutePath().normalize().equals(currentJar)) return;

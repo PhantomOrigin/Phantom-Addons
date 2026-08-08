@@ -8,15 +8,20 @@ import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -116,12 +121,44 @@ public final class DpsWaypoint {
 
         Vec3 camPos = camera.position();
         Matrix4f m  = matrices.last().pose();
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        GL11.glDepthFunc(GL11.GL_ALWAYS);
+        drawTopFace(imm, m, activeWaypoint, camPos);
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
+        matrices.pushPose();
+        matrices.translate(activeWaypoint.x - camPos.x, activeWaypoint.y - camPos.y, activeWaypoint.z - camPos.z);
         drawTopFace(matrices, collector, m, activeWaypoint, camPos);
+        matrices.popPose();
+        //?}
     }
 
+    //? if <26.2 {
+    /*private static void drawTopFace(MultiBufferSource.BufferSource imm, Matrix4f m, Vec3 center, Vec3 camPos) {
+        float x0 = (float)(center.x - 0.5 - camPos.x);
+        float x1 = (float)(center.x + 0.5 - camPos.x);
+        float y  = (float)(center.y         - camPos.y) + Y_OFFSET;
+        float z0 = (float)(center.z - 0.5 - camPos.z);
+        float z1 = (float)(center.z + 0.5 - camPos.z);
+
+        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
+        edge(lines, m, x0, y, z0, x1, y, z0);
+        edge(lines, m, x1, y, z0, x1, y, z1);
+        edge(lines, m, x1, y, z1, x0, y, z1);
+        edge(lines, m, x0, y, z1, x0, y, z0);
+        imm.endBatch(RenderTypes.lines());
+
+        VertexConsumer quads = imm.getBuffer(RenderTypes.debugQuads());
+        quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1,  0, 1, 0);
+        quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0,  0,-1, 0);
+        imm.endBatch(RenderTypes.debugQuads());
+    }
+    *///?} else {
     private static void drawTopFace(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m, Vec3 center, Vec3 camPos) {
         float x0 = (float)(center.x - 0.5 - camPos.x);
         float x1 = (float)(center.x + 0.5 - camPos.x);
@@ -141,6 +178,7 @@ public final class DpsWaypoint {
             quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0,  0,-1, 0);
         });
     }
+    //?}
 
     private static void edge(VertexConsumer vc, Matrix4f m,
                               float x0, float y0, float z0,

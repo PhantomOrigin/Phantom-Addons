@@ -9,12 +9,17 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BuildBeaconRenderer {
 
@@ -34,6 +39,32 @@ public final class BuildBeaconRenderer {
         double   cx  = cam.x, cy = cam.y, cz = cam.z;
         Matrix4f m   = matrices.last().pose();
 
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        for (PearlLocation loc : PearlLocation.values()) {
+            if (BuildProgressTracker.isComplete(loc)) continue;
+
+            int   pct = BuildProgressTracker.getProgress(loc);
+            int[] rgb = progressColour(pct);
+            int   r   = rgb[0], g = rgb[1], b = rgb[2];
+
+            double bx = loc.landingPos.x - cx;
+            double by = loc.landingPos.y - cy;
+            double bz = loc.landingPos.z - cz;
+
+            for (int pass = 0; pass < 2; pass++) {
+                if (pass == 1) GL11.glDepthFunc(519);
+
+                VertexConsumer vc = imm.getBuffer(RenderTypes.debugQuads());
+                addBeam(vc, m, bx, by, bz, r, g, b,
+                        (int)(PhantomConfig.getBuildBeaconAlpha() * 255));
+                imm.endBatch();
+
+                if (pass == 1) GL11.glDepthFunc(515);
+            }
+        }
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
@@ -48,12 +79,18 @@ public final class BuildBeaconRenderer {
             double by = loc.landingPos.y - cy;
             double bz = loc.landingPos.z - cz;
 
+            matrices.pushPose();
+            matrices.translate(bx, by, bz);
+
             for (int pass = 0; pass < 2; pass++) {
                 var type = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
                 collector.submitCustomGeometry(matrices, type, (pose, vc) -> addBeam(vc, m, bx, by, bz, r, g, b,
                         (int)(PhantomConfig.getBuildBeaconAlpha() * 255)));
             }
+
+            matrices.popPose();
         }
+        //?}
     }
 
     private static void addBeam(VertexConsumer vc, Matrix4f m,

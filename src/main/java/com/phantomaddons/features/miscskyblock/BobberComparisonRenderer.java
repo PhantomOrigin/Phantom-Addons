@@ -4,12 +4,17 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class BobberComparisonRenderer {
 
@@ -26,15 +31,42 @@ public final class BobberComparisonRenderer {
 
         Vec3 cam = camera.position();
         Matrix4f m = matrices.last().pose();
+        //? if <26.2 {
+        /*Minecraft mc = Minecraft.getInstance();
+        MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        VertexConsumer vc = imm.getBuffer(RenderTypes.lines());
+
+        GL11.glDepthFunc(GL11.GL_ALWAYS);
+
+        drawPair(vc, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
+        drawPair(vc, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
+        drawPair(vc, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
+
+        imm.endBatch(RenderTypes.lines());
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, vc) -> {
-            drawPair(vc, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
-            drawPair(vc, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
-            drawPair(vc, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
-        });
+        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
+        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
+        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
+        //?}
     }
+
+    //? if >=26.2 {
+    private static void submitPair(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
+                                    Vec3 cam, Vec3 ghost, Vec3 real) {
+        if (ghost == null && real == null) return;
+        Vec3 anchor = ghost != null ? ghost : real;
+
+        matrices.pushPose();
+        matrices.translate(anchor.x - cam.x, anchor.y - cam.y, anchor.z - cam.z);
+        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
+                (pose, vc) -> drawPair(vc, m, cam, ghost, real));
+        matrices.popPose();
+    }
+    //?}
 
     private static void drawPair(VertexConsumer vc, Matrix4f m, Vec3 cam, Vec3 ghost, Vec3 real) {
         if (ghost != null) cross(vc, m, cam, ghost, GHOST_COLOR_A, GHOST_COLOR_B, GHOST_COLOR_C);

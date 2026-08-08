@@ -10,7 +10,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 
 public final class KuudraDirectionHud {
 
@@ -22,7 +26,7 @@ public final class KuudraDirectionHud {
 
     private static volatile boolean    active       = false;
     private static volatile String     direction    = null;
-    private static          Slime cachedKuudra = null;
+    private static          AbstractCubeMob cachedKuudra = null;
 
     private KuudraDirectionHud() {}
 
@@ -52,7 +56,7 @@ public final class KuudraDirectionHud {
                 active = true;
             }
 
-            Slime kuudra = findKuudra(client);
+            AbstractCubeMob kuudra = findKuudra(client);
             if (kuudra == null) {
                 direction = null;
                 return;
@@ -102,7 +106,7 @@ public final class KuudraDirectionHud {
         cachedKuudra = null;
     }
 
-    private static Slime findKuudra(Minecraft mc) {
+    private static AbstractCubeMob findKuudra(Minecraft mc) {
         if (mc.level == null) { cachedKuudra = null; return null; }
 
         if (cachedKuudra != null
@@ -115,7 +119,7 @@ public final class KuudraDirectionHud {
         cachedKuudra = null;
         double highestY = Double.NEGATIVE_INFINITY;
         for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof Slime s)) continue;
+            if (!(entity instanceof AbstractCubeMob s)) continue;
             if (s.getSize() != KUUDRA_SIZE || s.getHealth() <= 0) continue;
             if (s.getY() > highestY) {
                 highestY     = s.getY();

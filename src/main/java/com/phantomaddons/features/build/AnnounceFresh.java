@@ -8,14 +8,19 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.joml.Matrix4f;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,8 +95,12 @@ public final class AnnounceFresh {
         Vec3 camPos = camera.position();
         float cameraXRot = camera.xRot();
         float cameraYRot = camera.yRot();
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
+        //?}
 
         for (var entry : activeTimers.entrySet()) {
             String playerName = entry.getKey();
@@ -120,12 +129,21 @@ public final class AnnounceFresh {
             matrices.scale(-0.025f, -0.025f, 0.025f);
 
             float tw = mc.font.width(text);
+            //? if <26.2 {
+            /*Matrix4f matrix = matrices.last().pose();
+            mc.font.drawInBatch(text, -tw / 2f, 0f, color, false,
+                    matrix, buffers, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            *///?} else {
             FormattedCharSequence seq = Component.literal(text).getVisualOrderText();
             collector.submitText(matrices, -tw / 2f, 0f, seq, false,
                     Font.DisplayMode.NORMAL, 0xF000F0, color, 0, 0);
+            //?}
 
             matrices.popPose();
         }
+        //? if <26.2 {
+        /*buffers.endBatch();
+        *///?}
     }
 
     private static int timerColor(double remaining) {

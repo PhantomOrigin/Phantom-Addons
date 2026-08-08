@@ -181,11 +181,18 @@ public final class RendTracker {
             } else {
                 int rgb = tc.getValue();
                 for (net.minecraft.ChatFormatting cf : net.minecraft.ChatFormatting.values()) {
+                    //? if <26.2 {
+                    /*if (cf.isColor() && cf.getColor() != null && cf.getColor() == rgb) {
+                        sb.append('§').append(cf.getChar());
+                        break;
+                    }
+                    *///?} else {
                     net.minecraft.network.chat.TextColor legacy = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
                     if (legacy != null && legacy.getValue() == rgb) {
                         sb.append(cf.toString());
                         break;
                     }
+                    //?}
                 }
             }
             if (Boolean.TRUE.equals(style.isBold())) sb.append("§l");

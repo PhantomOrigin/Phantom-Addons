@@ -6,7 +6,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.cubemob.Slime;
+//? if <26.2 {
+/*import net.minecraft.world.entity.monster.Slime;
+*///?} else {
+import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob;
+//?}
 import net.minecraft.world.phys.Vec3;
 
 import java.io.BufferedWriter;
@@ -51,7 +55,7 @@ public final class KuudraStationaryLogger {
 
         tickCounter++;
 
-        Slime kuudra = findKuudra(client);
+        AbstractCubeMob kuudra = findKuudra(client);
         if (kuudra == null) {
             lastPos          = null;
             stationaryStreak = 0;
@@ -74,16 +78,16 @@ public final class KuudraStationaryLogger {
         }
     }
 
-    private static Slime findKuudra(Minecraft mc) {
+    private static AbstractCubeMob findKuudra(Minecraft mc) {
         for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof Slime s)) continue;
+            if (!(entity instanceof AbstractCubeMob s)) continue;
             if (s.getSize() != KUUDRA_SIZE || s.getHealth() <= 0) continue;
             return s;
         }
         return null;
     }
 
-    private static void logStationaryPoint(Slime kuudra, Vec3 pos) {
+    private static void logStationaryPoint(AbstractCubeMob kuudra, Vec3 pos) {
         String line = String.format(
                 "STATIONARY | x: %.5f  y: %.5f  z: %.5f  |  bb: %s",
                 pos.x, pos.y, pos.z, kuudra.getBoundingBox());

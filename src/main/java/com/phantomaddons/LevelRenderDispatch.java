@@ -23,15 +23,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.Mth;
-import org.joml.Quaternionf;
 
-// Replaces the old WorldRendererMixin (which injected at the TAIL of LevelRenderer.renderLevel).
-// 26.2 restructured world rendering around a deferred submit/frame-graph model — mods no longer get
-// an immediate MultiBufferSource to draw into at an arbitrary point; instead Fabric API exposes
-// LevelRenderEvents.COLLECT_SUBMITS, which hands over a SubmitNodeCollector valid only for the
-// current frame. That collector is stashed in WorldRenderCollector so every renderer below can keep
-// using the same "grab what I need and draw" shape they always have.
 public final class LevelRenderDispatch {
 
     private LevelRenderDispatch() {}
@@ -48,9 +40,7 @@ public final class LevelRenderDispatch {
 
             float tickDelta = mc.getDeltaTracker().getRealtimeDeltaTicks();
 
-            PoseStack matrices = new PoseStack();
-            matrices.mulPose(new Quaternionf().rotationX(Mth.DEG_TO_RAD * camera.xRot()));
-            matrices.mulPose(new Quaternionf().rotationY(Mth.DEG_TO_RAD * (camera.yRot() + 180.0f)));
+            PoseStack matrices = ctx.poseStack() != null ? ctx.poseStack() : new PoseStack();
 
             PearlWaypointRenderer.renderWorld(matrices, camera, tickDelta);
             KuudraHighlightRenderer.render(matrices, camera, tickDelta);

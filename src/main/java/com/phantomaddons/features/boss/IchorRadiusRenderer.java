@@ -4,11 +4,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 
 public final class IchorRadiusRenderer {
@@ -38,14 +42,29 @@ public final class IchorRadiusRenderer {
         double baseZ = center.z - cam.z;
 
         Matrix4f m = matrices.last().pose();
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        VertexConsumer vf = imm.getBuffer(RenderTypes.debugQuads());
+        addCylinderSideFill(vf, m, baseX, baseY, baseZ, r, g, b, FILL_A);
+        imm.endBatch(RenderTypes.debugQuads());
+
+        VertexConsumer vl = imm.getBuffer(RenderTypes.lines());
+        addCylinderOutline(vl, m, baseX, baseY, baseZ, r, g, b, OUTLINE_A);
+        imm.endBatch(RenderTypes.lines());
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
+        matrices.pushPose();
+        matrices.translate(baseX, baseY, baseZ);
         collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
                 (pose, vf) -> addCylinderSideFill(vf, m, baseX, baseY, baseZ, r, g, b, FILL_A));
 
         collector.submitCustomGeometry(matrices, RenderTypes.lines(),
                 (pose, vl) -> addCylinderOutline(vl, m, baseX, baseY, baseZ, r, g, b, OUTLINE_A));
+        matrices.popPose();
+        //?}
     }
     
     private static int[] lerpColor(float fraction) {

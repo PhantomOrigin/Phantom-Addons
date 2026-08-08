@@ -5,12 +5,17 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+import org.lwjgl.opengl.GL11;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
-import com.phantomaddons.utils.WorldRenderCollector;
 
 public final class WaypointLinesRenderer {
 
@@ -33,12 +38,27 @@ public final class WaypointLinesRenderer {
         Vec3 start = camPos.add(direction);
         Matrix4f m  = matrices.last().pose();
 
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
+
+        GL11.glDepthFunc(GL11.GL_ALWAYS);
+        line(lines, m,
+                (float)(start.x  - camPos.x), (float)(start.y  - camPos.y), (float)(start.z  - camPos.z),
+                (float)(target.x - camPos.x), (float)(target.y - camPos.y), (float)(target.z - camPos.z));
+        imm.endBatch(RenderTypes.lines());
+        GL11.glDepthFunc(GL11.GL_LEQUAL);
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
+        matrices.pushPose();
+        matrices.translate(target.x - camPos.x, target.y - camPos.y, target.z - camPos.z);
         collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, lines) -> line(lines, m,
                 (float)(start.x  - camPos.x), (float)(start.y  - camPos.y), (float)(start.z  - camPos.z),
                 (float)(target.x - camPos.x), (float)(target.y - camPos.y), (float)(target.z - camPos.z)));
+        matrices.popPose();
+        //?}
     }
 
     private static void line(VertexConsumer vc, Matrix4f m,

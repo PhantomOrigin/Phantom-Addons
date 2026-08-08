@@ -5,10 +5,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import com.phantomaddons.utils.WorldRenderCollector;
+//?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.world.entity.Entity;
-import com.phantomaddons.utils.WorldRenderCollector;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.Items;
@@ -39,8 +43,12 @@ public final class CannonHitboxRenderer {
 
         Vec3 camPos = camera.position();
         Matrix4f m  = matrices.last().pose();
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
+        //?}
 
         java.util.List<ArmorStand> leftStands  = new java.util.ArrayList<>();
         java.util.List<ArmorStand> rightStands = new java.util.ArrayList<>();
@@ -60,10 +68,38 @@ public final class CannonHitboxRenderer {
             }
         }
 
+        //? if <26.2 {
+        /*boolean drewAny = false;
+        drewAny |= renderGroup(leftStands, leftAnchor, camPos, m, imm);
+        drewAny |= renderGroup(rightStands, rightAnchor, camPos, m, imm);
+        if (drewAny) imm.endBatch();
+        *///?} else {
         renderGroup(leftStands, leftAnchor, camPos, m, matrices, collector);
         renderGroup(rightStands, rightAnchor, camPos, m, matrices, collector);
+        //?}
     }
 
+    //? if <26.2 {
+    /*private static boolean renderGroup(java.util.List<ArmorStand> stands, ArmorStand anchor,
+                                        Vec3 camPos, Matrix4f m, MultiBufferSource.BufferSource imm) {
+        boolean drewAny = false;
+        for (ArmorStand stand : stands) {
+            boolean highlighted = anchor != null
+                    && Math.abs(stand.getX() - anchor.getX()) <= GROUP_XZ_TOLERANCE
+                    && Math.abs(stand.getZ() - anchor.getZ()) <= GROUP_XZ_TOLERANCE;
+            int r = highlighted ? H_R : C_R, g = highlighted ? H_G : C_G, b = highlighted ? H_B : C_B;
+
+            AABB bb = stand.getBoundingBox();
+            double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
+            double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
+
+            addOutline(imm.getBuffer(RenderTypes.lines()), m, x1, y1, z1, x2, y2, z2, r, g, b, OUTLINE_A);
+            addFill(imm.getBuffer(RenderTypes.debugQuads()), m, x1, y1, z1, x2, y2, z2, r, g, b, FILL_A);
+            drewAny = true;
+        }
+        return drewAny;
+    }
+    *///?} else {
     private static void renderGroup(java.util.List<ArmorStand> stands, ArmorStand anchor,
                                      Vec3 camPos, Matrix4f m, PoseStack matrices, SubmitNodeCollector collector) {
         for (ArmorStand stand : stands) {
@@ -76,12 +112,18 @@ public final class CannonHitboxRenderer {
             double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
             double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
 
+            matrices.pushPose();
+            matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
+
             collector.submitCustomGeometry(matrices, RenderTypes.lines(),
                     (pose, vc) -> addOutline(vc, m, x1, y1, z1, x2, y2, z2, r, g, b, OUTLINE_A));
             collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
                     (pose, vc) -> addFill(vc, m, x1, y1, z1, x2, y2, z2, r, g, b, FILL_A));
+
+            matrices.popPose();
         }
     }
+    //?}
 
     private static void addOutline(VertexConsumer vc, Matrix4f m,
                                    double x1, double y1, double z1,

@@ -22,6 +22,11 @@ public final class UpdateChecker {
             "https://github.com/PhantomOrigin/Phantom-Addons/releases/latest";
 
     private static final String ARCHIVE_BASE_NAME = "PhantomAddons";
+    //? if <26.2 {
+    /*private static final String MC_VERSION_TAG = "26.1.x";
+    *///?} else {
+    private static final String MC_VERSION_TAG = "26.2.x";
+    //?}
     private static final String SUFFIX_FULL     = "full";
     private static final String SUFFIX_NOAUTO   = "full-noautoupdate";
     private static final String SUFFIX_STANDARD = ""; // Standard ships with no suffix: PhantomAddons-<version>.jar
@@ -160,9 +165,8 @@ public final class UpdateChecker {
     }
 
     private static String expectedAssetName(String suffix) {
-        return suffix.isEmpty()
-                ? ARCHIVE_BASE_NAME + "-" + latestVersion + ".jar"
-                : ARCHIVE_BASE_NAME + "-" + latestVersion + "-" + suffix + ".jar";
+        String base = MC_VERSION_TAG + "-" + ARCHIVE_BASE_NAME + "-" + latestVersion;
+        return suffix.isEmpty() ? base + ".jar" : base + "-" + suffix + ".jar";
     }
 
     private static String ownEditionSuffix() {

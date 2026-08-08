@@ -7,9 +7,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+//? if <26.2 {
+/*import net.minecraft.client.renderer.MultiBufferSource;
+*///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import com.phantomaddons.utils.WorldRenderCollector;
+//?}
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
@@ -66,53 +70,96 @@ public final class SupplyRenderHelper {
             zombies.add(z);
         }
 
+        //? if <26.2 {
+        /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
+
+        if (showHitbox || showPearlHitbox) {
+            for (Zombie z : zombies) {
+                AABB bb = z.getBoundingBox();
+                double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
+                double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
+
+                if (showHitbox) {
+                    addOutline(imm.getBuffer(RenderTypes.lines()), m,
+                            x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, OUTLINE_A);
+                    addFill(imm.getBuffer(RenderTypes.debugQuads()), m,
+                            x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, FILL_A);
+                }
+
+                if (showPearlHitbox) {
+                    addOutline(imm.getBuffer(RenderTypes.lines()), m,
+                            x1, y1, z1, x2, y2, z2, PH_R, PH_G, PH_B, PH_A);
+                }
+            }
+            imm.endBatch();
+        }
+
+        if (showRodRadius && !zombies.isEmpty()) {
+            Vec3 bobberInLava = getBobberPosInLava(mc);
+            List<Vec3> centers = clusterCenters(zombies);
+            VertexConsumer lines = imm.getBuffer(RenderTypes.lines());
+            for (Vec3 ctr : centers) {
+                double drawY = Math.max(ctr.y, LAVA_SURFACE);
+                boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
+                int r = inRange ? RD_R : LB_R;
+                int g = inRange ? RD_G : LB_G;
+                int b = inRange ? RD_B : LB_B;
+                drawHorizontalCircle(lines, m,
+                        ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
+                        ROD_RADIUS, r, g, b, OUTLINE_A);
+            }
+            imm.endBatch();
+        }
+        *///?} else {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
         if (showHitbox || showPearlHitbox) {
-            collector.submitCustomGeometry(matrices, RenderTypes.lines(), (pose, vc) -> {
-                for (Zombie z : zombies) {
-                    AABB bb = z.getBoundingBox();
-                    double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
-                    double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
+            for (Zombie z : zombies) {
+                AABB bb = z.getBoundingBox();
+                double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
+                double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
 
+                matrices.pushPose();
+                matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
+
+                collector.submitCustomGeometry(matrices, RenderTypes.lines(), (pose, vc) -> {
                     if (showHitbox) {
                         addOutline(vc, m, x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, OUTLINE_A);
                     }
                     if (showPearlHitbox) {
                         addOutline(vc, m, x1, y1, z1, x2, y2, z2, PH_R, PH_G, PH_B, PH_A);
                     }
-                }
-            });
-
-            if (showHitbox) {
-                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(), (pose, vc) -> {
-                    for (Zombie z : zombies) {
-                        AABB bb = z.getBoundingBox();
-                        double x1 = bb.minX - camPos.x, y1 = bb.minY - camPos.y, z1 = bb.minZ - camPos.z;
-                        double x2 = bb.maxX - camPos.x, y2 = bb.maxY - camPos.y, z2 = bb.maxZ - camPos.z;
-                        addFill(vc, m, x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, FILL_A);
-                    }
                 });
+
+                if (showHitbox) {
+                    collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                            (pose, vc) -> addFill(vc, m, x1, y1, z1, x2, y2, z2, LB_R, LB_G, LB_B, FILL_A));
+                }
+
+                matrices.popPose();
             }
         }
 
         if (showRodRadius && !zombies.isEmpty()) {
             Vec3 bobberInLava = getBobberPosInLava(mc);
             List<Vec3> centers = clusterCenters(zombies);
-            collector.submitCustomGeometry(matrices, RenderTypes.lines(), (pose, lines) -> {
-                for (Vec3 ctr : centers) {
-                    double drawY = Math.max(ctr.y, LAVA_SURFACE);
-                    boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
-                    int r = inRange ? RD_R : LB_R;
-                    int g = inRange ? RD_G : LB_G;
-                    int b = inRange ? RD_B : LB_B;
-                    drawHorizontalCircle(lines, m,
-                            ctr.x - camPos.x, drawY - camPos.y, ctr.z - camPos.z,
-                            ROD_RADIUS, r, g, b, OUTLINE_A);
-                }
-            });
+            for (Vec3 ctr : centers) {
+                double drawY = Math.max(ctr.y, LAVA_SURFACE);
+                boolean inRange = bobberInLava != null && isWithinRadiusXZ(bobberInLava, ctr, ROD_RADIUS);
+                int r = inRange ? RD_R : LB_R;
+                int g = inRange ? RD_G : LB_G;
+                int b = inRange ? RD_B : LB_B;
+                double cxr = ctr.x - camPos.x, cyr = drawY - camPos.y, czr = ctr.z - camPos.z;
+
+                matrices.pushPose();
+                matrices.translate(cxr, cyr, czr);
+                collector.submitCustomGeometry(matrices, RenderTypes.lines(),
+                        (pose, lines) -> drawHorizontalCircle(lines, m, cxr, cyr, czr, ROD_RADIUS, r, g, b, OUTLINE_A));
+                matrices.popPose();
+            }
         }
+        //?}
     }
 
     private static Vec3 getBobberPosInLava(Minecraft mc) {
@@ -120,11 +167,6 @@ public final class SupplyRenderHelper {
                 ? PredictedBobber.getGhostPosition()
                 : (mc.player != null && mc.player.fishing != null ? mc.player.fishing.position() : null);
         if (pos == null || mc.level == null) return null;
-        // A bobber resting/floating on the surface sits right at the fluid block's top boundary, so
-        // its own Y can land in the air block a hair above the surface — and if it's fully submerged
-        // (sunk below the surface into a pool that goes deeper than one block), only checking its own
-        // block would still catch that, but checking a couple blocks down too makes both cases robust
-        // without needing an exact Y match.
         BlockPos bp = BlockPos.containing(pos.x, pos.y, pos.z);
         for (int dy = 0; dy >= -2; dy--) {
             if (mc.level.getFluidState(bp.offset(0, dy, 0)).is(FluidTags.LAVA)) return pos;

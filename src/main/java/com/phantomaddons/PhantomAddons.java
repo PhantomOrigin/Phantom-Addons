@@ -89,6 +89,7 @@ public class PhantomAddons implements ClientModInitializer {
         MountTimerHud.register();
 
         KuudraPhaseTracker.init();
+        //? if >=26.2
         LevelRenderDispatch.register();
 
         registerElleFilter();
@@ -210,11 +211,18 @@ public class PhantomAddons implements ClientModInitializer {
             } else {
                 int rgb = tc.getValue();
                 for (net.minecraft.ChatFormatting cf : net.minecraft.ChatFormatting.values()) {
+                    //? if <26.2 {
+                    /*if (cf.isColor() && cf.getColor() != null && cf.getColor() == rgb) {
+                        sb.append('§').append(cf.getChar());
+                        break;
+                    }
+                    *///?} else {
                     net.minecraft.network.chat.TextColor legacy = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
                     if (legacy != null && legacy.getValue() == rgb) {
                         sb.append(cf.toString());
                         break;
                     }
+                    //?}
                 }
             }
             if (Boolean.TRUE.equals(style.isBold())) sb.append("§l");
@@ -231,9 +239,7 @@ public class PhantomAddons implements ClientModInitializer {
 
     private static void registerElleFilter() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((text, overlay) -> {
-            // Hypixel pushes an action-bar update roughly every tick. None of the lines this filter
-            // cares about (Elle dialogue, supply recovery) ever arrive as an overlay, so bail before
-            // doing any work — toLegacyString below walks the whole component tree.
+
             if (overlay) return true;
 
             String clean = TextUtil.stripColor(text.getString());

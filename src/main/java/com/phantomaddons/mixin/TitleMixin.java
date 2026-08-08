@@ -5,7 +5,11 @@ import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.HollowWandAnnouncer;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlTitleListener;
 import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.gui.Gui;
+//? if <26.2 {
+/*import net.minecraft.client.gui.Gui;
+*///?} else {
+import net.minecraft.client.gui.Hud;
+//?}
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,7 +20,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.regex.Pattern;
 
-@Mixin(Gui.class)
+//? if <26.2 {
+/*@Mixin(Gui.class)
+*///?} else {
+@Mixin(Hud.class)
+//?}
 public abstract class TitleMixin {
 
     private static final Pattern DAMAGE_TITLE = Pattern.compile("[\\d.,]+[a-zA-Z]?/[\\d.,]+[a-zA-Z]", Pattern.CASE_INSENSITIVE);
