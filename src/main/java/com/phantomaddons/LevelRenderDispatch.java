@@ -18,6 +18,7 @@ import com.phantomaddons.features.miscskyblock.BobberComparisonRenderer;
 import com.phantomaddons.features.boss.IchorRadiusRenderer;
 import com.phantomaddons.features.render.CannonHitboxRenderer;
 import com.phantomaddons.features.stundps.DpsWaypoint;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
@@ -38,7 +39,7 @@ public final class LevelRenderDispatch {
 
             WorldRenderCollector.set(ctx.submitNodeCollector());
 
-            float tickDelta = mc.getDeltaTracker().getRealtimeDeltaTicks();
+            float tickDelta = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 
             PoseStack matrices = ctx.poseStack() != null ? ctx.poseStack() : new PoseStack();
 
@@ -62,6 +63,33 @@ public final class LevelRenderDispatch {
             PredictedBobber.tick();
 
             WorldRenderCollector.set(null);
+        });
+
+        LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(ctx -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level == null || mc.player == null) return;
+
+            Camera camera = mc.gameRenderer.mainCamera();
+            if (camera == null) return;
+
+            float tickDelta = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+
+            PoseStack matrices = ctx.poseStack() != null ? ctx.poseStack() : new PoseStack();
+
+            PearlWaypointRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            KuudraHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            StunPreviewRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            BoneTimingHitboxOutline.renderAlwaysOnTop(matrices, camera, tickDelta);
+            EtherwarpWaypointRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            WaypointLinesRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            DpsWaypoint.renderAlwaysOnTop(matrices, camera, tickDelta);
+            BobberComparisonRenderer.renderAlwaysOnTop(matrices, camera);
+            BuildBeaconRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            ElleHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            SupplyGiantHitbox.renderAlwaysOnTop(matrices, camera, tickDelta);
+            GiantHitboxOutline.renderAlwaysOnTop(matrices, camera, tickDelta);
+
+            ImmediateDraw.flush();
         });
     }
 }

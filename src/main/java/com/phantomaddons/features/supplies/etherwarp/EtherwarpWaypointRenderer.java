@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -92,8 +93,25 @@ public final class EtherwarpWaypointRenderer {
 
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
+        // Everything this feature draws is always-on-top (visible through walls) — see
+        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
+        //?}
+    }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isEtherwarpWaypointsEnabled()) return;
+        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return;
+        if (!EtherwarpWaypointManager.isActive()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        Vec3 camPos    = camera.position();
+        Vec3 playerPos = mc.player.position();
+        Matrix4f m     = matrices.last().pose();
 
         EtherwarpWaypointManager.updatePriority();
         String priorityDest = EtherwarpWaypointManager.getStickyPriorityZone();
@@ -109,10 +127,7 @@ public final class EtherwarpWaypointRenderer {
             for (Vec3 target : group.targets()) {
                 boolean hovered = hoverCheck(mc, target);
                 int[] col = staticColor(gi, hovered, isPriority);
-                matrices.pushPose();
-                matrices.translate(target.x - camPos.x, target.y - camPos.y, target.z - camPos.z);
-                drawTopFace(matrices, collector, m, target, camPos, col[0], col[1], col[2]);
-                matrices.popPose();
+                drawTopFace(m, target, camPos, col[0], col[1], col[2]);
             }
 
             if (pearlDest == null) continue;
@@ -121,14 +136,11 @@ public final class EtherwarpWaypointRenderer {
                 Vec3 relPos = playerPos.add(target.subtract(pearlDest));
                 boolean hovered = hoverCheck(mc, target) || hoverCheck(mc, relPos);
                 int[] col = relColor(gi, hovered, isPriority);
-                matrices.pushPose();
-                matrices.translate(relPos.x - camPos.x, relPos.y - camPos.y, relPos.z - camPos.z);
-                drawTopFace(matrices, collector, m, relPos, camPos, col[0], col[1], col[2]);
-                matrices.popPose();
+                drawTopFace(m, relPos, camPos, col[0], col[1], col[2]);
             }
         }
-        //?}
     }
+    //?}
 
     private static int[] staticColor(int gi, boolean hovered, boolean priority) {
         if (hovered)  return COLOR_HOVER;
@@ -164,25 +176,22 @@ public final class EtherwarpWaypointRenderer {
         imm.endBatch(RenderTypes.debugQuads());
     }
     *///?} else {
-    private static void drawTopFace(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
-                                     Vec3 center, Vec3 camPos, int r, int g, int b) {
+    private static void drawTopFace(Matrix4f m, Vec3 center, Vec3 camPos, int r, int g, int b) {
         float x0 = (float)(center.x - 0.5 - camPos.x);
         float x1 = (float)(center.x + 0.5 - camPos.x);
         float y  = (float)(center.y         - camPos.y) + Y_OFFSET;
         float z0 = (float)(center.z - 0.5 - camPos.z);
         float z1 = (float)(center.z + 0.5 - camPos.z);
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, lines) -> {
-            edge(lines, m, x0, y, z0, x1, y, z0, r, g, b);
-            edge(lines, m, x1, y, z0, x1, y, z1, r, g, b);
-            edge(lines, m, x1, y, z1, x0, y, z1, r, g, b);
-            edge(lines, m, x0, y, z1, x0, y, z0, r, g, b);
-        });
+        VertexConsumer lines = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        edge(lines, m, x0, y, z0, x1, y, z0, r, g, b);
+        edge(lines, m, x1, y, z0, x1, y, z1, r, g, b);
+        edge(lines, m, x1, y, z1, x0, y, z1, r, g, b);
+        edge(lines, m, x0, y, z1, x0, y, z0, r, g, b);
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.debugQuads(), (pose, quads) -> {
-            quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1, r, g, b, FILL_A,  0, 1, 0);
-            quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
-        });
+        VertexConsumer quads = ImmediateDraw.begin(AlwaysOnTopRenderTypes.debugQuads());
+        quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1, r, g, b, FILL_A,  0, 1, 0);
+        quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0, r, g, b, FILL_A,  0,-1, 0);
     }
     //?}
 

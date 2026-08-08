@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -87,8 +88,53 @@ public final class BoneTimingHitboxOutline {
             GL11.glDepthFunc(GL11.GL_LEQUAL);
         }
         *///?} else {
+        if (!filled) return;
+
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
+
+        for (AABB box : boxes) {
+            double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
+            double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
+            int col = defaultCol;
+            int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+
+            matrices.pushPose();
+            matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
+
+            collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                    (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b));
+
+            matrices.popPose();
+        }
+        //?}
+    }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isBoneTimingHitboxOutlineEnabled()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.BOSS) return;
+
+        AABB[] boxes = BoneTimingAssist.KUUDRA_LOGGED_HITBOXES;
+        if (PhantomConfig.isBoneTimingHitboxOutlineOnlyCurrentDirection()) {
+            AABB current = closestToLiveKuudra(mc);
+            if (current == null) return;
+            boxes = new AABB[]{current};
+        }
+
+        int defaultCol = PhantomConfig.getBoneTimingHitboxOutlineColor();
+
+        boolean highlightEnabled = PhantomConfig.isBoneTimingHitboxHighlightInRangeEnabled();
+        int aimedIndex = BoneTimingAssist.getAimedHitboxIndex();
+        AABB aimedBox = (highlightEnabled && aimedIndex >= 0) ? BoneTimingAssist.KUUDRA_LOGGED_HITBOXES[aimedIndex] : null;
+
+        Vec3     cam = camera.position();
+        double   cx  = cam.x, cy = cam.y, cz = cam.z;
+        Matrix4f m   = matrices.last().pose();
 
         for (AABB box : boxes) {
             int col;
@@ -104,21 +150,11 @@ public final class BoneTimingHitboxOutline {
             double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
             double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
 
-            matrices.pushPose();
-            matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
-
-            if (filled) {
-                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
-                        (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, r, g, b));
-            }
-
-            collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                    (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b));
-
-            matrices.popPose();
+            VertexConsumer vl = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+            addOutline(vl, m, x1, y1, z1, x2, y2, z2, r, g, b);
         }
-        //?}
     }
+    //?}
 
     private static AABB closestToLiveKuudra(Minecraft mc) {
         Vec3 pos = null;

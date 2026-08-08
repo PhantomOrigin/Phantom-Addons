@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -158,12 +159,31 @@ public final class SupplyGiantHitbox {
         collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
                 (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2));
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2));
-
         matrices.popPose();
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isSupplyGiantHitboxEnabled()) return;
+        Giant g = warningGiant;
+        if (g == null || g.isRemoved()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        Vec3 cam = camera.position();
+        Matrix4f m = matrices.last().pose();
+        AABB bb = g.getBoundingBox().inflate(0.5);
+        double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
+        double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
+
+        VertexConsumer vl = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        addOutline(vl, m, x1, y1, z1, x2, y2, z2);
+    }
+    //?}
 
     private static boolean isCarryingSupply(Giant g) {
         ItemStack hand = g.getMainHandItem();

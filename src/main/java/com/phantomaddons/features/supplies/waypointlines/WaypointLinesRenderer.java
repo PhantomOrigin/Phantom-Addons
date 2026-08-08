@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -49,17 +50,34 @@ public final class WaypointLinesRenderer {
         imm.endBatch(RenderTypes.lines());
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
-
-        matrices.pushPose();
-        matrices.translate(target.x - camPos.x, target.y - camPos.y, target.z - camPos.z);
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, lines) -> line(lines, m,
-                (float)(start.x  - camPos.x), (float)(start.y  - camPos.y), (float)(start.z  - camPos.z),
-                (float)(target.x - camPos.x), (float)(target.y - camPos.y), (float)(target.z - camPos.z)));
-        matrices.popPose();
+        // Everything this feature draws is always-on-top (visible through walls) — see
+        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isWaypointLinesEnabled()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+
+        Vec3 target = WaypointLines.getTarget(mc.player);
+        if (target == null) return;
+
+        Vec3 camPos = camera.position();
+        Vec3 direction = Vec3.directionFromRotation(camera.xRot(), camera.yRot());
+        Vec3 start = camPos.add(direction);
+        Matrix4f m  = matrices.last().pose();
+
+        VertexConsumer lines = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        line(lines, m,
+                (float)(start.x  - camPos.x), (float)(start.y  - camPos.y), (float)(start.z  - camPos.z),
+                (float)(target.x - camPos.x), (float)(target.y - camPos.y), (float)(target.z - camPos.z));
+    }
+    //?}
 
     private static void line(VertexConsumer vc, Matrix4f m,
                              float x1, float y1, float z1,

@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -77,19 +78,44 @@ public final class StunPreviewRenderer {
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
-        for (int pass = 0; pass < 2; pass++) {
-            var quadsType = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
-            var linesType = pass == 1 ? AlwaysOnTopRenderTypes.lines()      : RenderTypes.lines();
-
-            if (PhantomConfig.isStunPreviewLeftEnabled())
-                submitPod(matrices, collector, m, quadsType, linesType, POD_LEFT, dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewRightEnabled())
-                submitPod(matrices, collector, m, quadsType, linesType, POD_RIGHT, dx, dy, dz, cx, cy, cz);
-            if (PhantomConfig.isStunPreviewBackEnabled())
-                submitPod(matrices, collector, m, quadsType, linesType, POD_BACK, dx, dy, dz, cx, cy, cz);
-        }
+        if (PhantomConfig.isStunPreviewLeftEnabled())
+            submitPod(matrices, collector, m, RenderTypes.debugQuads(), RenderTypes.lines(), POD_LEFT, dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewRightEnabled())
+            submitPod(matrices, collector, m, RenderTypes.debugQuads(), RenderTypes.lines(), POD_RIGHT, dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewBackEnabled())
+            submitPod(matrices, collector, m, RenderTypes.debugQuads(), RenderTypes.lines(), POD_BACK, dx, dy, dz, cx, cy, cz);
         //?}
     }
+    
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isStunPreviewEnabled()) return;
+        if (KuudraPhaseTracker.getPhase() != Phase.EATEN) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        Vec3   playerPos = mc.player.getPosition(tickDelta);
+        double px = playerPos.x, py = playerPos.y, pz = playerPos.z;
+        double dx = px - REF_X,  dy = py - REF_Y,  dz = pz - REF_Z;
+
+        Vec3     cam = camera.position();
+        double   cx  = cam.x, cy = cam.y, cz = cam.z;
+        Matrix4f m   = matrices.last().pose();
+
+        VertexConsumer vf = ImmediateDraw.begin(AlwaysOnTopRenderTypes.debugQuads());
+        if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodFill(vf, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewRightEnabled()) renderPodFill(vf, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewBackEnabled())  renderPodFill(vf, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
+
+        VertexConsumer vl = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        if (PhantomConfig.isStunPreviewLeftEnabled())  renderPodOutline(vl, m, POD_LEFT,  dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewRightEnabled()) renderPodOutline(vl, m, POD_RIGHT, dx, dy, dz, cx, cy, cz);
+        if (PhantomConfig.isStunPreviewBackEnabled())  renderPodOutline(vl, m, POD_BACK,  dx, dy, dz, cx, cy, cz);
+    }
+    //?}
 
     //? if >=26.2 {
     private static void submitPod(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,

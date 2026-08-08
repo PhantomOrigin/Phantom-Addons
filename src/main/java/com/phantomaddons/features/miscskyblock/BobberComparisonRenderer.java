@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -45,26 +46,25 @@ public final class BobberComparisonRenderer {
         imm.endBatch(RenderTypes.lines());
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
-
-        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
-        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
-        submitPair(matrices, collector, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
+        // Everything this feature draws is always-on-top (visible through walls) — see
+        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
         //?}
     }
 
-    //? if >=26.2 {
-    private static void submitPair(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m,
-                                    Vec3 cam, Vec3 ghost, Vec3 real) {
-        if (ghost == null && real == null) return;
-        Vec3 anchor = ghost != null ? ghost : real;
 
-        matrices.pushPose();
-        matrices.translate(anchor.x - cam.x, anchor.y - cam.y, anchor.z - cam.z);
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                (pose, vc) -> drawPair(vc, m, cam, ghost, real));
-        matrices.popPose();
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera) {
+        if (!FishingHookDebugTracker.isEnabled()) return;
+
+        Vec3 cam = camera.position();
+        Matrix4f m = matrices.last().pose();
+
+        VertexConsumer vc = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        drawPair(vc, m, cam, PredictedBobber.getDebugEntryPos(), FishingHookDebugTracker.getEntryPos());
+        drawPair(vc, m, cam, PredictedBobber.getDebugLowestPos(), FishingHookDebugTracker.getLowestPos());
+        drawPair(vc, m, cam, PredictedBobber.getDebugRestPos(), FishingHookDebugTracker.getRestPos());
     }
     //?}
 

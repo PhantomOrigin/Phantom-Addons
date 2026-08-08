@@ -40,7 +40,7 @@ public abstract class WorldRendererMixin {
         Camera camera = mc.gameRenderer.getMainCamera();
         if (camera == null) return;
 
-        float tickDelta = mc.getDeltaTracker().getRealtimeDeltaTicks();
+        float tickDelta = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 
         PoseStack matrices = new PoseStack();
         matrices.mulPose(new Quaternionf().rotationX(Mth.DEG_TO_RAD * camera.xRot()));

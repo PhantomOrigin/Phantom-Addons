@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -97,6 +98,8 @@ public final class GiantHitboxOutline {
         imm.endBatch();
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
+        if (!filled) return;
+
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
@@ -109,18 +112,42 @@ public final class GiantHitboxOutline {
             matrices.pushPose();
             matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
 
-            if (filled) {
-                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
-                        (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, rc, gc, bc, fillA));
-            }
-
-            collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                    (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2, rc, gc, bc));
+            collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                    (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2, rc, gc, bc, fillA));
 
             matrices.popPose();
         }
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isGiantHitboxEnabled()) return;
+        Set<Giant> giants = outlined;
+        if (giants.isEmpty()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        int col = PhantomConfig.getGiantHitboxColor();
+        int rc  = (col >> 16) & 0xFF, gc = (col >> 8) & 0xFF, bc = col & 0xFF;
+
+        Vec3 cam = camera.position();
+        Matrix4f m = matrices.last().pose();
+
+        for (Giant g : giants) {
+            if (g.isRemoved()) continue;
+            AABB bb = g.getBoundingBox();
+            VertexConsumer vl = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+            addOutline(vl, m,
+                    bb.minX - cam.x, bb.minY - cam.y, bb.minZ - cam.z,
+                    bb.maxX - cam.x, bb.maxY - cam.y, bb.maxZ - cam.z,
+                    rc, gc, bc);
+        }
+    }
+    //?}
 
     private static boolean isCarryingSupply(Giant g) {
         ItemStack hand = g.getMainHandItem();

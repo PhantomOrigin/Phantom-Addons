@@ -88,6 +88,6 @@ public final class SupplyTracker {
             double d2 = loc.landingPos.distanceToSqr(pos);
             if (d2 < bestD2) { bestD2 = d2; best = loc; }
         }
-        return best;
+        return bestD2 <= SCAN_RADIUS * SCAN_RADIUS ? best : null;
     }
 }

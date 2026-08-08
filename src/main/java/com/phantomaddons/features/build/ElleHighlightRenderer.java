@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -71,20 +72,12 @@ public final class ElleHighlightRenderer {
             if (pass == 1) GL11.glDepthFunc(GL11.GL_LEQUAL);
         }
         *///?} else {
+        if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
+
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
         AABB bb = elle.getBoundingBox();
-        double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
-        double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
-
-        matrices.pushPose();
-        matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                (pose, lines) -> addOutline(lines, m, x1, y1, z1, x2, y2, z2));
-        matrices.popPose();
-
-        if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
 
         double bx = (bb.minX + bb.maxX) / 2.0 - cam.x;
         double by = bb.minY - cam.y;
@@ -92,13 +85,44 @@ public final class ElleHighlightRenderer {
 
         matrices.pushPose();
         matrices.translate(bx, by, bz);
-        for (int pass = 0; pass < 2; pass++) {
-            var type = pass == 1 ? AlwaysOnTopRenderTypes.debugQuads() : RenderTypes.debugQuads();
-            collector.submitCustomGeometry(matrices, type, (pose, quads) -> addBeam(quads, m, bx, by, bz));
-        }
+        collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(), (pose, quads) -> addBeam(quads, m, bx, by, bz));
         matrices.popPose();
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isElleHighlightEnabled()) return;
+        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.BUILD) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        Entity elle = findElle(mc);
+        if (elle == null) return;
+
+        Vec3     cam = camera.position();
+        Matrix4f m   = matrices.last().pose();
+
+        AABB bb = elle.getBoundingBox();
+        double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
+        double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
+
+        VertexConsumer lines = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        addOutline(lines, m, x1, y1, z1, x2, y2, z2);
+
+        if (!PhantomConfig.isElleHighlightBeaconEnabled()) return;
+
+        double bx = (bb.minX + bb.maxX) / 2.0 - cam.x;
+        double by = bb.minY - cam.y;
+        double bz = (bb.minZ + bb.maxZ) / 2.0 - cam.z;
+
+        VertexConsumer quads = ImmediateDraw.begin(AlwaysOnTopRenderTypes.debugQuads());
+        addBeam(quads, m, bx, by, bz);
+    }
+    //?}
 
     private static Entity findElle(Minecraft mc) {
         for (Entity e : mc.level.entitiesForRendering()) {

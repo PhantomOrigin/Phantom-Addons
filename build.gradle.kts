@@ -1,5 +1,4 @@
 plugins {
-    // Shared across both Minecraft versions — see stonecutter.properties.toml's top-level loom_version.
     id("net.fabricmc.fabric-loom") version "1.17.18"
     id("maven-publish")
 }
@@ -29,10 +28,6 @@ loom {
     }
 }
 
-// Three build variants from one codebase — see Edition.java.
-//   ./gradlew build                    -> edition=full (default)
-//   ./gradlew build -Pedition=noauto   -> full feature set, no in-mod auto-download
-//   ./gradlew build -Pedition=standard -> no AutoGFS/CannonAutoClose/PearlRefill, no auto-download (Modrinth-safe)
 data class Edition(val label: String, val suffix: String)
 
 val editionKey = (project.findProperty("edition") as String? ?: "full").lowercase()
@@ -44,10 +39,6 @@ val editions = mapOf(
 val edition = editions[editionKey]
     ?: throw GradleException("Unknown edition '$editionKey' — expected one of: ${editions.keys}")
 
-// UpdateInstaller.java holds the actual download/jar-swap code. Only the full edition
-// compiles it in at all — the other two editions don't just have it disabled, they
-// don't contain that code, full stop. UpdateChecker only ever reaches it via
-// reflection, so its compilation isn't affected by this exclusion.
 if (editionKey != "full") {
     sourceSets.main {
         java {
@@ -56,21 +47,15 @@ if (editionKey != "full") {
     }
 }
 
-// World rendering hooks into two structurally unrelated mechanisms depending on version:
-// 26.2+ uses Fabric API's LevelRenderEvents.COLLECT_SUBMITS (LevelRenderDispatch.java, registered
-// explicitly from PhantomAddons.java), while pre-26.2 uses a plain @Inject mixin into
-// LevelRenderer.renderLevel (mixin/WorldRendererMixin.java, self-registering via mixins.json).
-// Both files live in the shared tree; only the one matching the active version compiles in.
 val isLegacyRendering = sc.current.parsed < "26.2"
 
 sourceSets.main {
     java {
         if (isLegacyRendering) {
-            // Both are 26.2+-only helpers (SubmitNodeCollector dispatch + the RenderPipeline-based
-            // always-on-top trick) — legacy rendering paths use plain GL11 depth toggling instead.
             exclude("com/phantomaddons/LevelRenderDispatch.java")
             exclude("com/phantomaddons/utils/AlwaysOnTopRenderTypes.java")
             exclude("com/phantomaddons/utils/WorldRenderCollector.java")
+            exclude("com/phantomaddons/utils/ImmediateDraw.java")
         } else {
             exclude("com/phantomaddons/mixin/WorldRendererMixin.java")
         }
@@ -92,7 +77,6 @@ tasks.processResources {
     filesMatching("edition.properties") {
         expand("edition" to editionLabel)
     }
-    // WorldRendererMixin only exists (and is only needed) on the legacy rendering path — see above.
     if (isLegacyRendering) {
         filesMatching("phantomaddons.mixins.json") {
             filter { line -> line.replace("\"FontDrawMixin\",", "\"FontDrawMixin\",\n        \"WorldRendererMixin\",") }
@@ -118,24 +102,6 @@ tasks.jar {
     }
 }
 
-// Builds all three edition jars, for both Minecraft versions, in one command (6 jars total).
-// Each edition is a genuinely separate Gradle invocation (project properties like `edition`
-// are only read once, at configuration time, so a single `build` run can't produce more than
-// one) — this just shells out to the wrapper three times so you don't have to.
-//
-// Each invocation includes `clean` first: switching `-Pedition` between runs changes
-// sourceSets.main.java.exclude (UpdateInstaller.java in/out), and Gradle's incremental
-// Java compiler doesn't reliably invalidate previously-compiled classes when only the
-// exclude set changes — without a clean, later editions in the sequence can fail or
-// silently package stale classes from the previous edition's build. Since `clean` would
-// otherwise also delete the previous edition's output, each edition's jars are copied out
-// to build/libs/all-editions/ before the next edition's clean runs.
-//
-// This script is shared across every Stonecutter node (one per Minecraft version), so without
-// a guard this task gets registered once per node — running it from root would then fire N
-// concurrent copies, each shelling out its own clean/build cycle and clobbering the others'
-// files mid-build. Only register it on one node; it already builds every version internally
-// via the plain (unqualified) `clean`/`build` invocations below.
 val rootDir = rootProject.projectDir
 val collectedDir = rootProject.layout.buildDirectory.dir("libs/all-editions")
 
@@ -144,10 +110,6 @@ if (project.name == "26.2.x") tasks.register("buildAllEditions") {
     description = "Builds the full, noauto, and standard edition jars (both MC versions) in one command."
     doLast {
         val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-        // Releases are collected under a folder per mod version (e.g. all-editions/1.6.24/) rather
-        // than one flat directory, so past releases stay available across multiple runs of this task
-        // instead of being wiped out the next time you bump mod.version and rebuild. Only the current
-        // version's own folder is cleared/rebuilt each run.
         val outDir = File(collectedDir.get().asFile, modVersion)
         outDir.deleteRecursively()
         outDir.mkdirs()
@@ -167,9 +129,6 @@ if (project.name == "26.2.x") tasks.register("buildAllEditions") {
         }
 
         listOf("full", "noauto", "standard").forEach { ed ->
-            // clean and build run as two separate invocations, not `clean build` in one: combining
-            // them lets compileJava see a task graph configured before clean ran, so it tries to
-            // read Stonecutter-generated sources that clean just deleted before they're regenerated.
             runGradle("clean")
             runGradle("build", "-Pedition=$ed")
 

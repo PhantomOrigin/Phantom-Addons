@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -67,6 +68,8 @@ public final class KuudraHighlightRenderer {
             GL11.glDepthFunc(GL11.GL_LEQUAL);
         }
         *///?} else {
+        if (!filled) return;
+
         SubmitNodeCollector collector = WorldRenderCollector.get();
         if (collector == null) return;
 
@@ -80,18 +83,39 @@ public final class KuudraHighlightRenderer {
             matrices.pushPose();
             matrices.translate((x1 + x2) / 2.0, (y1 + y2) / 2.0, (z1 + z2) / 2.0);
 
-            if (filled) {
-                collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
-                        (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2));
-            }
-
-            collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(),
-                    (pose, vl) -> addOutline(vl, m, x1, y1, z1, x2, y2, z2));
+            collector.submitCustomGeometry(matrices, RenderTypes.debugQuads(),
+                    (pose, vf) -> addFill(vf, m, x1, y1, z1, x2, y2, z2));
 
             matrices.popPose();
         }
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isKuudraHighlightEnabled()) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+
+        Vec3     cam = camera.position();
+        double   cx  = cam.x, cy = cam.y, cz = cam.z;
+        Matrix4f m   = matrices.last().pose();
+
+        for (Entity entity : mc.level.entitiesForRendering()) {
+            if (!(entity instanceof AbstractCubeMob slime) || slime.getSize() != KUUDRA_SIZE) continue;
+
+            AABB bb = slime.getBoundingBox().inflate(-0.15);
+            double x1 = bb.minX - cx, y1 = bb.minY - cy, z1 = bb.minZ - cz;
+            double x2 = bb.maxX - cx, y2 = bb.maxY - cy, z2 = bb.maxZ - cz;
+
+            VertexConsumer vl = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+            addOutline(vl, m, x1, y1, z1, x2, y2, z2);
+        }
+    }
+    //?}
 
     private static void addOutline(VertexConsumer vc, Matrix4f m,
                                    double x1, double y1, double z1,

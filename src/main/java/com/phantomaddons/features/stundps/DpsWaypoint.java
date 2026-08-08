@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL11;
 *///?} else {
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import com.phantomaddons.utils.AlwaysOnTopRenderTypes;
+import com.phantomaddons.utils.ImmediateDraw;
 import com.phantomaddons.utils.WorldRenderCollector;
 //?}
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -128,15 +129,30 @@ public final class DpsWaypoint {
         drawTopFace(imm, m, activeWaypoint, camPos);
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        SubmitNodeCollector collector = WorldRenderCollector.get();
-        if (collector == null) return;
-
-        matrices.pushPose();
-        matrices.translate(activeWaypoint.x - camPos.x, activeWaypoint.y - camPos.y, activeWaypoint.z - camPos.z);
-        drawTopFace(matrices, collector, m, activeWaypoint, camPos);
-        matrices.popPose();
+        // Everything this feature draws is always-on-top (visible through walls) — see
+        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
         //?}
     }
+
+    //? if <26.2 {
+    /*public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {}
+    *///?} else {
+    public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!PhantomConfig.isDpsWaypointEnabled()) return;
+        KuudraPhaseTracker.Phase phase = KuudraPhaseTracker.getPhase();
+        if (phase != KuudraPhaseTracker.Phase.EATEN && phase != KuudraPhaseTracker.Phase.STUN
+                && phase != KuudraPhaseTracker.Phase.DPS) return;
+        if (activeWaypoint == null) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        Vec3 camPos = camera.position();
+        Matrix4f m  = matrices.last().pose();
+
+        drawTopFace(m, activeWaypoint, camPos);
+    }
+    //?}
 
     //? if <26.2 {
     /*private static void drawTopFace(MultiBufferSource.BufferSource imm, Matrix4f m, Vec3 center, Vec3 camPos) {
@@ -159,24 +175,22 @@ public final class DpsWaypoint {
         imm.endBatch(RenderTypes.debugQuads());
     }
     *///?} else {
-    private static void drawTopFace(PoseStack matrices, SubmitNodeCollector collector, Matrix4f m, Vec3 center, Vec3 camPos) {
+    private static void drawTopFace(Matrix4f m, Vec3 center, Vec3 camPos) {
         float x0 = (float)(center.x - 0.5 - camPos.x);
         float x1 = (float)(center.x + 0.5 - camPos.x);
         float y  = (float)(center.y         - camPos.y) + Y_OFFSET;
         float z0 = (float)(center.z - 0.5 - camPos.z);
         float z1 = (float)(center.z + 0.5 - camPos.z);
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.lines(), (pose, lines) -> {
-            edge(lines, m, x0, y, z0, x1, y, z0);
-            edge(lines, m, x1, y, z0, x1, y, z1);
-            edge(lines, m, x1, y, z1, x0, y, z1);
-            edge(lines, m, x0, y, z1, x0, y, z0);
-        });
+        VertexConsumer lines = ImmediateDraw.begin(AlwaysOnTopRenderTypes.lines());
+        edge(lines, m, x0, y, z0, x1, y, z0);
+        edge(lines, m, x1, y, z0, x1, y, z1);
+        edge(lines, m, x1, y, z1, x0, y, z1);
+        edge(lines, m, x0, y, z1, x0, y, z0);
 
-        collector.submitCustomGeometry(matrices, AlwaysOnTopRenderTypes.debugQuads(), (pose, quads) -> {
-            quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1,  0, 1, 0);
-            quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0,  0,-1, 0);
-        });
+        VertexConsumer quads = ImmediateDraw.begin(AlwaysOnTopRenderTypes.debugQuads());
+        quad(quads, m, x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1,  0, 1, 0);
+        quad(quads, m, x0, y, z1, x1, y, z1, x1, y, z0, x0, y, z0,  0,-1, 0);
     }
     //?}
 
