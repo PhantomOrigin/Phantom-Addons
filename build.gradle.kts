@@ -30,7 +30,7 @@ loom {
 
 data class Edition(val label: String, val suffix: String)
 
-val editionKey = (project.findProperty("edition") as String? ?: "full").lowercase()
+val editionKey = (project.findProperty("edition") as String? ?: "standard").lowercase()
 val editions = mapOf(
     "full" to Edition("FULL", "full"),
     "noauto" to Edition("FULL_NO_AUTO_UPDATE", "full-noautoupdate"),

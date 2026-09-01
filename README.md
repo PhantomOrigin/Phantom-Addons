@@ -2,10 +2,25 @@
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
 Latest Version: 1.6.24  
-Supported Minecraft Versions: 26.1.2  
+Supported Minecraft Versions: 26.1.x, 26.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L4L8234BMK)
+
+## Version Information:
+### Full Version:
+```./gradlew build -Pedition=full```
+- Contains all features
+- Auto Update included and in game manual download option
+### Full Version No AutoUpdate:
+```./gradlew build -Pedition=noauto```
+- Full Version without in game download options
+### Standard Version:
+```./gradlew build -Pedition=standard (This is the Default Option)```
+- No Auto GFS Features
+- No Auto Close Features
+  
+Note: build.gradle.kts excludes UpdateInstaller.java entirely from the standard and no auto versions. The auto close and auto gfs features are just toggled off in the standard version, not removed entirely.
 
 ### Supplies Features
 - Supply Beacons
