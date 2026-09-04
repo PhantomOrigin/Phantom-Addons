@@ -11,11 +11,6 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A form for building a {@link PhantomConfig.PbRecord} by hand and saving it over whatever PB is
- * currently stored for the chosen tier, rather than typing the whole thing out as one long
- * {@code /phantom setpb} command line.
- */
 public class PbEditorScreen extends Screen {
 
     private static final String[] PHASE_NAMES = {"Supplies", "Build", "Eaten", "Stun", "DPS", "Skip", "Boss"};

@@ -14,6 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +46,8 @@ public final class WardrobeKeybinds {
     private static final int[] LOADOUT_SLOTS = {14,15,16, 23,24,25, 32,33,34, 41,42,43};
 
     private static final boolean[] prevDown = new boolean[5];
+
+    private static final Map<Integer, Boolean> mouseKeyPrevDown = new HashMap<>();
 
     private WardrobeKeybinds() {}
 
@@ -77,6 +81,8 @@ public final class WardrobeKeybinds {
             checkOpenKey(client, handle, 2, PhantomConfig.getPetsOpenKey(),        "pets", wardrobeEligible);
             checkOpenKey(client, handle, 3, PhantomConfig.getEqWardrobeOpenKey(),  "eq", wardrobeEligible);
             checkOpenKey(client, handle, 4, PhantomConfig.getLoadoutsOpenKey(),    "loadouts", loadoutsEligible);
+
+            pollMouseBoundActionKeys(client, handle);
         });
 
         ScreenEvents.BEFORE_INIT.register((client, screen, width, height) -> {
@@ -90,6 +96,41 @@ public final class WardrobeKeybinds {
                 });
             }
         });
+    }
+
+    private static void pollMouseBoundActionKeys(Minecraft mc, long handle) {
+        if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> screen)) {
+            if (!mouseKeyPrevDown.isEmpty()) mouseKeyPrevDown.clear();
+            return;
+        }
+
+        String title = strip(screen.getTitle().getString());
+        boolean isWardrobe = PhantomConfig.isWardrobeEnabled() && WARDROBE_TITLE_PATTERN.matcher(title).find();
+        boolean isLoadouts = PhantomConfig.isLoadoutsEnabled() && LOADOUTS_TITLE_PATTERN.matcher(title).find();
+        if (!isWardrobe && !isLoadouts) {
+            if (!mouseKeyPrevDown.isEmpty()) mouseKeyPrevDown.clear();
+            return;
+        }
+
+        if (isWardrobe) {
+            for (int keyCode : PhantomConfig.getWardrobeSlotKeys()) pollMouseKey(screen, mc, handle, keyCode);
+            pollMouseKey(screen, mc, handle, PhantomConfig.getWardrobeUnequipKey());
+        }
+        if (isLoadouts) {
+            for (int keyCode : PhantomConfig.getLoadoutSlotKeys()) pollMouseKey(screen, mc, handle, keyCode);
+        }
+        pollMouseKey(screen, mc, handle, PhantomConfig.getWardrobeNextPageKey());
+        pollMouseKey(screen, mc, handle, PhantomConfig.getWardrobePrevPageKey());
+    }
+
+    private static void pollMouseKey(AbstractContainerScreen<?> screen, Minecraft mc, long handle, int keyCode) {
+        if (keyCode < PhantomScreen.MOUSE_OFFSET) return; // keyboard keys already work fine via keyPressed events
+        boolean down = isKeyDown(handle, keyCode);
+        boolean prev = mouseKeyPrevDown.getOrDefault(keyCode, false);
+        if (down && !prev) {
+            handleKey(screen, keyCode, mc);
+        }
+        mouseKeyPrevDown.put(keyCode, down);
     }
 
     private static void checkOpenKey(Minecraft mc, long handle, int idx, int keyCode, String command, boolean eligible) {
@@ -276,6 +317,7 @@ public final class WardrobeKeybinds {
         pendingCloseTimeoutTicks = -1;
         nextAllowedAtMs          = 0;
         for (int i = 0; i < prevDown.length; i++) prevDown[i] = false;
+        mouseKeyPrevDown.clear();
     }
 
     private static String strip(String s) {

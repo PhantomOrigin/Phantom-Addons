@@ -6,6 +6,7 @@ import com.phantomaddons.features.customisation.items.ItemTransformSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,9 +19,14 @@ public class LivingEntitySwingMixin {
 
     @Inject(method = "swing(Lnet/minecraft/world/InteractionHand;)V", at = @At("HEAD"))
     private void kuudrahelper$onSwing(InteractionHand hand, CallbackInfo ci) {
+        if (hand != InteractionHand.MAIN_HAND) return;
+
+        if ((Object) this instanceof Player swinger) {
+            com.phantomaddons.features.boss.rend.RendPullAttribution.onPlayerSwing(swinger, swinger.getMainHandItem());
+        }
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.player != (Object) this) return;
-        if (hand != InteractionHand.MAIN_HAND) return;
         com.phantomaddons.features.boss.rend.RendTracker.onLeftClick(mc.player.getMainHandItem());
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.onLeftClick(mc.player.getMainHandItem());
     }

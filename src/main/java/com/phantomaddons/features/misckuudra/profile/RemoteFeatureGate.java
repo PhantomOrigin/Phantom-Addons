@@ -12,17 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-/**
- * Formerly a remote kill switch for the Hypixel-API-key-backed features (Profile Viewer,
- * Auto Kick), driven by a KV flag on the worker ({@code feature:apiKeyFeaturesEnabled} —
- * see kuudra-profile-worker-v2/src/index.js). Those features are now permanently enabled
- * client-side and no longer consult that flag — {@link #isEnabled()} always returns true.
- * <p>
- * The worker's {@code /status} endpoint and its {@code feature:apiKeyFeaturesEnabled} KV
- * flag are left in place (not removed) so older mod versions that still check it keep
- * working. This class still hits {@code /status} on startup purely for the separate
- * {@link #isManaDrainTrackingEnabled()} flag it also returns.
- */
 public final class RemoteFeatureGate {
 
     private static final String STATUS_URL =
@@ -31,18 +20,11 @@ public final class RemoteFeatureGate {
     private static final boolean enabled = true;
     private static volatile boolean checked = true;
 
-    // Separate concern from the API-key gate above: whether mana-drain tracking/display
-    // in the Rend Tracker report should still run. Endstone Sword (the mana-drain source)
-    // is due to be nerfed out of relevance, at which point this can be flipped off from
-    // the worker without shipping a new build. Unlike the API-key gate, this fails OPEN
-    // (defaults true) — it's an accuracy toggle, not a security/legal one, so a failed
-    // check shouldn't silently break an otherwise-working display.
     private static volatile boolean manaDrainTrackingEnabled = true;
 
     private RemoteFeatureGate() {}
 
     public static boolean isEnabled() { return enabled; }
-    /** Whether the startup check has completed (success or failure) — for UI "checking..." states. */
     public static boolean hasChecked() { return checked; }
     public static boolean isManaDrainTrackingEnabled() { return manaDrainTrackingEnabled; }
 

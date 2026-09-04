@@ -11,6 +11,7 @@ base {
 }
 
 repositories {
+    mavenCentral()
 }
 
 dependencies {
@@ -18,6 +19,9 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
     compileOnly(fileTree(rootProject.file("libs")) { include("*.jar") })
+
+    implementation("org.xerial:sqlite-jdbc:3.53.4.0")
+    include("org.xerial:sqlite-jdbc:3.53.4.0")
 }
 
 loom {

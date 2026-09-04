@@ -48,6 +48,7 @@ public final class KuudraPhaseEvents {
                     SoloDetector.onPhaseStart();
                     KuudraSplitTimer.onSuppliesStart();
                     com.phantomaddons.features.stundps.DpsWaypoint.reset();
+                    com.phantomaddons.data.RunRecorder.onRunStart();
                 }
 
                 case BUILD -> {
@@ -123,6 +124,7 @@ public final class KuudraPhaseEvents {
                     com.phantomaddons.features.misckuudra.AutoRequeue.trigger();
                     RendDamage.reset();
                     com.phantomaddons.features.boss.rend.RendTracker.reset();
+                    com.phantomaddons.features.boss.rend.RendPullAttribution.reset();
                     com.phantomaddons.features.boss.backbone.BackboneProgressBar.reset();
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
@@ -136,7 +138,10 @@ public final class KuudraPhaseEvents {
                     FastDpsWarning.onDpsEnd();
                     PearlWaypointManager.reset();
                     KuudraSplitTimer.onEndStart();
+                    com.phantomaddons.data.RunRecorder.onRunEnd();
                 }
+
+                case NONE -> com.phantomaddons.data.RunRecorder.onRunAbandoned();
 
                 default -> {}
             }

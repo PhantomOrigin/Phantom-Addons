@@ -44,14 +44,18 @@ public final class PearlTitleListener {
             tracking = true;
             lastPercent = percent;
             PearlWaypointManager.onPickupStart(percent);
+            com.phantomaddons.data.supply.SupplyAttemptTracker.onPickupStart(percent);
             SmoothCratePickup.onPercentUpdate(percent, segments);
             return;
         }
 
         if (percent < lastPercent) {
+            int endedAtPercent = lastPercent;
             tracking = false;
             PearlWaypointManager.onPickupEnd();
+            com.phantomaddons.data.supply.SupplyAttemptTracker.onPickupEnd(endedAtPercent);
             PearlWaypointManager.onPickupStart(percent);
+            com.phantomaddons.data.supply.SupplyAttemptTracker.onPickupStart(percent);
             tracking = true;
             SmoothCratePickup.reset();
         }
@@ -63,6 +67,7 @@ public final class PearlTitleListener {
             tracking = false;
             lastPercent = -1;
             PearlWaypointManager.onPickupEnd();
+            com.phantomaddons.data.supply.SupplyAttemptTracker.onPickupEnd(100);
         }
     }
 
@@ -83,10 +88,12 @@ public final class PearlTitleListener {
 
         if (now - lastTitleMs > TITLE_TIMEOUT_MS) {
 
+            int endedAtPercent = lastPercent;
             tracking = false;
             lastPercent = -1;
 
             PearlWaypointManager.onPickupEnd();
+            com.phantomaddons.data.supply.SupplyAttemptTracker.onPickupEnd(endedAtPercent);
         }
     }
 

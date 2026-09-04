@@ -2,7 +2,7 @@
 mod.id = "phantomaddons"
 mod.name = "PhantomAddons"
 mod.group = "com.phantomaddons"
-mod.version = "1.6.24"
+mod.version = "1.6.25-beta1"
 # Jar filename prefix — kept distinct from mod.id (which must stay lowercase for fabric.mod.json)
 # since UpdateChecker.java's ARCHIVE_BASE_NAME constant expects this exact capitalization when
 # matching GitHub release asset names, and GitHub's asset lookup is case-sensitive.

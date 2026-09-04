@@ -58,6 +58,7 @@ public class UseItemMixin {
                 EtherwarpWaypointManager.onPearlThrow(client, player);
             }
             com.phantomaddons.features.supplies.waypointlines.WaypointLines.onPearlThrown();
+            com.phantomaddons.data.supply.PearlCancelLogger.onPearlThrow(player);
         }
 
         if (hand == net.minecraft.world.InteractionHand.MAIN_HAND) {

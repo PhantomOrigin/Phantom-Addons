@@ -54,7 +54,8 @@ public final class KuudraDrops {
     }
 
     public static final Set<String> AH_WEAPON_IDS = Set.of(
-        "HOLLOW_WAND", "HELLSTORM_WAND", "TORMENTOR", "BURNING_KUUDRA_CORE"
+        "HOLLOW_WAND", "HELLSTORM_WAND", "TORMENTOR", "BURNING_KUUDRA_CORE",
+        "ANANKE_FEATHER", "MANDRAA", "KUUDRA_MANDIBLE"
     );
 
     public static final Set<String> AH_ITEM_IDS;

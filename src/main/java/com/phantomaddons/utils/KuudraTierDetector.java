@@ -23,8 +23,6 @@ public final class KuudraTierDetector {
 
     private KuudraTierDetector() {}
 
-    // Fabric's event listeners can never be removed once added, so registering more than once
-    // would leave duplicate copies of this tick handler running forever.
     public static void init() {
         if (registered) return;
         registered = true;
@@ -69,8 +67,6 @@ public final class KuudraTierDetector {
         if (sidebar == null) return lines;
 
         for (var entry : scoreboard.listPlayerScores(sidebar)) {
-            // Hypixel uses single non-standard §x codes (§t, §h, §j …) as dummy score holder
-            // names. The actual display text is stored in the PlayerTeam prefix for each holder.
             String holderName = entry.ownerName().getString();
             PlayerTeam team = scoreboard.getPlayersTeam(holderName);
             if (team != null) {
@@ -88,7 +84,6 @@ public final class KuudraTierDetector {
     public static boolean isInDungeonHub()        { return inDungeonHub; }
     public static boolean isInForgottenSkull()    { return inForgottenSkull; }
 
-    // lastKnownTier deliberately survives a reset — it exists to persist across leaving the Hollow.
     public static void reset() {
         kuudraTier       = 0;
         tickCounter      = 0;

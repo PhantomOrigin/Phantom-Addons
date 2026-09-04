@@ -4,7 +4,8 @@ import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.effect.MobEffects;
 
 public final class AutoRequeue {
 
@@ -18,25 +19,24 @@ public final class AutoRequeue {
     private static boolean requeued = false;
     private static long pendingBackupRequeueAtMs = -1L;
     private static int  backupRetriesLeft = 0;
+    private static int  pendingTriggerTicks = -1;
+    private static boolean triggerArmed = false;
 
-    // Session-scoped override from !dt/!undt — deliberately NOT the same flag as the
-    // persistent "Auto Requeue" toggle in settings, and NOT written back into PhantomConfig.
-    // Previously !dt/!undt reused PhantomConfig.setAutoRequeueEnabled(), which also got reset
-    // to true on every world join — silently re-enabling the feature for anyone who'd turned
-    // it off in settings entirely, not just for those using !dt as a one-run pause.
     private static boolean tempDisabled = false;
 
     private AutoRequeue() {}
 
-    // Called every run (on the Elle-fishing "new run" chat trigger) as well as on
-    // connect/disconnect — deliberately does NOT touch tempDisabled, so a !dt pause
-    // persists across runs within the same session like it always has. Only a fresh
-    // world join/disconnect should clear it (see resetSession()).
     public static void reset() {
         PhantomAddons.LOGGER.info("[AutoRequeue] reset() — requeued=false, backup timer cleared");
         requeued = false;
         pendingBackupRequeueAtMs = -1L;
         backupRetriesLeft = 0;
+        pendingTriggerTicks = -1;
+        triggerArmed = false;
+    }
+
+    private static boolean isInvisible(LocalPlayer player) {
+        return player.hasEffect(MobEffects.INVISIBILITY);
     }
 
     public static void resetSession() {
@@ -59,17 +59,33 @@ public final class AutoRequeue {
             PhantomAddons.LOGGER.info("[AutoRequeue] trigger() called but feature is disabled — skipping");
             return;
         }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.getConnection() == null) {
-            PhantomAddons.LOGGER.info("[AutoRequeue] trigger() called but player/connection is null — skipping");
-            return;
-        }
-        PhantomAddons.LOGGER.info("[AutoRequeue] trigger() -> sending /instancerequeue (phase-end trigger)");
-        mc.execute(() -> mc.getConnection().sendCommand("instancerequeue"));
+        PhantomAddons.LOGGER.info("[AutoRequeue] trigger() -> scheduling /instancerequeue for next tick (phase-end trigger)");
+        pendingTriggerTicks = 1;
     }
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (pendingTriggerTicks > 0) {
+                pendingTriggerTicks--;
+                if (pendingTriggerTicks == 0) {
+                    pendingTriggerTicks = -1;
+                    triggerArmed = true;
+                }
+            }
+
+            if (triggerArmed) {
+                if (!isActive()) {
+                    PhantomAddons.LOGGER.info("[AutoRequeue] deferred trigger cancelled — feature disabled");
+                    triggerArmed = false;
+                } else if (client.player == null || client.getConnection() == null) {
+                } else if (isInvisible(client.player)) {
+                } else {
+                    triggerArmed = false;
+                    PhantomAddons.LOGGER.info("[AutoRequeue] deferred trigger fired -> sending /instancerequeue");
+                    client.execute(() -> client.getConnection().sendCommand("instancerequeue"));
+                }
+            }
+
             if (pendingBackupRequeueAtMs < 0) return;
             if (!isActive()) {
                 PhantomAddons.LOGGER.info("[AutoRequeue] backup timer cancelled — feature disabled");
@@ -78,6 +94,7 @@ public final class AutoRequeue {
             }
             if (System.currentTimeMillis() < pendingBackupRequeueAtMs) return;
             if (client.player == null || client.getConnection() == null) return;
+            if (isInvisible(client.player)) return;
             pendingBackupRequeueAtMs = -1L;
             if (backupRetriesLeft > 0) {
                 backupRetriesLeft--;

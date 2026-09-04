@@ -15,8 +15,6 @@ plugins {
 
 stonecutter {
     create(rootProject) {
-        // Labels shown everywhere (folders, TOML tables, task names) are "26.1.x"/"26.2.x" —
-        // the second argument is the real Minecraft version string Loom resolves against.
         version("26.1.x", "26.1.2")
         version("26.2.x", "26.2")
         vcsVersion = "26.2.x"

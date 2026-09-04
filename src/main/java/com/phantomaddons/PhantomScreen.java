@@ -1820,6 +1820,14 @@ public class PhantomScreen extends Screen {
         profit.add(leaf(new RangeSlider("Pet Level", T, 1, 100, "%.0f",
                 () -> (float) PhantomConfig.getKuudraPetLevel(),
                 v  -> PhantomConfig.setKuudraPetLevel(Math.round(v)))));
+        profit.add(leaf(new RangeSlider("Essence of Crimson", T, 0, 10, "%.0f",
+                () -> (float) PhantomConfig.getEssenceOfCrimson(),
+                v  -> PhantomConfig.setEssenceOfCrimson(Math.round(v)))
+                .withTooltip("Each level increases Crimson Essence gains by 1%, up to 10% at level 10")));
+        profit.add(leaf(new RangeSlider("Echo of Essence", T, 0, 10, "%.0f",
+                () -> (float) PhantomConfig.getEchoOfEssence(),
+                v  -> PhantomConfig.setEchoOfEssence(Math.round(v)))
+                .withTooltip("Each level boosts Essence of Crimson's own bonus by 3%, up to 30% at level 10 (13% total Crimson Essence gain when both are maxed)")));
         roots.add(profit);
 
         roots.add(leaf(new Toggle("Highlight Unopened Chests", T,
@@ -2077,6 +2085,9 @@ public class PhantomScreen extends Screen {
         roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
                 () -> Minecraft.getInstance().gui.setScreen(new HudEditorScreen(PhantomScreen.this)))));
+        roots.add(leaf(new KeyCapture("Menu Open Key", T,
+                PhantomConfig::getOpenGuiKey, PhantomConfig::setOpenGuiKey)
+                .withTooltip("Off by default — press to set a key or mouse button, Escape to unbind")));
         roots.add(leaf(new Cycle("Theme", T,
                 () -> switch (PhantomConfig.getUiTheme()) {
                     case DARK -> "Dark";
@@ -2108,6 +2119,12 @@ public class PhantomScreen extends Screen {
                 .withTooltip("Resizes the mod's own GUI panel — everything inside stays the same size, this just fits more (or less) on screen at once")));
         roots.add(leaf(new Toggle("Developer Features", T,
                 PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled)));
+
+        if (PhantomConfig.isDeveloperFeaturesEnabled()) {
+            roots.add(leaf(new Toggle("Tentacle DB Logging", T,
+                    PhantomConfig::isTentacleDbLoggingEnabled, PhantomConfig::setTentacleDbLoggingEnabled)
+                    .withTooltip("Data-gathering tool for the upcoming Pearl Cancel Helper feature. While enabled, during the Supplies phase it tracks nearby tentacles (position, speed, chain size), when they grab you, and your position/orientation when pearl-cancelling — all written to a local SQLite database (phantomaddons_kuudra_data.sqlite in the config folder) for offline analysis. Purely observational, it doesn't change any gameplay behavior. Warning: this can log a large amount of data over many runs and grow the database file to hundreds of MB or more — leave off unless you're intentionally collecting data.")));
+        }
 
         roots.add(leaf(new Button("PhantomAddons Discord", T, "Copy Link",
                 () -> copyToClipboard("https://discord.gg/6MquvmrXNP"))));
@@ -2214,8 +2231,6 @@ public class PhantomScreen extends Screen {
             closing = true;
             return;
         }
-        // Config writes are debounced in the background; flush now so settings are on disk the
-        // moment the user closes the menu rather than a fraction of a second later.
         PhantomConfig.saveNow();
         super.onClose();
     }
@@ -2939,12 +2954,6 @@ public class PhantomScreen extends Screen {
         cornerTile(ctx, x2 - r, y2 - r, r, roundBR, CORNER_BR, radialSample(x2 - r / 2.0,     y2 - r / 2.0,     centerX, centerY, radius, colorNear, colorFar));
     }
 
-    // A pre-baked radial falloff mask (white RGB, alpha 255 at its center fading linearly to 0 at
-    // its edge — see radialSample's own t = dist/radius falloff, which this mirrors exactly) blitted
-    // once per rect instead of manually filling a cell grid. Alpha-compositing this (tinted with
-    // colorNear) over a colorFar base is mathematically identical to per-pixel-lerping the two colors,
-    // as long as both are fully opaque — true for every caller here — so this is a pure performance
-    // change: cost drops from O(panel area) to a fixed handful of draw calls, independent of GUI Scale.
     private static final Identifier GRADIENT_TEX =
             Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/radial_gradient.png");
     private static final int GRADIENT_TEX_SIZE = 128;
@@ -2953,10 +2962,6 @@ public class PhantomScreen extends Screen {
                                         double centerX, double centerY, double radius, int colorNear, int colorFar) {
         ctx.fill(x1, y1, x2, y2, colorFar);
 
-        // The texture represents the world-space square [centerX-radius, centerX+radius] x
-        // [centerY-radius, centerY+radius]. Only the portion of that square overlapping this rect
-        // needs to be blitted — anywhere outside it is already correctly colorFar from the fill above
-        // (matching radialSample's t clamped to 1.0 beyond `radius`).
         double vx0 = centerX - radius, vy0 = centerY - radius;
         double vx1 = centerX + radius, vy1 = centerY + radius;
 
@@ -2976,11 +2981,6 @@ public class PhantomScreen extends Screen {
         int regionH = Math.max(1, Math.round((v1 - v0) * GRADIENT_TEX_SIZE));
         if (targetW <= 0 || targetH <= 0) return;
 
-        // Argument order here is (..., width, height, regionWidth, regionHeight, textureWidth,
-        // textureHeight, color) — verified against the method's actual bytecode, not just its
-        // erased signature, since regionWidth/regionHeight and textureWidth/textureHeight are
-        // easy to swap (cornerTile's own call can't distinguish the order since it passes the
-        // same value for all four).
         ctx.blit(RenderPipelines.GUI_TEXTURED, GRADIENT_TEX, targetX, targetY,
                 u0 * GRADIENT_TEX_SIZE, v0 * GRADIENT_TEX_SIZE, targetW, targetH,
                 regionW, regionH, GRADIENT_TEX_SIZE, GRADIENT_TEX_SIZE, colorNear);

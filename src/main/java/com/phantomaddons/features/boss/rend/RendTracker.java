@@ -130,7 +130,7 @@ public final class RendTracker {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || killPhaseStartMs < 0 || backboneHitMs < 0) return;
 
-        long pingAdjustMs = PhantomConfig.getLowPing() / 2L;
+        long pingAdjustMs = PhantomConfig.getLowPing();
         double backboneTime = Math.max(0L, backboneHitMs - killPhaseStartMs - pingAdjustMs) / 1000.0;
         double pullTime     = Math.max(0L, pullMs         - killPhaseStartMs - pingAdjustMs) / 1000.0;
 

@@ -17,24 +17,12 @@ public class HudEditorScreen extends Screen {
         "Profit Tracker", "Chest Value", "Backbone Progress Bar"
     };
 
-    // Sizes reflect each element's real rendered footprint at scale = 1.0, so the preview
-    // box lines up with where the real HUD element actually appears in-game.
-    // Note: the vanilla Minecraft font renders '|' at only ~2px wide (much narrower than a
-    // letter/digit's ~6px), so bar-style strings like "[||||||||||||||||||||] 100%" are far
-    // narrower than a naive average-character-width guess would suggest.
+
     private static final int[] BASE_W = { 60, 110, 180, 290, 100, 160, 110, 165, 158, 140, 235 };
     private static final int[] BASE_H = { 30,  32,  95,  36,  22,  38,  18,  22, 125,  90,  28 };
 
-    // PREVIEW_SCALE must equal each element's real internal scale multiplier (the BASE_SCALE
-    // constant in its own renderer) so the preview text visually fills the box that was sized
-    // for that same real footprint — a mismatch here is why text used to look tiny inside an
-    // otherwise correctly-sized box.
     private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 4.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f };
 
-    // Whether the real renderer centers its content on the X / Y axis at the configured
-    // point, or draws from a top-left corner. Most elements only center horizontally and
-    // draw downward from the top (Y not centered) — only Notifications and Crate Priority
-    // truly center on both axes.
     private static final boolean[] IS_X_CENTERED = { true, true, false, true, true, true, true, true, false, false, true };
     private static final boolean[] IS_Y_CENTERED = { false, false, false, false, false, true, true, false, false, false, false };
 

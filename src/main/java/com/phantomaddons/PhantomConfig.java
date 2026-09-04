@@ -95,6 +95,7 @@ public class PhantomConfig {
     private static boolean autoRequeueMessageEnabled = true;
     private static boolean autoUpdatesEnabled       = true;
     private static boolean developerFeaturesEnabled = false;
+    private static boolean tentacleDbLoggingEnabled = false;
     private static UiTheme uiTheme = UiTheme.DARK;
     private static float   uiGuiScale = 1.0f;
     private static boolean uiTransparencyEnabled = true;
@@ -133,6 +134,8 @@ public class PhantomConfig {
     private static float           profitHudScale         = 1.0f;
     private static KuudraPetRarity kuudraPetRarity        = KuudraPetRarity.LEGENDARY;
     private static int             kuudraPetLevel         = 100;
+    private static int             essenceOfCrimson       = 10;
+    private static int             echoOfEssence          = 10;
 
     private static boolean chestValueGuiEnabled   = true;
     private static float   chestValueHudX         = 0.3f;
@@ -155,8 +158,11 @@ public class PhantomConfig {
     public static float           getProfitHudScale()         { return profitHudScale; }
     public static KuudraPetRarity getKuudraPetRarity()        { return kuudraPetRarity; }
     public static int             getKuudraPetLevel()         { return kuudraPetLevel; }
+    public static int             getEssenceOfCrimson()       { return essenceOfCrimson; }
+    public static int             getEchoOfEssence()          { return echoOfEssence; }
     public static double          getKuudraPetEssenceMultiplier() {
-        return kuudraPetRarity.essenceMultiplier(kuudraPetLevel);
+        double crimsonBonus = 0.01 * essenceOfCrimson * (1.0 + 0.03 * echoOfEssence);
+        return kuudraPetRarity.essenceMultiplier(kuudraPetLevel) * (1.0 + crimsonBonus);
     }
 
     public static void setProfitTrackerEnabled(boolean v)       { profitTrackerEnabled  = v; save(); }
@@ -173,6 +179,8 @@ public class PhantomConfig {
     public static void setProfitHudScale(float v)               { profitHudScale = v; save(); }
     public static void setKuudraPetRarity(KuudraPetRarity v)    { kuudraPetRarity = v; save(); }
     public static void setKuudraPetLevel(int v)                 { kuudraPetLevel = Math.clamp(v, 1, 100); save(); }
+    public static void setEssenceOfCrimson(int v)                { essenceOfCrimson = Math.clamp(v, 0, 10); save(); }
+    public static void setEchoOfEssence(int v)                   { echoOfEssence = Math.clamp(v, 0, 10); save(); }
 
     public static boolean isChestValueGuiEnabled()  { return chestValueGuiEnabled; }
     public static float   getChestValueHudX()       { return chestValueHudX; }
@@ -343,6 +351,7 @@ public class PhantomConfig {
 
     private static boolean wardrobeEnabled      = false;
     private static boolean loadoutsEnabled      = false;
+    private static int     openGuiKey           = -1;
     private static int     wardrobeOpenKey      = -1;
     private static int     statsOpenKey         = -1;
     private static int     petsOpenKey          = -1;
@@ -466,6 +475,7 @@ public class PhantomConfig {
     public static boolean isAutoRequeueMessageEnabled() { return autoRequeueMessageEnabled; }
     public static boolean isAutoUpdatesEnabled()      { return autoUpdatesEnabled; }
     public static boolean isDeveloperFeaturesEnabled() { return developerFeaturesEnabled; }
+    public static boolean isTentacleDbLoggingEnabled() { return developerFeaturesEnabled && tentacleDbLoggingEnabled; }
     public static UiTheme  getUiTheme() { return uiTheme; }
     public static float    getUiGuiScale() { return uiGuiScale; }
     public static boolean  isUiTransparencyEnabled() { return uiTransparencyEnabled; }
@@ -721,6 +731,7 @@ public class PhantomConfig {
     public static void setAutoRequeueMessageEnabled(boolean v) { autoRequeueMessageEnabled = v; save(); }
     public static void setAutoUpdatesEnabled(boolean v)     { autoUpdatesEnabled = v;      save(); }
     public static void setDeveloperFeaturesEnabled(boolean v) { developerFeaturesEnabled = v; save(); }
+    public static void setTentacleDbLoggingEnabled(boolean v) { tentacleDbLoggingEnabled = v; save(); }
     public static void setUiTheme(UiTheme v) { uiTheme = v; save(); }
     public static void setUiGuiScale(float v) { uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
     public static void setUiTransparencyEnabled(boolean v) { uiTransparencyEnabled = v; save(); }
@@ -940,7 +951,9 @@ public class PhantomConfig {
     public static void setWardrobeEnabled(boolean v)  { wardrobeEnabled = v; save(); }
     public static boolean isLoadoutsEnabled()         { return loadoutsEnabled; }
     public static void setLoadoutsEnabled(boolean v)  { loadoutsEnabled = v; save(); }
+    public static int  getOpenGuiKey()                { return openGuiKey; }
     public static int  getWardrobeOpenKey()           { return wardrobeOpenKey; }
+    public static void setOpenGuiKey(int v)           { openGuiKey = v; save(); }
     public static void setWardrobeOpenKey(int v)      { wardrobeOpenKey = v; save(); }
     public static int  getStatsOpenKey()              { return statsOpenKey; }
     public static void setStatsOpenKey(int v)         { statsOpenKey = v; save(); }
@@ -1044,6 +1057,7 @@ public class PhantomConfig {
             autoRequeueMessageEnabled = d.autoRequeueMessageEnabled;
             autoUpdatesEnabled      = d.autoUpdatesEnabled;
             developerFeaturesEnabled = d.developerFeaturesEnabled;
+            tentacleDbLoggingEnabled = d.tentacleDbLoggingEnabled;
             uiTheme = d.uiTheme != null
                     ? safeEnum(UiTheme.class, d.uiTheme, UiTheme.DARK)
                     : (d.uiDarkMode ? UiTheme.DARK : UiTheme.LIGHT);
@@ -1214,6 +1228,7 @@ public class PhantomConfig {
             // Loadouts used to share wardrobeEnabled's value — for configs saved before this was
             // split, inherit whatever wardrobeEnabled was so existing users see no behaviour change.
             loadoutsEnabled     = d.loadoutsEnabled != null ? d.loadoutsEnabled : d.wardrobeEnabled;
+            openGuiKey          = d.openGuiKey;
             wardrobeOpenKey     = d.wardrobeOpenKey;
             statsOpenKey        = d.statsOpenKey;
             petsOpenKey         = d.petsOpenKey;
@@ -1282,6 +1297,8 @@ public class PhantomConfig {
                 catch (IllegalArgumentException ignored) {}
             }
             if (d.kuudraPetLevel > 0) kuudraPetLevel = Math.clamp(d.kuudraPetLevel, 1, 100);
+            essenceOfCrimson      = Math.clamp(d.essenceOfCrimson, 0, 10);
+            echoOfEssence         = Math.clamp(d.echoOfEssence, 0, 10);
             chestValueGuiEnabled  = d.chestValueGuiEnabled;
             chestValueHudX        = d.chestValueHudX;
             chestValueHudY        = d.chestValueHudY;
@@ -1350,6 +1367,7 @@ public class PhantomConfig {
         d.autoRequeueMessageEnabled = autoRequeueMessageEnabled;
         d.autoUpdatesEnabled      = autoUpdatesEnabled;
         d.developerFeaturesEnabled = developerFeaturesEnabled;
+        d.tentacleDbLoggingEnabled = tentacleDbLoggingEnabled;
         d.uiTheme = uiTheme.name();
         d.uiDarkMode = uiTheme != UiTheme.DARK ? false : true;
         d.uiTransparencyEnabled = uiTransparencyEnabled;
@@ -1512,6 +1530,7 @@ public class PhantomConfig {
 
         d.wardrobeEnabled     = wardrobeEnabled;
         d.loadoutsEnabled     = loadoutsEnabled;
+        d.openGuiKey          = openGuiKey;
         d.wardrobeOpenKey     = wardrobeOpenKey;
         d.statsOpenKey        = statsOpenKey;
         d.petsOpenKey         = petsOpenKey;
@@ -1558,6 +1577,8 @@ public class PhantomConfig {
         d.profitHudScale        = profitHudScale;
         d.kuudraPetRarity       = kuudraPetRarity.name();
         d.kuudraPetLevel        = kuudraPetLevel;
+        d.essenceOfCrimson      = essenceOfCrimson;
+        d.echoOfEssence         = echoOfEssence;
         d.chestValueGuiEnabled  = chestValueGuiEnabled;
         d.chestValueHudX        = chestValueHudX;
         d.chestValueHudY        = chestValueHudY;
@@ -1568,10 +1589,6 @@ public class PhantomConfig {
         d.itemCustomCategories     = ItemCustomization.serialiseCustom();
         d.notificationSounds       = new java.util.LinkedHashMap<>(notificationSounds);
 
-        // Every setter calls save(), and dragging a GUI slider fires one per mouse-move event, so
-        // the snapshot above is built on the calling thread (cheap, and keeps it consistent with
-        // the live fields) while the Gson serialisation and disk write are debounced onto a
-        // background writer. A shutdown hook flushes anything still pending.
         pendingWrite = d;
         lastSaveRequestMs = System.currentTimeMillis();
         startWriterThread();
@@ -1616,7 +1633,6 @@ public class PhantomConfig {
         } catch (IOException e) { PhantomAddons.LOGGER.error("Failed to save config", e); }
     }
 
-    /** Writes any pending config changes to disk immediately, on the calling thread. */
     public static void saveNow() {
         flushPending();
     }
@@ -1785,6 +1801,7 @@ public class PhantomConfig {
         boolean autoRequeueMessageEnabled = true;
         boolean autoUpdatesEnabled      = true;
         boolean developerFeaturesEnabled = false;
+        boolean tentacleDbLoggingEnabled = false;
         boolean uiDarkMode = true;
         String  uiTheme = null;
         boolean uiTransparencyEnabled = true;
@@ -1945,6 +1962,7 @@ public class PhantomConfig {
 
         boolean wardrobeEnabled     = false;
         Boolean loadoutsEnabled     = null; // null = not yet saved under its own key; see load()
+        int     openGuiKey          = -1;
         int     wardrobeOpenKey     = -1;
         int     statsOpenKey        = -1;
         int     petsOpenKey         = -1;
@@ -1983,6 +2001,8 @@ public class PhantomConfig {
         float   profitHudScale         = 1.0f;
         String  kuudraPetRarity        = "LEGENDARY";
         int     kuudraPetLevel         = 100;
+        int     essenceOfCrimson       = 10;
+        int     echoOfEssence          = 10;
 
         boolean chestValueGuiEnabled   = true;
         float   chestValueHudX         = 0.3f;

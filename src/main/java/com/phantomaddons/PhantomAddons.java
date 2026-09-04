@@ -41,7 +41,6 @@ import com.phantomaddons.features.stundps.CannonAutoClose;
 import com.phantomaddons.features.loadouts.WardrobeKeybinds;
 import com.phantomaddons.utils.KuudraTierDetector;
 import com.phantomaddons.features.misckuudra.chesttracking.ChestTracker;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -49,7 +48,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.KeyMapping;
 import com.phantomaddons.features.misckuudra.chesttracking.TabListChestSync;
 import com.phantomaddons.features.dungeons.DungeonsGfs;
 import com.phantomaddons.features.misckuudra.splits.SplitHud;
@@ -63,13 +61,8 @@ public class PhantomAddons implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("phantomaddons");
 
-    private static final KeyMapping OPEN_GUI_KEY = new KeyMapping(
-            "key.phantomaddons.opengui",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_P,
-            KeyMapping.Category.MISC);
-
     private static boolean openGuiNextTick = false;
+    private static boolean openGuiKeyPrevDown = false;
 
     @Override
     public void onInitializeClient() {
@@ -131,6 +124,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.supplies.doublepearl.DoublePearlWarningHud.register();
         BuildProgressTracker.register();
         RendDamage.register();
+        com.phantomaddons.features.boss.rend.RendPullAttribution.register();
         SupplyProgressHud.register();
         BuildProgressHud.register();
         NotificationHud.register();
@@ -255,8 +249,6 @@ public class PhantomAddons implements ClientModInitializer {
                     String playerName = m.group(1);
                     String countStr   = m.group(2);
 
-                    // Only now is the colour-preserving form needed (for the rank prefix), so it's
-                    // built per supply pickup rather than per message.
                     String raw = toLegacyString(text);
                     java.util.regex.Matcher rm = RANK_NAME_PATTERN.matcher(raw);
                     String rawPrefix = rm.find() ? rm.group(1) : playerName;
@@ -432,6 +424,7 @@ public class PhantomAddons implements ClientModInitializer {
         PearlRefill.reset();
         RendDamage.reset();
         com.phantomaddons.features.boss.rend.RendTracker.reset();
+        com.phantomaddons.features.boss.rend.RendPullAttribution.reset();
         com.phantomaddons.features.boss.backbone.BackboneProgressBar.reset();
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.reset();
         com.phantomaddons.features.boss.KuudraHpHud.reset();
@@ -442,6 +435,7 @@ public class PhantomAddons implements ClientModInitializer {
         NotificationHud.reset();
         CratePriority.reset();
         com.phantomaddons.features.stundps.DpsWaypoint.reset();
+        com.phantomaddons.data.GameplayDataLogger.onDisconnect();
     }
 
     private void registerTickEvents() {
@@ -455,10 +449,19 @@ public class PhantomAddons implements ClientModInitializer {
                 }
             }
 
-            while (OPEN_GUI_KEY.consumeClick()) {
-                if (client.player != null && client.level != null && client.gui.screen() == null) {
+            int openGuiKey = PhantomConfig.getOpenGuiKey();
+            if (openGuiKey > 0) {
+                long handle = GLFW.glfwGetCurrentContext();
+                boolean down = handle != 0 && (openGuiKey >= PhantomScreen.MOUSE_OFFSET
+                        ? GLFW.glfwGetMouseButton(handle, openGuiKey - PhantomScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS
+                        : GLFW.glfwGetKey(handle, openGuiKey) == GLFW.GLFW_PRESS);
+                if (down && !openGuiKeyPrevDown && client.player != null && client.level != null
+                        && client.gui.screen() == null) {
                     client.gui.setScreen(new PhantomScreen());
                 }
+                openGuiKeyPrevDown = down;
+            } else {
+                openGuiKeyPrevDown = false;
             }
 
             if (PhantomConfig.isPearlWaypointsEnabled()
@@ -485,6 +488,7 @@ public class PhantomAddons implements ClientModInitializer {
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);
             KuudraStationaryLogger.tick(client);
+            com.phantomaddons.data.GameplayDataLogger.tick(client);
             com.phantomaddons.features.boss.rend.RendTracker.tick();
             com.phantomaddons.features.boss.rend.BonemerangHitTracker.tick(client);
             com.phantomaddons.features.miscskyblock.FishingHookDebugTracker.tick(client);

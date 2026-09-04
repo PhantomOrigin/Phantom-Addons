@@ -77,7 +77,7 @@ public final class UpdateChecker {
                 String current = currentVersion();
                 fetchReleaseInfo();
 
-                if (latestVersion == null || latestVersion.equals(current)) {
+                if (latestVersion == null || !isNewerVersion(latestVersion, current)) {
                     state = State.UP_TO_DATE;
                     PhantomAddons.LOGGER.info("[PhantomAddons] Up to date ({})", current);
                     return;
@@ -119,7 +119,7 @@ public final class UpdateChecker {
                 if (latestVersion == null) throw new Exception("Could not fetch release info");
 
                 String current = currentVersion();
-                if (latestVersion.equals(current)) {
+                if (!isNewerVersion(latestVersion, current)) {
                     state = State.UP_TO_DATE;
                     notifyChat("§a Already on the latest version (" + current + ")");
                     return;
@@ -184,6 +184,47 @@ public final class UpdateChecker {
     }
 
     // ── Internal ──────────────────────────────────────────────────────────────
+
+    private static boolean isNewerVersion(String candidate, String current) {
+        return compareVersions(candidate, current) > 0;
+    }
+
+    private static int compareVersions(String a, String b) {
+        int dashA = a.indexOf('-');
+        int dashB = b.indexOf('-');
+        String baseA = dashA < 0 ? a : a.substring(0, dashA);
+        String baseB = dashB < 0 ? b : b.substring(0, dashB);
+
+        int baseCmp = compareNumericSegments(baseA, baseB);
+        if (baseCmp != 0) return baseCmp;
+
+        String preA = dashA < 0 ? null : a.substring(dashA + 1);
+        String preB = dashB < 0 ? null : b.substring(dashB + 1);
+        if (preA == null && preB == null) return 0;
+        if (preA == null) return 1;  // "1.6.25" is newer than "1.6.25-beta1"
+        if (preB == null) return -1;
+        return preA.compareTo(preB); // same base, both pre-releases — arbitrary but stable ordering
+    }
+
+    private static int compareNumericSegments(String a, String b) {
+        String[] as = a.split("\\.");
+        String[] bs = b.split("\\.");
+        int len = Math.max(as.length, bs.length);
+        for (int i = 0; i < len; i++) {
+            int av = i < as.length ? parseIntSafe(as[i]) : 0;
+            int bv = i < bs.length ? parseIntSafe(bs[i]) : 0;
+            if (av != bv) return Integer.compare(av, bv);
+        }
+        return 0;
+    }
+
+    private static int parseIntSafe(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 
     private static void fetchReleaseInfo() throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(API_URL).openConnection();
