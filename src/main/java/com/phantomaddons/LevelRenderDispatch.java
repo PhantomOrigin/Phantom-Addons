@@ -14,7 +14,6 @@ import com.phantomaddons.features.supplies.pearlwaypoints.PearlWaypointRenderer;
 import com.phantomaddons.features.supplies.waypointlines.WaypointLinesRenderer;
 import com.phantomaddons.features.stundps.StunPreviewRenderer;
 import com.phantomaddons.features.miscskyblock.PredictedBobber;
-import com.phantomaddons.features.miscskyblock.BobberComparisonRenderer;
 import com.phantomaddons.features.boss.IchorRadiusRenderer;
 import com.phantomaddons.features.render.CannonHitboxRenderer;
 import com.phantomaddons.features.stundps.DpsWaypoint;
@@ -58,8 +57,8 @@ public final class LevelRenderDispatch {
             BoneTimingHitboxOutline.render(matrices, camera, tickDelta);
             IchorRadiusRenderer.render(matrices, camera, tickDelta);
             CannonHitboxRenderer.render(matrices, camera, tickDelta);
+            DataFeatures.renderTentacleHighlights(matrices, camera, tickDelta);
             DpsWaypoint.render(matrices, camera, tickDelta);
-            BobberComparisonRenderer.render(matrices, camera);
             PredictedBobber.tick();
 
             WorldRenderCollector.set(null);
@@ -83,7 +82,6 @@ public final class LevelRenderDispatch {
             EtherwarpWaypointRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
             WaypointLinesRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
             DpsWaypoint.renderAlwaysOnTop(matrices, camera, tickDelta);
-            BobberComparisonRenderer.renderAlwaysOnTop(matrices, camera);
             BuildBeaconRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
             ElleHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
             SupplyGiantHitbox.renderAlwaysOnTop(matrices, camera, tickDelta);

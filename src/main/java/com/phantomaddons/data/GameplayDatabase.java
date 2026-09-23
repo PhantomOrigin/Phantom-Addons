@@ -1,7 +1,6 @@
 package com.phantomaddons.data;
 
 import com.phantomaddons.PhantomAddons;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -17,6 +16,7 @@ import java.util.List;
 public final class GameplayDatabase {
 
     private static final int CURRENT_SCHEMA_VERSION = 1;
+    private static final String DB_FILENAME = "phantomaddons_kuudra_data.sqlite";
 
     private static Connection connection = null;
 
@@ -24,10 +24,16 @@ public final class GameplayDatabase {
 
     public static String now() { return Instant.now().toString(); }
 
+    public static void ensureMigrated() {
+        for (String suffix : new String[] {"", "-wal", "-shm", "-journal"}) {
+            com.phantomaddons.utils.PhantomPaths.resolve(DB_FILENAME + suffix);
+        }
+    }
+
     public static synchronized Connection get() {
         if (connection != null) return connection;
         try {
-            Path dbPath = FabricLoader.getInstance().getConfigDir().resolve("phantomaddons_kuudra_data.sqlite");
+            Path dbPath = com.phantomaddons.utils.PhantomPaths.resolve(DB_FILENAME);
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath.toAbsolutePath());
             try (Statement st = connection.createStatement()) {
                 st.execute("PRAGMA journal_mode=WAL");
@@ -65,6 +71,22 @@ public final class GameplayDatabase {
                 }
             }
             version = 1;
+        }
+        if (version < 2) {
+            for (String ddl : SCHEMA_V2) {
+                try (Statement st = connection.createStatement()) {
+                    st.execute(ddl);
+                }
+            }
+            version = 2;
+        }
+        if (version < 3) {
+            for (String ddl : SCHEMA_V3) {
+                try (Statement st = connection.createStatement()) {
+                    st.execute(ddl);
+                }
+            }
+            version = 3;
         }
         setUserVersion(version);
     }
@@ -231,9 +253,67 @@ public final class GameplayDatabase {
             "CREATE INDEX IF NOT EXISTS idx_pearl_grab ON pearl_throws(grab_id)"
     );
 
-    // ── Small JDBC helpers ───────────────────────────────────────────────────────
+    private static final List<String> SCHEMA_V2 = List.of(
+            """
+            CREATE TABLE IF NOT EXISTS tentacle_reach_attempts (
+                reach_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id              INTEGER NOT NULL REFERENCES runs(run_id),
+                instance_id         INTEGER NOT NULL REFERENCES tentacle_instances(instance_id),
+                attempt_id          INTEGER REFERENCES supply_attempts(attempt_id),
+                reached_tick        INTEGER NOT NULL,
+                reached_at          TEXT NOT NULL,
+                tentacle_x          REAL,
+                tentacle_y          REAL,
+                tentacle_z          REAL,
+                tentacle_speed      REAL,
+                tentacle_chain_size INTEGER,
+                player_x            REAL,
+                player_y            REAL,
+                player_z            REAL,
+                player_yaw          REAL,
+                player_pitch        REAL,
+                resulted_in_grab    INTEGER NOT NULL DEFAULT 0
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS tentacle_reach_motion (
+                motion_id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                reach_id            INTEGER NOT NULL REFERENCES tentacle_reach_attempts(reach_id),
+                tick                INTEGER NOT NULL,
+                x                   REAL,
+                y                   REAL,
+                z                   REAL,
+                distance_to_player  REAL,
+                speed               REAL,
+                chain_size          INTEGER
+            )
+            """,
+            "ALTER TABLE grab_events ADD COLUMN reach_id INTEGER REFERENCES tentacle_reach_attempts(reach_id)",
+            "CREATE INDEX IF NOT EXISTS idx_reach_instance ON tentacle_reach_attempts(instance_id)",
+            "CREATE INDEX IF NOT EXISTS idx_reach_attempt ON tentacle_reach_attempts(attempt_id)",
+            "CREATE INDEX IF NOT EXISTS idx_grab_reach ON grab_events(reach_id)",
+            "CREATE INDEX IF NOT EXISTS idx_reach_motion_reach ON tentacle_reach_motion(reach_id)"
+    );
 
-    /** Executes an INSERT and returns the generated row id, or -1 on failure. */
+    private static final List<String> SCHEMA_V3 = List.of(
+            "ALTER TABLE tentacle_segments ADD COLUMN is_anchor INTEGER NOT NULL DEFAULT 0",
+            """
+            CREATE TABLE IF NOT EXISTS tentacle_anchor_samples (
+                sample_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+                instance_id  INTEGER NOT NULL REFERENCES tentacle_instances(instance_id),
+                tick         INTEGER NOT NULL,
+                sampled_at   TEXT NOT NULL,
+                x            REAL,
+                y            REAL,
+                z            REAL,
+                chain_size   INTEGER
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_anchor_samples_instance ON tentacle_anchor_samples(instance_id)"
+    );
+
+    // ── Small JDBC helpers ───────────────────────────────────────────────────────
+    
     public static long insert(String sql, Object... params) {
         Connection c = get();
         if (c == null) return -1;
@@ -277,6 +357,19 @@ public final class GameplayDatabase {
             PhantomAddons.LOGGER.error("[GameplayDatabase] query failed: {}", sql, e);
         }
         return out;
+    }
+    
+    public static int[] getCancelStats() {
+        List<Object[]> rows = query(
+                "SELECT cancel_result, COUNT(*) c FROM grab_events WHERE cancel_result IN ('cancelled','failed_to_cancel') GROUP BY cancel_result",
+                rs -> new Object[]{rs.getString("cancel_result"), rs.getInt("c")});
+
+        int cancelled = 0, failed = 0;
+        for (Object[] row : rows) {
+            if ("cancelled".equals(row[0])) cancelled = (Integer) row[1];
+            else if ("failed_to_cancel".equals(row[0])) failed = (Integer) row[1];
+        }
+        return new int[]{cancelled, failed};
     }
 
     private static void bind(PreparedStatement ps, Object... params) throws SQLException {

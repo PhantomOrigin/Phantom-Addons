@@ -9,22 +9,21 @@ import net.minecraft.network.chat.Component;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 11;
+    private static final int N = 12;
 
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Crate Pickup Progress",
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
-        "Profit Tracker", "Chest Value", "Backbone Progress Bar"
+        "Profit Tracker", "Chest Value", "Backbone Progress Bar", "Chest Tracker"
     };
+    
+    private static final int[] BASE_W = { 60, 110, 180, 290, 100, 160, 110, 165, 158, 140, 235, 0 };
+    private static final int[] BASE_H = { 30,  32,  95,  36,  22,  38,  18,  22, 135,  90,  28, 0 };
 
+    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 4.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f, 1.0f };
 
-    private static final int[] BASE_W = { 60, 110, 180, 290, 100, 160, 110, 165, 158, 140, 235 };
-    private static final int[] BASE_H = { 30,  32,  95,  36,  22,  38,  18,  22, 125,  90,  28 };
-
-    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 4.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f };
-
-    private static final boolean[] IS_X_CENTERED = { true, true, false, true, true, true, true, true, false, false, true };
-    private static final boolean[] IS_Y_CENTERED = { false, false, false, false, false, true, true, false, false, false, false };
+    private static final boolean[] IS_X_CENTERED = { true, true, false, true, true, true, true, true, false, false, true, false };
+    private static final boolean[] IS_Y_CENTERED = { false, false, false, false, false, true, true, false, false, false, false, false };
 
     private final float[] px = new float[N];
     private final float[] py = new float[N];
@@ -98,6 +97,10 @@ public class HudEditorScreen extends Screen {
         px[10] = PhantomConfig.getBackboneProgressBarHudX();
         py[10] = PhantomConfig.getBackboneProgressBarHudY();
         ps[10] = PhantomConfig.getBackboneProgressBarHudScale();
+
+        px[11] = PhantomConfig.getChestTrackerHudX();
+        py[11] = PhantomConfig.getChestTrackerHudY();
+        ps[11] = PhantomConfig.getChestTrackerHudScale();
     }
 
     @Override
@@ -145,6 +148,10 @@ public class HudEditorScreen extends Screen {
         PhantomConfig.setBackboneProgressBarHudX(px[10]);
         PhantomConfig.setBackboneProgressBarHudY(py[10]);
         PhantomConfig.setBackboneProgressBarHudScale(ps[10]);
+
+        PhantomConfig.setChestTrackerHudX(px[11]);
+        PhantomConfig.setChestTrackerHudY(py[11]);
+        PhantomConfig.setChestTrackerHudScale(ps[11]);
 
         PhantomConfig.save();
         minecraft.gui.setScreen(parent);
@@ -290,16 +297,17 @@ public class HudEditorScreen extends Screen {
                 String[] lines = {
                     "§6§lProfit Tracker §7(Session)",
                     "§bTotal Gains:§r §f332M",
-                    "§bTotal Expenses:§r §c-225M",
                     "§7  Items: §f125M",
                     "§7  Essence: §f172M",
+                    "§bTotal Expenses:§r §c-225M",
                     "§7  Keys: §c-180M",
                     "§7  Kismets: §c-45M",
                     "§7  Wheel of Fate: §c-20M",
-                    "§bAvg Time:§r §f1:00",
                     "§bTotal Profit:§r §a107M",
                     "§bTotal Runs:§r §f60",
-                    "§bProfit/Hour:§r §f107M/H"
+                    "§bProfit/Run:§r §f1.8M",
+                    "§bRuns/Hour:§r §f6.3",
+                    "§bProfit/Hour:§r §f11.3M"
                 };
                 int y = 0;
                 for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
@@ -325,9 +333,25 @@ public class HudEditorScreen extends Screen {
                 String txt = "§8[§6||||||||||||§f||||||||§8] §b60%";
                 ctx.text(font, txt, -font.width(txt) / 2, 0, 0xFFFFFFFF, true);
             }
+            case 11 -> {
+                m.translate(bx, by);
+                m.scale(s, s);
+                int cx = 0;
+                cx = previewSeg(ctx, cx, "12", 0xFFFFFF);
+                cx = previewSeg(ctx, cx, " (", 0xAAAAAA);
+                cx = previewSeg(ctx, cx, "5", 0x55FF55);
+                cx = previewSeg(ctx, cx, " / ", 0xAAAAAA);
+                cx = previewSeg(ctx, cx, "2", 0xFF5555);
+                previewSeg(ctx, cx, ")", 0xAAAAAA);
+            }
         }
 
         m.popMatrix();
+    }
+
+    private int previewSeg(GuiGraphicsExtractor ctx, int x, String text, int color) {
+        ctx.text(font, text, x, 0, color | 0xFF000000, true);
+        return x + font.width(text);
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -401,8 +425,16 @@ public class HudEditorScreen extends Screen {
 
     // ── Box geometry ──────────────────────────────────────────────────────────
 
-    private int boxW(int i) { return Math.max(10, (int)(BASE_W[i] * ps[i])); }
-    private int boxH(int i) { return Math.max(10, (int)(BASE_H[i] * ps[i])); }
+    private static final String CHEST_TRACKER_PREVIEW_TEXT = "12 (5 / 2)";
+
+    private int boxW(int i) {
+        int base = i == 11 ? font.width(CHEST_TRACKER_PREVIEW_TEXT) : BASE_W[i];
+        return Math.max(10, (int)(base * ps[i]));
+    }
+    private int boxH(int i) {
+        int base = i == 11 ? font.lineHeight * 2 + 2 : BASE_H[i];
+        return Math.max(10, (int)(base * ps[i]));
+    }
 
     private int boxX(int i) {
         int bw = boxW(i);
@@ -429,6 +461,7 @@ public class HudEditorScreen extends Screen {
         px[8] = 0.01f;  py[8] = 0.5f;  ps[8] = 1.0f;
         px[9] = 0.3f;   py[9] = 0.3f;  ps[9] = 1.0f;
         px[10] = 0.5f;  py[10] = 0.6f; ps[10] = 1.0f;
+        px[11] = 0.556f; py[11] = 0.958f; ps[11] = 1.0f;
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

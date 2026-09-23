@@ -97,11 +97,11 @@ public final class ProfitHud {
 
         draw(ctx, mc, 0, y, "§bTotal Gains:§r " + fmt(s.totalGains()));
         y += LINE_H;
-        draw(ctx, mc, 0, y, "§bTotal Expenses:§r " + fmt(-s.totalExpenses()));
-        y += LINE_H;
         draw(ctx, mc, INDENT, y, "§7Items: " + fmt(s.itemsValue() + s.attributeValue()));
         y += LINE_H;
         draw(ctx, mc, INDENT, y, "§7Essence: " + fmt(s.essenceValue()));
+        y += LINE_H;
+        draw(ctx, mc, 0, y, "§bTotal Expenses:§r " + fmt(-s.totalExpenses()));
         y += LINE_H;
         draw(ctx, mc, INDENT, y, "§7Keys: " + fmt(-s.keyCost()));
         y += LINE_H;
@@ -118,6 +118,14 @@ public final class ProfitHud {
         y += LINE_H;
 
         draw(ctx, mc, 0, y, "§bProfit/Run:§r " + fmt(s.profitPerRun()));
+        y += LINE_H;
+
+        double runsPerHour = s.runsPerHour();
+        draw(ctx, mc, 0, y, "§bRuns/Hour:§r " + (runsPerHour > 0
+                ? "§f" + String.format(Locale.US, "%.1f", runsPerHour) + "§r" : "§7N/A§r"));
+        y += LINE_H;
+
+        draw(ctx, mc, 0, y, "§bProfit/Hour:§r " + (runsPerHour > 0 ? fmt(s.profitPerHour()) : "§7N/A§r"));
         y += LINE_H;
 
         y += 2;

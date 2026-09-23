@@ -14,14 +14,19 @@ repositories {
     mavenCentral()
 }
 
+// DEV FEATURE TOGGLE
+val devBuild = (project.findProperty("dev") as String?)?.toBoolean() ?: false
+
 dependencies {
     minecraft("com.mojang:minecraft:${sc.current.version}")
     implementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
     compileOnly(fileTree(rootProject.file("libs")) { include("*.jar") })
 
-    implementation("org.xerial:sqlite-jdbc:3.53.4.0")
-    include("org.xerial:sqlite-jdbc:3.53.4.0")
+    if (devBuild) {
+        implementation("org.xerial:sqlite-jdbc:3.53.4.0")
+        include("org.xerial:sqlite-jdbc:3.53.4.0")
+    }
 }
 
 loom {
@@ -47,6 +52,22 @@ if (editionKey != "full") {
     sourceSets.main {
         java {
             exclude("com/phantomaddons/UpdateInstaller.java")
+        }
+    }
+}
+
+if (!devBuild) {
+    sourceSets.main {
+        java {
+            exclude("com/phantomaddons/data/**")
+        }
+    }
+}
+
+if (editionKey == "standard") {
+    sourceSets.main {
+        java {
+            exclude("com/phantomaddons/features/boss/BossJumpBlocker.java")
         }
     }
 }
@@ -132,9 +153,13 @@ if (project.name == "26.2.x") tasks.register("buildAllEditions") {
             }
         }
 
+        // Nested gradlew invocations are separate processes and don't inherit this run's properties
+        // automatically — dev must be forwarded explicitly, same as edition, or every nested build
+        // would silently fall back to the default (dev=false) regardless of how buildAllEditions itself
+        // was invoked.
         listOf("full", "noauto", "standard").forEach { ed ->
             runGradle("clean")
-            runGradle("build", "-Pedition=$ed")
+            runGradle("build", "-Pedition=$ed", "-Pdev=$devBuild")
 
             File(rootDir, "versions").listFiles { f -> f.isDirectory }?.forEach { versionDir ->
                 val versionOutDir = File(outDir, versionDir.name)

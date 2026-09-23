@@ -75,7 +75,8 @@ public final class AutoKickManager {
         checkAtLeast(reasons, "T1 Completions", PhantomConfig.getAkMinBasic(),
                 d.getKuudraCompletions(KuudraProfileData.KuudraTier.BASIC));
 
-        if (PhantomConfig.isAkRequireRend() && !hasRendBuild(d)) {
+        boolean canCheckRend = d.armorApiEnabled && d.inventoryApiEnabled;
+        if (PhantomConfig.isAkRequireRend() && canCheckRend && !hasRendBuild(d)) {
             reasons.add("Rend Build");
         }
 

@@ -1,11 +1,14 @@
 package com.phantomaddons.features.miscskyblock;
 
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.PhantomScreen;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.Map;
 
@@ -18,7 +21,25 @@ public final class SlotBinds {
 
     private static Integer pendingSlot = null;
 
+    private static volatile boolean bindKeyHeld = false;
+
     private SlotBinds() {}
+
+    public static void register() {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            int bindKey = PhantomConfig.getSlotBindSetKey();
+            if (bindKey <= 0) { bindKeyHeld = false; return; }
+
+            long handle = GLFW.glfwGetCurrentContext();
+            if (handle == 0) { bindKeyHeld = false; return; }
+
+            bindKeyHeld = bindKey >= PhantomScreen.MOUSE_OFFSET
+                    ? GLFW.glfwGetMouseButton(handle, bindKey - PhantomScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS
+                    : GLFW.glfwGetKey(handle, bindKey) == GLFW.GLFW_PRESS;
+        });
+    }
+
+    public static boolean isBindKeyHeld() { return bindKeyHeld; }
 
     private static int getMenuSlotId(AbstractContainerScreen<?> screen, Slot slot) {
         return slot == null ? -1 : screen.getMenu().slots.indexOf(slot);

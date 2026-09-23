@@ -41,6 +41,9 @@ public final class KuudraProfileData {
     public final Map<KuudraTier, Integer> kuudraCompletions = new EnumMap<>(KuudraTier.class);
     public final Map<Weapon, ItemInfo> ownedWeapons = new EnumMap<>(Weapon.class);
 
+    public boolean armorApiEnabled = true;
+    public boolean inventoryApiEnabled = true;
+
     public GoldenDragonPet dpsGoldenDragonPet = null;
 
     public GoldenDragonPet rendGoldenDragonPet = null;

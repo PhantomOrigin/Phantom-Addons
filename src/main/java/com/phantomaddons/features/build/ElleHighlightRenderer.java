@@ -23,13 +23,19 @@ import org.joml.Matrix4f;
 
 public final class ElleHighlightRenderer {
 
-    private static final int BOX_R = 255, BOX_G = 0, BOX_B = 0;
     private static final int OUTLINE_A = 255;
 
-    private static final int BCN_R = 0, BCN_G = 255, BCN_B = 255;
     private static final float BCN_W = 0.15f;
     private static final float BCN_TOP = 200f;
     private static final int BCN_A = 160;
+
+    private static int boxR() { return (PhantomConfig.getElleOutlineColor() >> 16) & 0xFF; }
+    private static int boxG() { return (PhantomConfig.getElleOutlineColor() >> 8)  & 0xFF; }
+    private static int boxB() { return  PhantomConfig.getElleOutlineColor()        & 0xFF; }
+
+    private static int bcnR() { return (PhantomConfig.getElleBeaconColor() >> 16) & 0xFF; }
+    private static int bcnG() { return (PhantomConfig.getElleBeaconColor() >> 8)  & 0xFF; }
+    private static int bcnB() { return  PhantomConfig.getElleBeaconColor()        & 0xFF; }
 
     private ElleHighlightRenderer() {}
 
@@ -155,8 +161,8 @@ public final class ElleHighlightRenderer {
                              float x1, float y1, float z1,
                              float x2, float y2, float z2,
                              float nx, float ny, float nz) {
-        vc.addVertex(m, x1, y1, z1).setColor(BOX_R, BOX_G, BOX_B, OUTLINE_A).setNormal(nx, ny, nz).setLineWidth(2.0f);
-        vc.addVertex(m, x2, y2, z2).setColor(BOX_R, BOX_G, BOX_B, OUTLINE_A).setNormal(nx, ny, nz).setLineWidth(2.0f);
+        vc.addVertex(m, x1, y1, z1).setColor(boxR(), boxG(), boxB(), OUTLINE_A).setNormal(nx, ny, nz).setLineWidth(2.0f);
+        vc.addVertex(m, x2, y2, z2).setColor(boxR(), boxG(), boxB(), OUTLINE_A).setNormal(nx, ny, nz).setLineWidth(2.0f);
     }
 
     private static void addBeam(VertexConsumer vc, Matrix4f m,
@@ -177,9 +183,9 @@ public final class ElleHighlightRenderer {
                              float x2, float y2, float z2,
                              float x3, float y3, float z3,
                              float nx, float ny, float nz) {
-        vc.addVertex(m, x0, y0, z0).setColor(BCN_R, BCN_G, BCN_B, BCN_A).setNormal(nx, ny, nz);
-        vc.addVertex(m, x1, y1, z1).setColor(BCN_R, BCN_G, BCN_B, BCN_A).setNormal(nx, ny, nz);
-        vc.addVertex(m, x2, y2, z2).setColor(BCN_R, BCN_G, BCN_B, BCN_A).setNormal(nx, ny, nz);
-        vc.addVertex(m, x3, y3, z3).setColor(BCN_R, BCN_G, BCN_B, BCN_A).setNormal(nx, ny, nz);
+        vc.addVertex(m, x0, y0, z0).setColor(bcnR(), bcnG(), bcnB(), BCN_A).setNormal(nx, ny, nz);
+        vc.addVertex(m, x1, y1, z1).setColor(bcnR(), bcnG(), bcnB(), BCN_A).setNormal(nx, ny, nz);
+        vc.addVertex(m, x2, y2, z2).setColor(bcnR(), bcnG(), bcnB(), BCN_A).setNormal(nx, ny, nz);
+        vc.addVertex(m, x3, y3, z3).setColor(bcnR(), bcnG(), bcnB(), BCN_A).setNormal(nx, ny, nz);
     }
 }

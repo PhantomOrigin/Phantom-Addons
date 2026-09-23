@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.24  
+Latest Version: 1.6.25  
 Supported Minecraft Versions: 26.1.x, 26.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
@@ -70,6 +70,8 @@ Note: build.gradle.kts excludes UpdateInstaller.java entirely from the standard 
 - Bonemerang Timing Assist
 - Predicted Kuudra Outline
 - Atomsplit Blocker
+- Boss Jump Blocker
+- Rend Pull Attribution (BETA)
 ### Kuudra General Features
 - Kuudra Profit Tracker
 - Chest Value HUD

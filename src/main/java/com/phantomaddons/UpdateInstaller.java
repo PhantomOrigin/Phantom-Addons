@@ -87,7 +87,7 @@ public final class UpdateInstaller {
         } catch (Exception ignored) {}
 
         try {
-            Path marker = FabricLoader.getInstance().getConfigDir().resolve(PENDING_REMOVAL_FILE);
+            Path marker = com.phantomaddons.utils.PhantomPaths.resolve(PENDING_REMOVAL_FILE);
             Files.writeString(marker, jar.toAbsolutePath() + System.lineSeparator(),
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
             PhantomAddons.LOGGER.info(
@@ -189,7 +189,7 @@ public final class UpdateInstaller {
     }
 
     private static void removePendingJars() {
-        Path marker = FabricLoader.getInstance().getConfigDir().resolve(PENDING_REMOVAL_FILE);
+        Path marker = com.phantomaddons.utils.PhantomPaths.resolve(PENDING_REMOVAL_FILE);
         if (!Files.exists(marker)) return;
 
         try {

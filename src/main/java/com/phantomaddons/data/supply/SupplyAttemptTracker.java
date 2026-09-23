@@ -33,10 +33,19 @@ public final class SupplyAttemptTracker {
         Player player = client.player;
         if (player == null) return;
 
+        long tick = GameplayDataLogger.currentTick();
         activeAttemptId = GameplayDatabase.insert(
                 "INSERT INTO supply_attempts (run_id, start_tick, started_at, start_x, start_y, start_z) VALUES (?, ?, ?, ?, ?, ?)",
-                runId, GameplayDataLogger.currentTick(), GameplayDatabase.now(),
+                runId, tick, GameplayDatabase.now(),
                 player.getX(), player.getY(), player.getZ());
+        if (activeAttemptId != null && activeAttemptId != -1) {
+            GrabTracker.attachPendingAttempt(activeAttemptId, tick);
+        }
+    }
+
+    public static void onSupplyDropped() {
+        if (activeAttemptId == null) return;
+        onPickupEnd(-1);
     }
 
     public static void onPickupEnd(int finalPercent) {

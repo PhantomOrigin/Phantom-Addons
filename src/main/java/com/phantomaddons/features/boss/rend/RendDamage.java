@@ -95,6 +95,12 @@ public final class RendDamage {
     }
 
     private static void onDiffDetected(DiffInfo detected, long now) {
+        if (!PhantomConfig.isRendPullAttributionEnabled()) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) sendMessage(mc, detected, List.of());
+            return;
+        }
+
         RendPullAttribution.logPendingAtDamage("diff detected (diff=" + detected.diff() + ")", now);
         if (activeEval == null) {
             PhantomAddons.LOGGER.info("[RendPull] diff detected (diff={}, damage={}) -> starting evaluation at t0={}",

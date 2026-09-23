@@ -48,7 +48,7 @@ public final class KuudraPhaseEvents {
                     SoloDetector.onPhaseStart();
                     KuudraSplitTimer.onSuppliesStart();
                     com.phantomaddons.features.stundps.DpsWaypoint.reset();
-                    com.phantomaddons.data.RunRecorder.onRunStart();
+                    com.phantomaddons.DataFeatures.onRunStart();
                 }
 
                 case BUILD -> {
@@ -112,6 +112,7 @@ public final class KuudraPhaseEvents {
                     RendTracker.onBossPhaseStart();
                     com.phantomaddons.features.boss.backbone.BackboneProgressBar.reset();
                     KuudraSplitTimer.onBossStart();
+                    com.phantomaddons.PhantomAddons.bossJumpBlockerOnPhaseStart();
                 }
 
                 case KILL, DEATH -> {
@@ -126,6 +127,7 @@ public final class KuudraPhaseEvents {
                     com.phantomaddons.features.boss.rend.RendTracker.reset();
                     com.phantomaddons.features.boss.rend.RendPullAttribution.reset();
                     com.phantomaddons.features.boss.backbone.BackboneProgressBar.reset();
+                    com.phantomaddons.PhantomAddons.bossJumpBlockerReset();
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();
@@ -138,10 +140,10 @@ public final class KuudraPhaseEvents {
                     FastDpsWarning.onDpsEnd();
                     PearlWaypointManager.reset();
                     KuudraSplitTimer.onEndStart();
-                    com.phantomaddons.data.RunRecorder.onRunEnd();
+                    com.phantomaddons.DataFeatures.onRunEnd();
                 }
 
-                case NONE -> com.phantomaddons.data.RunRecorder.onRunAbandoned();
+                case NONE -> com.phantomaddons.DataFeatures.onRunAbandoned();
 
                 default -> {}
             }

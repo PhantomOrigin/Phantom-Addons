@@ -28,8 +28,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Map;
-
 @Mixin(AbstractContainerScreen.class)
 public class HandledScreenMixin {
 
@@ -257,69 +255,6 @@ public class HandledScreenMixin {
             }
             return;
         }
-
-        // ── Slot bind lines (inventory screen only) ───────────────────────────────
-        if (!((Object) self instanceof InventoryScreen)) return;
-        if (!PhantomConfig.isSlotBindsEnabled()) return;
-
-        AbstractContainerMenu menu = self.getMenu();
-        Map<Integer, Integer> bindings = PhantomConfig.getSlotBindings();
-        if (bindings.isEmpty()) return;
-
-        int hoveredId = kuudrahelper$getMenuSlotId(self, hoveredSlot);
-        boolean showAll = isShowBindsKeyHeld();
-        boolean hoveredHasBind = false;
-        int relatedCount = 0;
-        int tooltipHotSlot = -1;
-
-        if (hoveredId >= 0) {
-            for (Map.Entry<Integer, Integer> entry : bindings.entrySet()) {
-                int invSlotId = entry.getKey();
-                int hotSlotId = 36 + entry.getValue();
-                if (invSlotId == hoveredId || hotSlotId == hoveredId) {
-                    hoveredHasBind = true;
-                    relatedCount++;
-                    tooltipHotSlot = hotSlotId;
-                }
-            }
-        }
-
-        if (!showAll && !hoveredHasBind) return;
-
-        ctx.nextStratum();
-
-        for (Map.Entry<Integer, Integer> entry : bindings.entrySet()) {
-            int invSlotId = entry.getKey();
-            int hotSlotId = 36 + entry.getValue();
-            boolean relatedToHovered = invSlotId == hoveredId || hotSlotId == hoveredId;
-
-            if (!showAll && !relatedToHovered) continue;
-            if (invSlotId < 0 || hotSlotId < 0) continue;
-            if (invSlotId >= menu.slots.size() || hotSlotId >= menu.slots.size()) continue;
-
-            Slot invSlot = menu.slots.get(invSlotId);
-            Slot hotSlot = menu.slots.get(hotSlotId);
-
-            int x1 = leftPos + invSlot.x + 8;
-            int y1 = topPos + invSlot.y + 8;
-            int x2 = leftPos + hotSlot.x + 8;
-            int y2 = topPos + hotSlot.y + 8;
-
-            drawGuiLine(ctx, x1, y1, x2, y2, 0x55FFFF);
-        }
-
-        if (hoveredHasBind && hoveredSlot != null) {
-            Minecraft mc = Minecraft.getInstance();
-            String label = relatedCount > 1
-                    ? "§e" + relatedCount + " Slot Binds"
-                    : "§eBound -> Hotbar " + (tooltipHotSlot - 36 + 1);
-
-            int lx = leftPos + hoveredSlot.x + 8 - mc.font.width(label) / 2;
-            int ly = topPos + hoveredSlot.y - 12;
-
-            ctx.fill(lx - 2, ly - 1, lx + mc.font.width(label) + 2, ly + mc.font.lineHeight + 1, 0xBB000000);
-            ctx.text(mc.font, label, lx, ly, 0xFFFFFFFF, true);
-        }
     }
 
     private static boolean isControlDown() {
@@ -328,32 +263,4 @@ public class HandledScreenMixin {
                 || com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL);
     }
 
-    private static boolean isShowBindsKeyHeld() {
-        int showKey = PhantomConfig.getSlotBindShowKey();
-        if (showKey <= 0) return false;
-
-        com.mojang.blaze3d.platform.Window window = Minecraft.getInstance().getWindow();
-        if (showKey >= com.phantomaddons.PhantomScreen.MOUSE_OFFSET) {
-            return org.lwjgl.glfw.GLFW.glfwGetMouseButton(
-                    window.handle(),
-                    showKey - com.phantomaddons.PhantomScreen.MOUSE_OFFSET
-            ) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-        }
-
-        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, showKey);
-    }
-
-    private static void drawGuiLine(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color) {
-        int dx = Math.abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
-        int dy = -Math.abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
-        int err = dx + dy;
-        int c = color | 0xFF000000;
-        while (true) {
-            ctx.fill(x1 - 1, y1 - 1, x1 + 2, y1 + 2, c);
-            if (x1 == x2 && y1 == y2) break;
-            int e2 = 2 * err;
-            if (e2 >= dy) { err += dy; x1 += sx; }
-            if (e2 <= dx) { err += dx; y1 += sy; }
-        }
-    }
 }

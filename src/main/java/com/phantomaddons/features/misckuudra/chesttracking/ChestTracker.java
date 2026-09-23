@@ -169,10 +169,18 @@ public final class ChestTracker {
         int screenW = mc.getWindow().getGuiScaledWidth();
         int screenH = mc.getWindow().getGuiScaledHeight();
 
-        int x = screenW / 2 + 91 + 6;
-        int y = screenH - 22 + (22 - tr.lineHeight) / 2;
+        float hudX  = PhantomConfig.getChestTrackerHudX()     * screenW;
+        float hudY  = PhantomConfig.getChestTrackerHudY()     * screenH;
+        float scale = PhantomConfig.getChestTrackerHudScale();
 
-        drawLine(ctx, tr, x, y);
+        var m = ctx.pose();
+        m.pushMatrix();
+        m.translate((int) hudX, (int) hudY);
+        m.scale(scale, scale);
+
+        drawLine(ctx, tr, 0, 0);
+
+        m.popMatrix();
     }
 
     private static void drawLine(GuiGraphicsExtractor ctx, Font tr, int x, int y) {

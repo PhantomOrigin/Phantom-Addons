@@ -760,10 +760,13 @@ public class PhantomScreen extends Screen {
         final IntSupplier getKey;
         final IntConsumer setKey;
         boolean capturing = false;
+        Integer labelColor = null; // null = default (C_TEXT_DIM)
 
         KeyCapture(String n, Tab t, IntSupplier getKey, IntConsumer setKey) {
             super(n, t); this.getKey = getKey; this.setKey = setKey;
         }
+
+        KeyCapture withLabelColor(int color) { this.labelColor = color; return this; }
 
         static String nameForCode(int code) {
             if (code <= 0) return "None";
@@ -779,7 +782,7 @@ public class PhantomScreen extends Screen {
 
         @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
             drawText(ctx, s.font, Component.literal(name),
-                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, C_TEXT_DIM);
+                    x + 8, y + (ROW_H - s.font.lineHeight) / 2, labelColor != null ? labelColor : C_TEXT_DIM);
             String label = capturing ? "[ Press key or mouse... ]" : "[ " + keyName() + " ]";
             int lw = s.font.width(label);
             int bx = x + w - lw - 16, by = y + 3, bh = ROW_H - 6;
@@ -1418,8 +1421,12 @@ public class PhantomScreen extends Screen {
 
         Group elleHighlight = group("Elle Highlight", T, null,
                 PhantomConfig::isElleHighlightEnabled, PhantomConfig::setElleHighlightEnabled);
+        elleHighlight.add(leaf(new RgbInput("Outline Colour", T,
+                PhantomConfig::getElleOutlineColor, PhantomConfig::setElleOutlineColor)));
         elleHighlight.add(leaf(new Toggle("Show Beacon", T,
                 PhantomConfig::isElleHighlightBeaconEnabled, PhantomConfig::setElleHighlightBeaconEnabled)));
+        elleHighlight.add(leaf(new RgbInput("Beacon Colour", T,
+                PhantomConfig::getElleBeaconColor, PhantomConfig::setElleBeaconColor)));
         roots.add(elleHighlight);
     }
 
@@ -1587,10 +1594,18 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isManaDrainAnnouncerEnabled, PhantomConfig::setManaDrainAnnouncerEnabled)));
         roots.add(leaf(new Toggle("Kuudra Direction", T,
                 PhantomConfig::isKuudraDirectionEnabled, PhantomConfig::setKuudraDirectionEnabled)));
-        roots.add(leaf(new Toggle("Rend Damage", T,
-                PhantomConfig::isRendDamageEnabled, PhantomConfig::setRendDamageEnabled)));
+        Group rendDamage = group("Rend Damage", T, null,
+                PhantomConfig::isRendDamageEnabled, PhantomConfig::setRendDamageEnabled);
+        rendDamage.add(leaf(new Toggle("Pull Attribution (BETA)", T,
+                PhantomConfig::isRendPullAttributionEnabled, PhantomConfig::setRendPullAttributionEnabled)
+                .withTooltip("Tries to figure out who dealt each pull's damage. Disabling this makes every pull just show \"Someone\" instead of attempting to attribute it to a player.")));
+        roots.add(rendDamage);
         roots.add(leaf(new Toggle("Rend Tracker", T,
                 PhantomConfig::isRendTrackerEnabled, PhantomConfig::setRendTrackerEnabled)));
+        roots.add(leaf(new Toggle("Block Jump on Boss Start", T,
+                PhantomConfig::isBlockBossPhaseJumpEnabled, PhantomConfig::setBlockBossPhaseJumpEnabled)
+                .withTooltip("Disables jumping for the first 5 seconds of the Boss phase")
+                .withVisible(PhantomAddons::isBossJumpBlockerPresent)));
         Group boneTiming = group("Bone Timing Assist", T, null,
                 PhantomConfig::isBoneTimingAssistEnabled, PhantomConfig::setBoneTimingAssistEnabled);
         boneTiming.add(leaf(new RangeSlider("Kuudra Timing Offset", T, -3.0f, 1.0f, "%.2f",
@@ -1760,8 +1775,9 @@ public class PhantomScreen extends Screen {
                 PhantomConfig::isSlotBindsEnabled, PhantomConfig::setSlotBindsEnabled);
         slot.add(leaf(new KeyCapture("Bind Key", T,
                 PhantomConfig::getSlotBindSetKey, PhantomConfig::setSlotBindSetKey)));
-        slot.add(leaf(new KeyCapture("Show Binds Key", T,
-                PhantomConfig::getSlotBindShowKey, PhantomConfig::setSlotBindShowKey)));
+        slot.add(leaf(new Toggle("Show Binds on Hover", T,
+                PhantomConfig::isSlotBindsShowOnHover, PhantomConfig::setSlotBindsShowOnHover)
+                .withTooltip("Draws a line to the bound hotbar/inventory slot while hovering either end of the pair")));
         roots.add(slot);
     }
 
@@ -2078,16 +2094,29 @@ public class PhantomScreen extends Screen {
         roots.add(leaf(new Button("Updates", T, "Update", UpdateChecker::downloadManually)
                 .withVisible(UpdateChecker::hasUpdate)));
 
-        // ── Everything else (kept in their existing relative order, moved below) ──
-        roots.add(leaf(new IntInput("Ping (ms) - Lowest normal ping", T,
-                PhantomConfig::getLowPing, PhantomConfig::setLowPing)
-                .withTooltip("Should be set to the lowest ping that you would get under normal conditions")));
+        roots.add(leaf(new KeyCapture("Menu Open Key", T,
+                PhantomConfig::getOpenGuiKey, PhantomConfig::setOpenGuiKey)
+                .withLabelColor(0xFFFFFFFF)
+                .withTooltip("Off by default — press to set a key or mouse button, Escape to unbind")));
         roots.add(leaf(new Button("HUD Layout", T,
                 "Edit Layout",
                 () -> Minecraft.getInstance().gui.setScreen(new HudEditorScreen(PhantomScreen.this)))));
-        roots.add(leaf(new KeyCapture("Menu Open Key", T,
-                PhantomConfig::getOpenGuiKey, PhantomConfig::setOpenGuiKey)
-                .withTooltip("Off by default — press to set a key or mouse button, Escape to unbind")));
+
+        roots.add(leaf(new IntInput("Ping (ms) - Lowest normal ping", T,
+                PhantomConfig::getLowPing, PhantomConfig::setLowPing)
+                .withTooltip("Should be set to the lowest ping that you would get under normal conditions")));
+
+        roots.add(leaf(new Button("PhantomAddons Discord", T, "Copy Link",
+                () -> copyToClipboard("https://discord.gg/6MquvmrXNP"))));
+
+        if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) {
+            roots.add(leaf(new RawTextInput("API Key", T,
+                    PhantomConfig::getKuudraApiKey, PhantomConfig::setKuudraApiKey)
+                    .withMasked()
+                    .withTooltip("Get a key with /apikey in the PhantomAddons Discord server. Required for Auto Kick and Profile Viewer.")));
+        }
+
+        // ── Theme and other related features ─────────────────────────────────────
         roots.add(leaf(new Cycle("Theme", T,
                 () -> switch (PhantomConfig.getUiTheme()) {
                     case DARK -> "Dark";
@@ -2120,20 +2149,14 @@ public class PhantomScreen extends Screen {
         roots.add(leaf(new Toggle("Developer Features", T,
                 PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled)));
 
-        if (PhantomConfig.isDeveloperFeaturesEnabled()) {
+        if (PhantomConfig.isDeveloperFeaturesEnabled() && DataFeatures.isPresent()) {
             roots.add(leaf(new Toggle("Tentacle DB Logging", T,
                     PhantomConfig::isTentacleDbLoggingEnabled, PhantomConfig::setTentacleDbLoggingEnabled)
                     .withTooltip("Data-gathering tool for the upcoming Pearl Cancel Helper feature. While enabled, during the Supplies phase it tracks nearby tentacles (position, speed, chain size), when they grab you, and your position/orientation when pearl-cancelling — all written to a local SQLite database (phantomaddons_kuudra_data.sqlite in the config folder) for offline analysis. Purely observational, it doesn't change any gameplay behavior. Warning: this can log a large amount of data over many runs and grow the database file to hundreds of MB or more — leave off unless you're intentionally collecting data.")));
-        }
 
-        roots.add(leaf(new Button("PhantomAddons Discord", T, "Copy Link",
-                () -> copyToClipboard("https://discord.gg/6MquvmrXNP"))));
-
-        if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) {
-            roots.add(leaf(new RawTextInput("API Key", T,
-                    PhantomConfig::getKuudraApiKey, PhantomConfig::setKuudraApiKey)
-                    .withMasked()
-                    .withTooltip("Get a key with /apikey in the PhantomAddons Discord server. Required for Auto Kick and Profile Viewer.")));
+            roots.add(leaf(new Toggle("Highlight Tentacles", T,
+                    PhantomConfig::isTentacleHighlightEnabled, PhantomConfig::setTentacleHighlightEnabled)
+                    .withTooltip("Debug visual for the tentacle data-gathering tool — outlines each tracked tentacle segment in a distinct color so you can see the grouping/tracking working in real time. Colors are keyed to the tentacle's spawn spot, so the same physical tentacle gets the same color every run. Requires Tentacle DB Logging to also be enabled, since it highlights whatever that's currently tracking. Purely visual, no gameplay effect.")));
         }
     }
 

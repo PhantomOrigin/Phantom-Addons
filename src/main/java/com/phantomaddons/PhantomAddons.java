@@ -78,6 +78,7 @@ public class PhantomAddons implements ClientModInitializer {
         PhantomConfig.load();
         com.phantomaddons.features.customisation.VisualWords.load();
         com.phantomaddons.features.misckuudra.ShitterList.load();
+        DataFeatures.ensureMigrated();
         PickoblockManager.init();
         MountTimerHud.register();
 
@@ -102,6 +103,7 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraTierDetector.init();
         ShopKeybinds.register();
         WardrobeKeybinds.register();
+        com.phantomaddons.features.miscskyblock.SlotBinds.register();
         FastDpsWarning.register();
         com.phantomaddons.features.stundps.DpsWaypoint.register();
         PartyCommands.register();
@@ -125,6 +127,7 @@ public class PhantomAddons implements ClientModInitializer {
         BuildProgressTracker.register();
         RendDamage.register();
         com.phantomaddons.features.boss.rend.RendPullAttribution.register();
+        bossJumpBlockerRegister();
         SupplyProgressHud.register();
         BuildProgressHud.register();
         NotificationHud.register();
@@ -304,7 +307,9 @@ public class PhantomAddons implements ClientModInitializer {
 
             for (String alias : new String[]{"pa", "phantom"}) {
                 dispatcher.register(ClientCommands.literal(alias)
-                        .executes(ctx -> { openGuiNextTick = true; return 1; }));
+                        .executes(ctx -> { openGuiNextTick = true; return 1; })
+                        .then(ClientCommands.literal("cancels")
+                                .executes(ctx -> { reportCancelStats(ctx.getSource()); return 1; })));
             }
 
             dispatcher.register(ClientCommands.literal("phaselog")
@@ -379,6 +384,20 @@ public class PhantomAddons implements ClientModInitializer {
         });
     }
 
+    private static void reportCancelStats(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource source) {
+        int[] stats = DataFeatures.getCancelStats();
+        if (stats == null) {
+            source.sendFeedback(Component.literal("§7[Phantom] Not available in this build."));
+            return;
+        }
+
+        int cancelled = stats[0], failed = stats[1];
+        int total = cancelled + failed;
+        String pct = total > 0 ? String.format(" (%.1f%%)", 100.0 * cancelled / total) : "";
+        source.sendFeedback(Component.literal("§7[Phantom] Pearl cancels — §asuccessful: " + cancelled
+                + " §7| §cfailed: " + failed + " §7| §7total: " + total + pct));
+    }
+
     private void registerConnectionEvents() {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetAll());
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
@@ -426,6 +445,7 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.boss.rend.RendTracker.reset();
         com.phantomaddons.features.boss.rend.RendPullAttribution.reset();
         com.phantomaddons.features.boss.backbone.BackboneProgressBar.reset();
+        bossJumpBlockerReset();
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.reset();
         com.phantomaddons.features.boss.KuudraHpHud.reset();
         SupplyWaypointTracker.reset();
@@ -435,7 +455,7 @@ public class PhantomAddons implements ClientModInitializer {
         NotificationHud.reset();
         CratePriority.reset();
         com.phantomaddons.features.stundps.DpsWaypoint.reset();
-        com.phantomaddons.data.GameplayDataLogger.onDisconnect();
+        DataFeatures.onDisconnect();
     }
 
     private void registerTickEvents() {
@@ -488,10 +508,9 @@ public class PhantomAddons implements ClientModInitializer {
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);
             KuudraStationaryLogger.tick(client);
-            com.phantomaddons.data.GameplayDataLogger.tick(client);
+            DataFeatures.tick(client);
             com.phantomaddons.features.boss.rend.RendTracker.tick();
             com.phantomaddons.features.boss.rend.BonemerangHitTracker.tick(client);
-            com.phantomaddons.features.miscskyblock.FishingHookDebugTracker.tick(client);
             com.phantomaddons.features.boss.backbone.BackboneProgressBar.tick();
 
             if (PhantomConfig.isAutoSprintEnabled() && client.player != null
@@ -508,10 +527,54 @@ public class PhantomAddons implements ClientModInitializer {
             PhantomConfig.playNotificationSound(PhantomConfig.SOUND_SUPPLY_GRABBED);
         }
 
-        if (PhantomConfig.isSupplyDroppedNotifyEnabled()
-                && clean.contains("the Chest slipped out of your hands")) {
-            com.phantomaddons.features.misckuudra.NotificationHud.show("§cYou dropped a supply!", 3000);
-            PhantomConfig.playNotificationSound(PhantomConfig.SOUND_SUPPLY_DROPPED);
+        if (clean.contains("the Chest slipped out of your hands")) {
+            DataFeatures.onSupplyDropped();
+            if (PhantomConfig.isSupplyDroppedNotifyEnabled()) {
+                com.phantomaddons.features.misckuudra.NotificationHud.show("§cYou dropped a supply!", 3000);
+                PhantomConfig.playNotificationSound(PhantomConfig.SOUND_SUPPLY_DROPPED);
+            }
+        }
+    }
+
+    private static java.lang.reflect.Method bossJumpBlockerRegister;
+    private static java.lang.reflect.Method bossJumpBlockerReset;
+    private static java.lang.reflect.Method bossJumpBlockerOnPhaseStart;
+    private static boolean bossJumpBlockerPresent;
+
+    static {
+        try {
+            Class<?> cls = Class.forName("com.phantomaddons.features.boss.BossJumpBlocker");
+            bossJumpBlockerRegister = cls.getMethod("register");
+            bossJumpBlockerReset = cls.getMethod("reset");
+            bossJumpBlockerOnPhaseStart = cls.getMethod("onBossPhaseStart");
+            bossJumpBlockerPresent = true;
+        } catch (ReflectiveOperationException e) {
+            bossJumpBlockerPresent = false;
+        }
+    }
+
+    public static boolean isBossJumpBlockerPresent() {
+        return bossJumpBlockerPresent;
+    }
+
+    public static void bossJumpBlockerRegister() {
+        invokeBossJumpBlocker(bossJumpBlockerRegister);
+    }
+
+    public static void bossJumpBlockerReset() {
+        invokeBossJumpBlocker(bossJumpBlockerReset);
+    }
+
+    public static void bossJumpBlockerOnPhaseStart() {
+        invokeBossJumpBlocker(bossJumpBlockerOnPhaseStart);
+    }
+
+    private static void invokeBossJumpBlocker(java.lang.reflect.Method m) {
+        if (!bossJumpBlockerPresent || m == null) return;
+        try {
+            m.invoke(null);
+        } catch (ReflectiveOperationException e) {
+            LOGGER.warn("[PhantomAddons] Boss Jump Blocker call failed", e);
         }
     }
 }

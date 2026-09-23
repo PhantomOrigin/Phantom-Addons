@@ -94,6 +94,9 @@ public final class KuudraProfileFetcher {
             }
         }
 
+        data.armorApiEnabled = boolOr(root, "armorApiEnabled", false);
+        data.inventoryApiEnabled = boolOr(root, "inventoryApiEnabled", false);
+
         JsonObject weapons = objOrNull(root, "weapons");
         if (weapons != null) {
             putWeapon(data, weapons, KuudraProfileData.Weapon.REND_TERMINATOR, "rendTerminator");
@@ -138,6 +141,10 @@ public final class KuudraProfileFetcher {
 
     private static long longOr(JsonObject obj, String key, long fallback) {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsLong() : fallback;
+    }
+
+    private static boolean boolOr(JsonObject obj, String key, boolean fallback) {
+        return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsBoolean() : fallback;
     }
 
     private static String strOrNull(JsonObject obj, String key) {

@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.phantomaddons.PhantomAddons;
-import net.fabricmc.loader.api.FabricLoader;
+import com.phantomaddons.PhantomConfig;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -19,19 +19,32 @@ import java.util.List;
 public final class ProfitStore {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path DATA_PATH = FabricLoader.getInstance()
-            .getConfigDir().resolve("phantomaddons_profit.json");
+    private static final Path DATA_PATH = com.phantomaddons.utils.PhantomPaths.resolve("phantomaddons_profit.json");
 
     public record Stats(
         long itemsValue, long attributeValue, long essenceValue,
         long keyCost, long kismetCost, long wheelCost,
         int  runs,
-        long totalDurationMs
+        int    timedRuns,
+        double totalTimeSeconds
     ) {
         public long totalGains()    { return itemsValue + attributeValue + essenceValue; }
         public long totalExpenses() { return keyCost + kismetCost + wheelCost; }
         public long profit()        { return totalGains() - totalExpenses(); }
         public long profitPerRun()  { return runs > 0 ? profit() / runs : 0; }
+
+        public double avgRunTimeSeconds() {
+            return timedRuns > 0 ? totalTimeSeconds / timedRuns : -1;
+        }
+
+        public double runsPerHour() {
+            double avg = avgRunTimeSeconds();
+            return avg > 0 ? 3_600.0 / (avg + 6.0) : 0;
+        }
+
+        public long profitPerHour() {
+            return (long) (profitPerRun() * runsPerHour());
+        }
     }
 
     private static final List<ProfitRun> session = new ArrayList<>();
@@ -103,12 +116,24 @@ public final class ProfitStore {
         return times == null ? 0 : times.size();
     }
 
-    public static Stats getActiveStats() { return compute(showingSession ? session : allTime); }
-    public static Stats getSessionStats() { return compute(session); }
-    public static Stats getAllTimeStats()  { return compute(allTime); }
+    public static Stats getActiveStats() { return showingSession ? getSessionStats() : getAllTimeStats(); }
 
-    private static Stats compute(List<ProfitRun> runs) {
-        long items = 0, attr = 0, ess = 0, keys = 0, kismets = 0, wheels = 0, dur = 0;
+    public static Stats getSessionStats() {
+        int count = 0;
+        double sum = 0;
+        for (List<Double> times : sessionRunTimes.values()) {
+            for (double t : times) { sum += t; count++; }
+        }
+        return compute(session, count, sum);
+    }
+
+    public static Stats getAllTimeStats() {
+        int count = PhantomConfig.getTotalTimedRuns();
+        return compute(allTime, count, PhantomConfig.getTotalTimedSeconds());
+    }
+
+    private static Stats compute(List<ProfitRun> runs, int timedRuns, double timeSeconds) {
+        long items = 0, attr = 0, ess = 0, keys = 0, kismets = 0, wheels = 0;
         for (ProfitRun r : runs) {
             items   += r.itemsValue;
             attr    += r.attributeValue;
@@ -116,9 +141,8 @@ public final class ProfitStore {
             keys    += r.keyCost;
             kismets += r.kismetCost;
             wheels  += r.wheelCost;
-            dur     += r.durationMs;
         }
-        return new Stats(items, attr, ess, keys, kismets, wheels, runs.size(), dur);
+        return new Stats(items, attr, ess, keys, kismets, wheels, runs.size(), timedRuns, timeSeconds);
     }
 
     // ── Persistence ───────────────────────────────────────────────────────────────

@@ -161,7 +161,7 @@ public final class ChestValueOverlay {
         if (t.contains("burning"))  return 3;
         if (t.contains("hot"))      return 2;
         if (t.contains("basic"))    return 1;
-        int kt = KuudraTierDetector.getTier();
+        int kt = KuudraTierDetector.getLastKnownTier();
         if (kt >= 1) return kt;
         int last = ProfitStore.getLastCommittedTier();
         return last >= 1 ? last : 0;

@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.phantomaddons.features.customisation.items.ItemCustomization;
 import com.phantomaddons.features.customisation.items.ItemTransformSettings;
 import com.phantomaddons.utils.KuudraTierDetector;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 
 import java.io.*;
@@ -18,8 +17,7 @@ import java.util.Map;
 public class PhantomConfig {
 
     private static final Gson GSON        = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path CONFIG_PATH = FabricLoader.getInstance()
-            .getConfigDir().resolve("phantomaddons.json");
+    private static final Path CONFIG_PATH = com.phantomaddons.utils.PhantomPaths.resolve("phantomaddons.json");
 
     public enum RoleMode       { DPS, STUN, AUTO }
     public enum LavaMode       { DEFAULT, COLOURED }
@@ -96,13 +94,14 @@ public class PhantomConfig {
     private static boolean autoUpdatesEnabled       = true;
     private static boolean developerFeaturesEnabled = false;
     private static boolean tentacleDbLoggingEnabled = false;
+    private static boolean tentacleHighlightEnabled = false;
     private static UiTheme uiTheme = UiTheme.DARK;
     private static float   uiGuiScale = 1.0f;
     private static boolean uiTransparencyEnabled = true;
     private static boolean autoSprintEnabled        = false;
     private static boolean slotBindsEnabled         = false;
     private static int     slotBindSetKey           = -1;
-    private static int     slotBindShowKey          = -1;
+    private static boolean slotBindsShowOnHover     = true;
     private static final java.util.LinkedHashMap<Integer,Integer> slotBindings = new java.util.LinkedHashMap<>();
 
     // ── Profit tracker ───────────────────────────────────────────────────────────
@@ -141,6 +140,10 @@ public class PhantomConfig {
     private static float   chestValueHudX         = 0.3f;
     private static float   chestValueHudY         = 0.3f;
     private static float   chestValueHudScale     = 1.0f;
+
+    private static float   chestTrackerHudX       = 0.556f;
+    private static float   chestTrackerHudY       = 0.958f;
+    private static float   chestTrackerHudScale   = 1.0f;
 
     public static boolean         isProfitTrackerEnabled()    { return profitTrackerEnabled; }
     public static boolean         isProfitTrackerForced()     { return profitTrackerForced; }
@@ -192,6 +195,13 @@ public class PhantomConfig {
     public static void setChestValueHudY(float v)         { chestValueHudY    = v; save(); }
     public static void setChestValueHudScale(float v)     { chestValueHudScale = v; save(); }
 
+    public static float getChestTrackerHudX()       { return chestTrackerHudX; }
+    public static float getChestTrackerHudY()       { return chestTrackerHudY; }
+    public static float getChestTrackerHudScale()   { return chestTrackerHudScale; }
+    public static void  setChestTrackerHudX(float v)     { chestTrackerHudX     = v; save(); }
+    public static void  setChestTrackerHudY(float v)     { chestTrackerHudY     = v; save(); }
+    public static void  setChestTrackerHudScale(float v) { chestTrackerHudScale = v; save(); }
+
     // ── Pearl ─────────────────────────────────────────────────────────────────
 
     private static boolean        pearlWaypointsEnabled = true;
@@ -223,6 +233,8 @@ public class PhantomConfig {
     private static int            beaconColNormal       = 0xFFFFFF;
     private static int            beaconColCorrect      = 0x00C800;
     private static float          buildBeaconAlpha      = 0.63f;
+    private static int            elleOutlineColor      = 0xFF0000;
+    private static int            elleBeaconColor       = 0x00FFFF;
     private static String         kuudraApiKey               = "";
     private static boolean        blockSlot9Enabled          = false;
     private static boolean        blockAtomsplitEnabled      = false;
@@ -236,6 +248,7 @@ public class PhantomConfig {
     private static boolean        elleHighlightEnabled       = false;
     private static boolean        elleHighlightBeaconEnabled = true;
     private static boolean        rendDamageEnabled          = false;
+    private static boolean        rendPullAttributionEnabled = true;
     private static boolean        rendTrackerEnabled         = false;
     private static boolean        backboneProgressBarEnabled = false;
     private static boolean        backboneProgressBarOutsideKuudraEnabled = false;
@@ -261,6 +274,7 @@ public class PhantomConfig {
     private static boolean        preventPlacingPlayerHeadsEnabled      = false;
     private static boolean        preventPlacingPlayerHeadsExceptGarden = true;
     private static boolean        preventPlacingWeaponsEnabled          = false;
+    private static boolean        blockBossPhaseJumpEnabled             = false;
     private static boolean        blockCloseItemEnabled                 = false;
     private static boolean        supplyGiantHitboxEnabled              = false;
     private static boolean        giantHitboxEnabled                    = false;
@@ -476,14 +490,15 @@ public class PhantomConfig {
     public static boolean isAutoUpdatesEnabled()      { return autoUpdatesEnabled; }
     public static boolean isDeveloperFeaturesEnabled() { return developerFeaturesEnabled; }
     public static boolean isTentacleDbLoggingEnabled() { return developerFeaturesEnabled && tentacleDbLoggingEnabled; }
+    public static boolean isTentacleHighlightEnabled() { return developerFeaturesEnabled && tentacleHighlightEnabled; }
     public static UiTheme  getUiTheme() { return uiTheme; }
     public static float    getUiGuiScale() { return uiGuiScale; }
     public static boolean  isUiTransparencyEnabled() { return uiTransparencyEnabled; }
     public static boolean isAutoSprintEnabled()       { return autoSprintEnabled; }
     public static boolean isSlotBindsEnabled()        { return slotBindsEnabled; }
     public static int     getSlotBindSetKey()          { return slotBindSetKey; }
-    public static int     getSlotBindShowKey()         { return slotBindShowKey; }
-    public static void    setSlotBindShowKey(int v)    { slotBindShowKey = v; save(); }
+    public static boolean isSlotBindsShowOnHover()     { return slotBindsShowOnHover; }
+    public static void    setSlotBindsShowOnHover(boolean v) { slotBindsShowOnHover = v; save(); }
     public static java.util.LinkedHashMap<Integer,Integer> getSlotBindings() { return slotBindings; }
     public static void    setSlotBindSetKey(int v)    { slotBindSetKey = v; save(); }
 
@@ -518,6 +533,8 @@ public class PhantomConfig {
     public static int            getBeaconColNormal()      { return beaconColNormal; }
     public static int            getBeaconColCorrect()     { return beaconColCorrect; }
     public static float          getBuildBeaconAlpha()     { return buildBeaconAlpha; }
+    public static int            getElleOutlineColor()     { return elleOutlineColor; }
+    public static int            getElleBeaconColor()      { return elleBeaconColor; }
     public static String         getKuudraApiKey()         { return kuudraApiKey; }
     public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
     public static boolean        isBlockAtomsplitEnabled() { return blockAtomsplitEnabled; }
@@ -531,6 +548,7 @@ public class PhantomConfig {
     public static boolean        isElleHighlightEnabled()        { return elleHighlightEnabled; }
     public static boolean        isElleHighlightBeaconEnabled()  { return elleHighlightBeaconEnabled; }
     public static boolean        isRendDamageEnabled()           { return rendDamageEnabled; }
+    public static boolean        isRendPullAttributionEnabled()  { return rendPullAttributionEnabled; }
     public static boolean        isRendTrackerEnabled()          { return rendTrackerEnabled; }
     public static boolean        isBackboneProgressBarEnabled()   { return backboneProgressBarEnabled; }
     public static boolean        isBackboneProgressBarOutsideKuudraEnabled() { return backboneProgressBarOutsideKuudraEnabled; }
@@ -556,6 +574,7 @@ public class PhantomConfig {
     public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return preventPlacingPlayerHeadsEnabled; }
     public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return preventPlacingPlayerHeadsExceptGarden; }
     public static boolean        isPreventPlacingWeaponsEnabled()          { return preventPlacingWeaponsEnabled; }
+    public static boolean        isBlockBossPhaseJumpEnabled()             { return blockBossPhaseJumpEnabled; }
     public static boolean        isBlockCloseItemEnabled()                 { return blockCloseItemEnabled; }
     public static boolean        isSupplyGiantHitboxEnabled()              { return supplyGiantHitboxEnabled; }
     public static boolean        isGiantHitboxEnabled()                    { return giantHitboxEnabled; }
@@ -627,6 +646,20 @@ public class PhantomConfig {
     public static int getTotalRunCount(int tier) {
         if (tier < 1 || tier > 5) return 0;
         return totalRunCount[tier];
+    }
+
+    // Total timed runs across all tiers — deliberately separate from the profit tracker's own
+    // "total runs" (every committed chest), since not every committed run has a recorded time.
+    public static int getTotalTimedRuns() {
+        int n = 0;
+        for (int t = 1; t <= 5; t++) n += totalRunCount[t];
+        return n;
+    }
+
+    public static double getTotalTimedSeconds() {
+        double s = 0;
+        for (int t = 1; t <= 5; t++) s += totalRunTimeSum[t];
+        return s;
     }
 
     public static int getTotalAverageHighestTier() {
@@ -732,6 +765,7 @@ public class PhantomConfig {
     public static void setAutoUpdatesEnabled(boolean v)     { autoUpdatesEnabled = v;      save(); }
     public static void setDeveloperFeaturesEnabled(boolean v) { developerFeaturesEnabled = v; save(); }
     public static void setTentacleDbLoggingEnabled(boolean v) { tentacleDbLoggingEnabled = v; save(); }
+    public static void setTentacleHighlightEnabled(boolean v) { tentacleHighlightEnabled = v; save(); }
     public static void setUiTheme(UiTheme v) { uiTheme = v; save(); }
     public static void setUiGuiScale(float v) { uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
     public static void setUiTransparencyEnabled(boolean v) { uiTransparencyEnabled = v; save(); }
@@ -770,6 +804,8 @@ public class PhantomConfig {
     public static void setBeaconColNormal(int v)             { beaconColNormal = v & 0xFFFFFF;  save(); }
     public static void setBeaconColCorrect(int v)            { beaconColCorrect = v & 0xFFFFFF; save(); }
     public static void setBuildBeaconAlpha(float v)          { buildBeaconAlpha = clamp01(v);   save(); }
+    public static void setElleOutlineColor(int v)            { elleOutlineColor = v & 0xFFFFFF; save(); }
+    public static void setElleBeaconColor(int v)             { elleBeaconColor = v & 0xFFFFFF;  save(); }
     public static void setKuudraApiKey(String v)             { kuudraApiKey = v == null ? "" : v.trim(); save(); }
     public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
     public static void setBlockAtomsplitEnabled(boolean v)   { blockAtomsplitEnabled = v;    save(); }
@@ -783,6 +819,7 @@ public class PhantomConfig {
     public static void setElleHighlightEnabled(boolean v)        { elleHighlightEnabled = v;          save(); }
     public static void setElleHighlightBeaconEnabled(boolean v)  { elleHighlightBeaconEnabled = v;    save(); }
     public static void setRendDamageEnabled(boolean v)           { rendDamageEnabled = v;             save(); }
+    public static void setRendPullAttributionEnabled(boolean v)  { rendPullAttributionEnabled = v;    save(); }
     public static void setRendTrackerEnabled(boolean v)          { rendTrackerEnabled = v;            save(); }
     public static void setBackboneProgressBarEnabled(boolean v)   { backboneProgressBarEnabled = v;    save(); }
     public static void setBackboneProgressBarOutsideKuudraEnabled(boolean v) { backboneProgressBarOutsideKuudraEnabled = v; save(); }
@@ -808,6 +845,7 @@ public class PhantomConfig {
     public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { preventPlacingPlayerHeadsEnabled = v;      save(); }
     public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { preventPlacingPlayerHeadsExceptGarden = v; save(); }
     public static void setPreventPlacingWeaponsEnabled(boolean v)          { preventPlacingWeaponsEnabled = v;          save(); }
+    public static void setBlockBossPhaseJumpEnabled(boolean v)             { blockBossPhaseJumpEnabled = v;             save(); }
     public static void setBlockCloseItemEnabled(boolean v)                 { blockCloseItemEnabled = v;                 save(); }
     public static void setSupplyGiantHitboxEnabled(boolean v)              { supplyGiantHitboxEnabled = v;              save(); }
     public static void setGiantHitboxEnabled(boolean v)                    { giantHitboxEnabled = v;                    save(); }
@@ -1058,6 +1096,7 @@ public class PhantomConfig {
             autoUpdatesEnabled      = d.autoUpdatesEnabled;
             developerFeaturesEnabled = d.developerFeaturesEnabled;
             tentacleDbLoggingEnabled = d.tentacleDbLoggingEnabled;
+            tentacleHighlightEnabled = d.tentacleHighlightEnabled;
             uiTheme = d.uiTheme != null
                     ? safeEnum(UiTheme.class, d.uiTheme, UiTheme.DARK)
                     : (d.uiDarkMode ? UiTheme.DARK : UiTheme.LIGHT);
@@ -1066,7 +1105,7 @@ public class PhantomConfig {
             autoSprintEnabled       = d.autoSprintEnabled;
             slotBindsEnabled        = d.slotBindsEnabled;
             slotBindSetKey          = d.slotBindSetKey;
-            slotBindShowKey         = d.slotBindShowKey;
+            slotBindsShowOnHover    = d.slotBindsShowOnHover;
             slotBindings.clear();
             if (d.slotBindPairs != null) {
                 for (int[] pair : d.slotBindPairs)
@@ -1102,6 +1141,8 @@ public class PhantomConfig {
             beaconColNormal       = d.beaconColNormal  & 0xFFFFFF;
             beaconColCorrect      = d.beaconColCorrect & 0xFFFFFF;
             buildBeaconAlpha      = clamp01(d.buildBeaconAlpha);
+            elleOutlineColor      = d.elleOutlineColor & 0xFFFFFF;
+            elleBeaconColor       = d.elleBeaconColor  & 0xFFFFFF;
             kuudraApiKey               = d.kuudraApiKey != null ? d.kuudraApiKey : "";
             blockSlot9Enabled          = d.blockSlot9Enabled;
             blockAtomsplitEnabled      = d.blockAtomsplitEnabled;
@@ -1117,6 +1158,7 @@ public class PhantomConfig {
             elleHighlightEnabled       = d.elleHighlightEnabled;
             elleHighlightBeaconEnabled = d.elleHighlightBeaconEnabled;
             rendDamageEnabled          = d.rendDamageEnabled;
+            rendPullAttributionEnabled = d.rendPullAttributionEnabled;
             rendTrackerEnabled         = d.rendTrackerEnabled;
             backboneProgressBarEnabled = d.backboneProgressBarEnabled;
             backboneProgressBarOutsideKuudraEnabled = d.backboneProgressBarOutsideKuudraEnabled;
@@ -1143,6 +1185,7 @@ public class PhantomConfig {
             preventPlacingPlayerHeadsEnabled      = d.preventPlacingPlayerHeadsEnabled;
             preventPlacingPlayerHeadsExceptGarden = d.preventPlacingPlayerHeadsExceptGarden;
             preventPlacingWeaponsEnabled          = d.preventPlacingWeaponsEnabled;
+            blockBossPhaseJumpEnabled             = d.blockBossPhaseJumpEnabled;
             blockCloseItemEnabled                 = d.blockCloseItemEnabled;
             supplyGiantHitboxEnabled              = d.supplyGiantHitboxEnabled;
             giantHitboxEnabled                    = d.giantHitboxEnabled;
@@ -1303,6 +1346,9 @@ public class PhantomConfig {
             chestValueHudX        = d.chestValueHudX;
             chestValueHudY        = d.chestValueHudY;
             chestValueHudScale    = d.chestValueHudScale;
+            chestTrackerHudX      = d.chestTrackerHudX;
+            chestTrackerHudY      = d.chestTrackerHudY;
+            chestTrackerHudScale  = d.chestTrackerHudScale;
 
             itemCustomizationEnabled = d.itemCustomizationEnabled;
             ItemCustomization.loadFrom(d.itemCategorySettings, d.itemCustomCategories);
@@ -1368,6 +1414,7 @@ public class PhantomConfig {
         d.autoUpdatesEnabled      = autoUpdatesEnabled;
         d.developerFeaturesEnabled = developerFeaturesEnabled;
         d.tentacleDbLoggingEnabled = tentacleDbLoggingEnabled;
+        d.tentacleHighlightEnabled = tentacleHighlightEnabled;
         d.uiTheme = uiTheme.name();
         d.uiDarkMode = uiTheme != UiTheme.DARK ? false : true;
         d.uiTransparencyEnabled = uiTransparencyEnabled;
@@ -1375,7 +1422,7 @@ public class PhantomConfig {
         d.autoSprintEnabled       = autoSprintEnabled;
         d.slotBindsEnabled        = slotBindsEnabled;
         d.slotBindSetKey          = slotBindSetKey;
-        d.slotBindShowKey         = slotBindShowKey;
+        d.slotBindsShowOnHover    = slotBindsShowOnHover;
         d.slotBindPairs           = slotBindings.entrySet().stream()
                 .map(e -> new int[]{e.getKey(), e.getValue()})
                 .toArray(int[][]::new);
@@ -1409,6 +1456,8 @@ public class PhantomConfig {
         d.beaconColNormal       = beaconColNormal;
         d.beaconColCorrect      = beaconColCorrect;
         d.buildBeaconAlpha      = buildBeaconAlpha;
+        d.elleOutlineColor      = elleOutlineColor;
+        d.elleBeaconColor       = elleBeaconColor;
         d.kuudraApiKey               = kuudraApiKey;
         d.blockSlot9Enabled          = blockSlot9Enabled;
         d.blockAtomsplitEnabled      = blockAtomsplitEnabled;
@@ -1422,6 +1471,7 @@ public class PhantomConfig {
         d.elleHighlightEnabled       = elleHighlightEnabled;
         d.elleHighlightBeaconEnabled = elleHighlightBeaconEnabled;
         d.rendDamageEnabled          = rendDamageEnabled;
+        d.rendPullAttributionEnabled = rendPullAttributionEnabled;
         d.rendTrackerEnabled         = rendTrackerEnabled;
         d.backboneProgressBarEnabled = backboneProgressBarEnabled;
         d.backboneProgressBarOutsideKuudraEnabled = backboneProgressBarOutsideKuudraEnabled;
@@ -1447,6 +1497,7 @@ public class PhantomConfig {
         d.preventPlacingPlayerHeadsEnabled      = preventPlacingPlayerHeadsEnabled;
         d.preventPlacingPlayerHeadsExceptGarden = preventPlacingPlayerHeadsExceptGarden;
         d.preventPlacingWeaponsEnabled          = preventPlacingWeaponsEnabled;
+        d.blockBossPhaseJumpEnabled             = blockBossPhaseJumpEnabled;
         d.blockCloseItemEnabled                 = blockCloseItemEnabled;
         d.supplyGiantHitboxEnabled              = supplyGiantHitboxEnabled;
         d.giantHitboxEnabled                    = giantHitboxEnabled;
@@ -1583,6 +1634,9 @@ public class PhantomConfig {
         d.chestValueHudX        = chestValueHudX;
         d.chestValueHudY        = chestValueHudY;
         d.chestValueHudScale    = chestValueHudScale;
+        d.chestTrackerHudX      = chestTrackerHudX;
+        d.chestTrackerHudY      = chestTrackerHudY;
+        d.chestTrackerHudScale  = chestTrackerHudScale;
 
         d.itemCustomizationEnabled = itemCustomizationEnabled;
         d.itemCategorySettings     = ItemCustomization.serialiseBuiltin();
@@ -1802,6 +1856,7 @@ public class PhantomConfig {
         boolean autoUpdatesEnabled      = true;
         boolean developerFeaturesEnabled = false;
         boolean tentacleDbLoggingEnabled = false;
+        boolean tentacleHighlightEnabled = false;
         boolean uiDarkMode = true;
         String  uiTheme = null;
         boolean uiTransparencyEnabled = true;
@@ -1809,7 +1864,7 @@ public class PhantomConfig {
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
         int     slotBindSetKey          = -1;
-        int     slotBindShowKey         = -1;
+        boolean slotBindsShowOnHover    = true;
         int[][] slotBindPairs           = new int[0][];
 
         boolean pearlWaypointsEnabled = true;
@@ -1841,6 +1896,8 @@ public class PhantomConfig {
         int     beaconColNormal       = 0xFFFFFF;
         int     beaconColCorrect      = 0x00C800;
         float   buildBeaconAlpha      = 0.63f;
+        int     elleOutlineColor      = 0xFF0000;
+        int     elleBeaconColor       = 0x00FFFF;
         String  kuudraApiKey               = "";
         boolean blockSlot9Enabled          = false;
         boolean blockAtomsplitEnabled      = false;
@@ -1854,6 +1911,7 @@ public class PhantomConfig {
         boolean elleHighlightEnabled       = false;
         boolean elleHighlightBeaconEnabled = true;
         boolean rendDamageEnabled          = false;
+        boolean rendPullAttributionEnabled = true;
         boolean rendTrackerEnabled         = false;
         boolean backboneProgressBarEnabled = false;
         boolean backboneProgressBarOutsideKuudraEnabled = false;
@@ -1879,6 +1937,7 @@ public class PhantomConfig {
         boolean preventPlacingPlayerHeadsEnabled      = false;
         boolean preventPlacingPlayerHeadsExceptGarden = true;
         boolean preventPlacingWeaponsEnabled          = false;
+        boolean blockBossPhaseJumpEnabled             = false;
         boolean blockCloseItemEnabled                 = false;
         boolean supplyGiantHitboxEnabled              = false;
         boolean giantHitboxEnabled                    = false;
@@ -2008,6 +2067,10 @@ public class PhantomConfig {
         float   chestValueHudX         = 0.3f;
         float   chestValueHudY         = 0.3f;
         float   chestValueHudScale     = 1.0f;
+
+        float   chestTrackerHudX       = 0.556f;
+        float   chestTrackerHudY       = 0.958f;
+        float   chestTrackerHudScale   = 1.0f;
 
         boolean   splitTimerEnabled  = true;
         boolean   supplyTimesEnabled = true;

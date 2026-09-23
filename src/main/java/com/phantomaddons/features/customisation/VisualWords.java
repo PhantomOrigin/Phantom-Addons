@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.HudEditorScreen;
 import com.phantomaddons.PhantomScreen;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -38,8 +37,7 @@ public final class VisualWords {
     }
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path PATH = FabricLoader.getInstance()
-            .getConfigDir().resolve("phantomaddons_visualwords.json");
+    private static final Path PATH = com.phantomaddons.utils.PhantomPaths.resolve("phantomaddons_visualwords.json");
 
     private static boolean enabled = false;
     private static final List<Rule> RULES = new ArrayList<>();

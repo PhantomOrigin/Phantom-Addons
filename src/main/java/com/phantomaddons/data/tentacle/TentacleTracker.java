@@ -27,7 +27,7 @@ public final class TentacleTracker {
     private static final double MAX_TRACK_DISTANCE = 40.0; // blocks from player; noise filter
     private static final double CLUSTER_RADIUS = 1.5; // horizontal blocks: segments of one chain stack close together
     private static final double INSTANCE_REUSE_RADIUS = 3.0; // horizontal blocks: reattach fresh segments to a recently-live instance at ~same spot
-    private static final long DESPAWN_GRACE_TICKS = 3; // render-list flicker tolerance before a segment is considered gone
+    private static final long DESPAWN_GRACE_TICKS = 20; // render-list flicker tolerance before a segment is considered gone — entitiesForRendering() can drop an entity for longer than a few ticks (camera turns, frustum culling) without it having actually despawned
     private static final long INSTANCE_RETIRE_TICKS = 100; // ~5s with no live segments before a chain is considered fully retracted
     private static final long SAMPLE_INTERVAL_TICKS = 4;
 
@@ -35,16 +35,18 @@ public final class TentacleTracker {
         long segmentId;
         long instanceId;
         long lastSeenTick;
-        long lastSampleTick = -1;
         Vec3 lastPos;
-        double lastSpeed = 0.0;
+        boolean isAnchor;
     }
 
     private static final class InstanceState {
         long instanceId;
+        long zoneId;
         long lastLiveTick;
+        long lastAnchorSampleTick = -1;
         double baseX, baseZ;
         int maxChainSize = 0;
+        UUID anchorUuid;
         final Set<UUID> liveSegments = new HashSet<>();
     }
 
@@ -75,17 +77,23 @@ public final class TentacleTracker {
         for (Entity e : client.level.entitiesForRendering()) {
             if (!(e instanceof AbstractCubeMob mob)) continue;
             if (mob.getSize() == KUUDRA_SIZE) continue;
+            if (hasVisibleName(mob)) continue; // ordinary magma cubes carry a real nametag; tentacle segments don't
             if (mob.distanceToSqr(client.player) > MAX_TRACK_DISTANCE * MAX_TRACK_DISTANCE) continue;
 
             UUID uuid = mob.getUUID();
             SegmentState seg = segmentsByUuid.get(uuid);
             if (seg != null) {
-                Vec3 newPos = mob.position();
-                if (seg.lastPos != null) seg.lastSpeed = seg.lastPos.distanceTo(newPos);
-                seg.lastPos = newPos;
+                seg.lastPos = mob.position();
                 seg.lastSeenTick = tick;
                 InstanceState inst = instancesById.get(seg.instanceId);
-                if (inst != null) inst.lastLiveTick = tick;
+                if (inst != null) {
+                    inst.lastLiveTick = tick;
+                    if (mob.isInvisible() && inst.anchorUuid == null) {
+                        inst.anchorUuid = uuid;
+                        seg.isAnchor = true;
+                        GameplayDatabase.update("UPDATE tentacle_segments SET is_anchor = 1 WHERE segment_id = ?", seg.segmentId);
+                    }
+                }
             } else {
                 unknown.add(mob);
             }
@@ -93,7 +101,7 @@ public final class TentacleTracker {
 
         refreshInstanceBases(tick);
         assignUnknown(unknown, runId, tick);
-        maybeSample(tick);
+        sampleAnchors(tick);
         expireStaleSegments(tick);
         retireStaleInstances(tick);
     }
@@ -101,6 +109,16 @@ public final class TentacleTracker {
     private static void refreshInstanceBases(long tick) {
         for (InstanceState inst : instancesById.values()) {
             if (inst.lastLiveTick != tick) continue;
+
+            if (inst.anchorUuid != null) {
+                SegmentState anchor = segmentsByUuid.get(inst.anchorUuid);
+                if (anchor != null && anchor.lastPos != null) {
+                    inst.baseX = anchor.lastPos.x;
+                    inst.baseZ = anchor.lastPos.z;
+                    continue;
+                }
+            }
+
             Vec3 basePos = null;
             for (UUID uuid : inst.liveSegments) {
                 SegmentState seg = segmentsByUuid.get(uuid);
@@ -118,23 +136,33 @@ public final class TentacleTracker {
         List<List<Entity>> clusters = new ArrayList<>();
         for (Entity e : unknown) {
             Vec3 pos = e.position();
-            List<Entity> target = null;
+            List<List<Entity>> matches = new ArrayList<>();
             for (List<Entity> cluster : clusters) {
                 for (Entity member : cluster) {
-                    if (horizontalDist(member.position(), pos) <= CLUSTER_RADIUS) { target = cluster; break; }
+                    if (horizontalDist(member.position(), pos) <= CLUSTER_RADIUS) { matches.add(cluster); break; }
                 }
-                if (target != null) break;
             }
-            if (target == null) {
-                target = new ArrayList<>();
-                clusters.add(target);
+            if (matches.isEmpty()) {
+                List<Entity> fresh = new ArrayList<>();
+                fresh.add(e);
+                clusters.add(fresh);
+            } else {
+                List<Entity> target = matches.get(0);
+                target.add(e);
+                for (int i = 1; i < matches.size(); i++) {
+                    target.addAll(matches.get(i));
+                    clusters.remove(matches.get(i));
+                }
             }
-            target.add(e);
         }
 
         for (List<Entity> cluster : clusters) {
+            Entity anchorEntity = null;
+            for (Entity e : cluster) {
+                if (e instanceof AbstractCubeMob mob && mob.isInvisible()) { anchorEntity = e; break; }
+            }
             cluster.sort(Comparator.comparingDouble(en -> en.position().y));
-            Vec3 basePos = cluster.get(0).position();
+            Vec3 basePos = anchorEntity != null ? anchorEntity.position() : cluster.get(0).position();
             double bx = basePos.x, by = basePos.y, bz = basePos.z;
 
             InstanceState instance = findReusableInstance(bx, bz);
@@ -146,6 +174,7 @@ public final class TentacleTracker {
                         runId, zoneId, tick, GameplayDatabase.now(), bx, by, bz);
                 instance = new InstanceState();
                 instance.instanceId = instanceId;
+                instance.zoneId = zoneId;
                 instance.baseX = bx;
                 instance.baseZ = bz;
                 instancesById.put(instanceId, instance);
@@ -154,17 +183,31 @@ public final class TentacleTracker {
 
             int rank = 0;
             for (Entity e : cluster) {
-                long segmentId = GameplayDatabase.insert(
-                        "INSERT INTO tentacle_segments (instance_id, entity_uuid, entity_type, chain_position, first_seen_tick) " +
-                                "VALUES (?, ?, ?, ?, ?)",
-                        instance.instanceId, e.getUUID().toString(), e.getClass().getSimpleName(), rank++, tick);
+                boolean isAnchor = e == anchorEntity;
+                String uuidStr = e.getUUID().toString();
+                int chainPos = rank++;
+
+                Long existingSegmentId = findExistingSegmentId(instance.instanceId, uuidStr);
+                long segmentId;
+                if (existingSegmentId != null) {
+                    segmentId = existingSegmentId;
+                    GameplayDatabase.update("UPDATE tentacle_segments SET despawned = 0, is_anchor = ? WHERE segment_id = ?",
+                            isAnchor ? 1 : 0, segmentId);
+                } else {
+                    segmentId = GameplayDatabase.insert(
+                            "INSERT INTO tentacle_segments (instance_id, entity_uuid, entity_type, chain_position, first_seen_tick, is_anchor) " +
+                                    "VALUES (?, ?, ?, ?, ?, ?)",
+                            instance.instanceId, uuidStr, e.getClass().getSimpleName(), chainPos, tick, isAnchor ? 1 : 0);
+                }
                 SegmentState seg = new SegmentState();
                 seg.segmentId = segmentId;
                 seg.instanceId = instance.instanceId;
                 seg.lastSeenTick = tick;
                 seg.lastPos = e.position();
+                seg.isAnchor = isAnchor;
                 segmentsByUuid.put(e.getUUID(), seg);
                 instance.liveSegments.add(e.getUUID());
+                if (isAnchor && instance.anchorUuid == null) instance.anchorUuid = e.getUUID();
             }
             if (instance.liveSegments.size() > instance.maxChainSize) {
                 instance.maxChainSize = instance.liveSegments.size();
@@ -172,6 +215,13 @@ public final class TentacleTracker {
                         instance.maxChainSize, instance.instanceId);
             }
         }
+    }
+
+    private static Long findExistingSegmentId(long instanceId, String entityUuid) {
+        List<Long> rows = GameplayDatabase.query(
+                "SELECT segment_id FROM tentacle_segments WHERE instance_id = ? AND entity_uuid = ?",
+                rs -> rs.getLong("segment_id"), instanceId, entityUuid);
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     private static InstanceState findReusableInstance(double x, double z) {
@@ -185,16 +235,18 @@ public final class TentacleTracker {
         return best;
     }
 
-    private static void maybeSample(long tick) {
-        for (SegmentState seg : segmentsByUuid.values()) {
-            if (seg.lastSeenTick != tick) continue;
-            if (seg.lastSampleTick >= 0 && tick - seg.lastSampleTick < SAMPLE_INTERVAL_TICKS) continue;
-            seg.lastSampleTick = tick;
-            InstanceState inst = instancesById.get(seg.instanceId);
-            int chainSize = inst != null ? inst.liveSegments.size() : 1;
+    private static void sampleAnchors(long tick) {
+        for (InstanceState inst : instancesById.values()) {
+            if (inst.lastLiveTick != tick || inst.anchorUuid == null) continue;
+            if (inst.lastAnchorSampleTick >= 0 && tick - inst.lastAnchorSampleTick < SAMPLE_INTERVAL_TICKS) continue;
+
+            SegmentState anchor = segmentsByUuid.get(inst.anchorUuid);
+            if (anchor == null || anchor.lastPos == null) continue;
+
+            inst.lastAnchorSampleTick = tick;
             GameplayDatabase.insert(
-                    "INSERT INTO tentacle_samples (segment_id, tick, sampled_at, x, y, z, speed, chain_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    seg.segmentId, tick, GameplayDatabase.now(), seg.lastPos.x, seg.lastPos.y, seg.lastPos.z, seg.lastSpeed, chainSize);
+                    "INSERT INTO tentacle_anchor_samples (instance_id, tick, sampled_at, x, y, z, chain_size) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    inst.instanceId, tick, GameplayDatabase.now(), anchor.lastPos.x, anchor.lastPos.y, anchor.lastPos.z, inst.liveSegments.size());
         }
     }
 
@@ -208,7 +260,10 @@ public final class TentacleTracker {
             GameplayDatabase.update("UPDATE tentacle_segments SET last_seen_tick = ?, despawned = 1 WHERE segment_id = ?",
                     seg.lastSeenTick, seg.segmentId);
             InstanceState inst = instancesById.get(seg.instanceId);
-            if (inst != null) inst.liveSegments.remove(e.getKey());
+            if (inst != null) {
+                inst.liveSegments.remove(e.getKey());
+                if (e.getKey().equals(inst.anchorUuid)) inst.anchorUuid = null;
+            }
             it.remove();
         }
     }
@@ -226,31 +281,26 @@ public final class TentacleTracker {
         }
     }
 
+    private static boolean hasVisibleName(Entity e) {
+        return e.hasCustomName() && e.getCustomName() != null && !e.getCustomName().getString().isBlank();
+    }
+
     private static double horizontalDist(Vec3 a, Vec3 b) {
         double dx = a.x - b.x, dz = a.z - b.z;
         return Math.sqrt(dx * dx + dz * dz);
     }
 
-    // ── Snapshot API for the grab/approach tracker ──────────────────────────────
+    // ── Snapshot API for the grab tracker ───────────────────────────────────────
 
-    public record TentacleSnapshot(long instanceId, Vec3 topPos, double avgSpeed, int chainSize) {}
+    public record TentacleSnapshot(long instanceId, Vec3 anchorPos, int chainSize) {}
 
     public static List<TentacleSnapshot> getLiveInstances() {
         List<TentacleSnapshot> out = new ArrayList<>();
         for (InstanceState inst : instancesById.values()) {
-            if (inst.liveSegments.isEmpty()) continue;
-            Vec3 top = null;
-            double speedSum = 0;
-            int count = 0;
-            for (UUID uuid : inst.liveSegments) {
-                SegmentState seg = segmentsByUuid.get(uuid);
-                if (seg == null || seg.lastPos == null) continue;
-                if (top == null || seg.lastPos.y > top.y) top = seg.lastPos;
-                speedSum += seg.lastSpeed;
-                count++;
-            }
-            if (top == null) continue;
-            out.add(new TentacleSnapshot(inst.instanceId, top, count > 0 ? speedSum / count : 0, inst.liveSegments.size()));
+            if (inst.anchorUuid == null) continue;
+            SegmentState anchor = segmentsByUuid.get(inst.anchorUuid);
+            if (anchor == null || anchor.lastPos == null) continue;
+            out.add(new TentacleSnapshot(inst.instanceId, anchor.lastPos, inst.liveSegments.size()));
         }
         return out;
     }
@@ -258,5 +308,12 @@ public final class TentacleTracker {
     public static Long findInstanceForEntity(UUID entityUuid) {
         SegmentState seg = segmentsByUuid.get(entityUuid);
         return seg != null ? seg.instanceId : null;
+    }
+
+    public static Long getZoneIdForEntity(UUID entityUuid) {
+        SegmentState seg = segmentsByUuid.get(entityUuid);
+        if (seg == null) return null;
+        InstanceState inst = instancesById.get(seg.instanceId);
+        return inst != null ? inst.zoneId : null;
     }
 }

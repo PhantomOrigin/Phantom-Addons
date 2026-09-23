@@ -41,6 +41,7 @@ public final class RendPullAttribution {
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (!PhantomConfig.isRendPullAttributionEnabled()) return;
             if (client.level == null || client.player == null) return;
             if (!isActiveKuudraFight()) return;
 
@@ -55,6 +56,7 @@ public final class RendPullAttribution {
     }
 
     public static void onPlayerSwing(Player player, ItemStack mainHand) {
+        if (!PhantomConfig.isRendPullAttributionEnabled()) return;
         if (!isActiveKuudraFight()) return;
 
         UUID uuid = player.getUUID();

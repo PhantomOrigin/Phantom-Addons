@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.HudEditorScreen;
 import com.phantomaddons.PhantomScreen;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -32,8 +31,7 @@ public final class ShitterList {
     }
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path PATH = FabricLoader.getInstance()
-            .getConfigDir().resolve("phantomaddons_shitterlist.json");
+    private static final Path PATH = com.phantomaddons.utils.PhantomPaths.resolve("phantomaddons_shitterlist.json");
 
     private static final int  DARK_RED       = 0x8B0000;
     private static final long KICK_DELAY_MS  = 200;

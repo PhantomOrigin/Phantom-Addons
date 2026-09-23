@@ -51,6 +51,31 @@ public final class PhantomCommands {
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private static final String[] PARTY_CMD_HELP = {
+            "§b!w§7, §b!warp §7— party warp",
+            "§b!allinv§7, §b!allinvite §7— toggle all invite",
+            "§b!inv§7, §b!invite §7<player> — invite a player to the party",
+            "§b!pt§7, §b!ptme §7[player] — transfer party leadership (to you if no player given)",
+            "§b!t1§7 - §b!t5 §7— join that Kuudra tier's instance",
+            "§b!k§7, §b!kick §7<player> — kick a player from the party",
+            "§b!chests §7— announce this session's chest completion count",
+            "§b!dt §7— temporarily disable Auto Requeue",
+            "§b!undt §7— re-enable Auto Requeue",
+            "§b!pb §7— announce your PB for the highest tier played",
+            "§b!avg§7, §b!average §7[session|total|party] — announce average run time",
+    };
+
+    private static final String[] SLASH_CMD_HELP = {
+            "§e/phantom pb §7— show all your Kuudra tier PBs",
+            "§e/phantom chests §7— show current chest count",
+            "§e/phantom tracker reset §7— reset the all-time profit tracker",
+            "§e/phantom shitter add|remove|list §7<name> — manage the shitter list",
+            "§e/phantom setpb §7[tier] [data] — open the PB editor / set a PB manually",
+            "§e/phantom phase §7<0-10>|reset — §c[dev]§7 dev tool to view features for a specific phase",
+            "§e/t1 §7- §e/t5 §7— join that Kuudra tier's instance directly",
+            "§e/kuudra §7[name] — open the Kuudra profile viewer",
+    };
+
     private PhantomCommands() {}
 
     private static boolean requireDeveloperFeatures(com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> ctx) {
@@ -80,6 +105,9 @@ public final class PhantomCommands {
                                                     return 1;
                                                 })
                                         )
+                                )
+                                .then(ClientCommands.literal("help")
+                                        .executes(ctx -> { showHelp(); return 1; })
                                 )
                                 .then(ClientCommands.literal("pb")
                                         .executes(ctx -> { showAllPbs(); return 1; })
@@ -138,19 +166,6 @@ public final class PhantomCommands {
                                         .then(ClientCommands.literal("list")
                                                 .executes(ctx -> { shitterList(); return 1; })
                                         )
-                                )
-                                .then(ClientCommands.literal("fishdebug")
-                                        .executes(ctx -> {
-                                            if (!requireDeveloperFeatures(ctx)) return 0;
-                                            boolean on = com.phantomaddons.features.miscskyblock.FishingHookDebugTracker.toggle();
-                                            Minecraft mc = Minecraft.getInstance();
-                                            if (mc.player != null) {
-                                                mc.player.sendSystemMessage(Component.literal(
-                                                        PREFIX + "§eFish hook debug " + (on ? "§aenabled" : "§cdisabled") + "§r"
-                                                                + (on ? " §7(tracks the real server hook's position every tick)" : "")));
-                                            }
-                                            return 1;
-                                        })
                                 )
                                 .then(ClientCommands.literal("setpb")
                                         .executes(ctx -> { openPbEditor(5); return 1; })
@@ -259,6 +274,20 @@ public final class PhantomCommands {
 
         mc.player.sendSystemMessage(Component.literal(PREFIX + String.format(
                 "§eChests: §f%d/60 §7(%d:%d) §7| §f%d runs left", total, success, fail, left)));
+    }
+
+    private static void showHelp() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        mc.player.sendSystemMessage(Component.literal(PREFIX + "§eParty Chat Commands §7(typed by any party member; requires Party Commands enabled):"));
+        for (String line : PARTY_CMD_HELP) {
+            mc.player.sendSystemMessage(Component.literal(PREFIX + line));
+        }
+        mc.player.sendSystemMessage(Component.literal(PREFIX + "§eSlash Commands:"));
+        for (String line : SLASH_CMD_HELP) {
+            mc.player.sendSystemMessage(Component.literal(PREFIX + line));
+        }
     }
 
     private static void showAllPbs() {
