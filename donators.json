@@ -1,0 +1,20 @@
+{
+  "donators": [
+    {
+      "name": "PhantomOrigin",
+      "replace": "&l{name}",
+      "colors": ["#ff5555", "#ffaa00", "#ffff55", "#55ff55", "#55ffff", "#5555ff", "#ff55ff"],
+      "length": 100,
+      "direction": "right",
+      "speed": 4
+    },
+    {
+      "name": "Bot_McYT",
+      "replace": "&l{name}",
+      "colors": ["#ff2020", "#400000", "#000000"],
+      "length": 25,
+      "direction": "right",
+      "speed": 4
+    }
+  ]
+}
