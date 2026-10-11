@@ -116,6 +116,12 @@ public final class KuudraPhaseEvents {
                 }
 
                 case KILL, DEATH -> {
+                    if (phase == KuudraPhaseTracker.Phase.KILL) {
+                        PearlWaypointManager.reset();
+                        SupplyWaypointTracker.onBallistaSuppliesStart();
+                        NoPreAnnounce.reset();
+                        com.phantomaddons.features.supplies.CratePriority.reset();
+                    }
                     if (KuudraSplitTimer.getActiveSplit() != KuudraSplitTimer.Split.BOSS) {
                         KuudraSplitTimer.onBossStart();
                     }
@@ -139,11 +145,15 @@ public final class KuudraPhaseEvents {
                     RoleManager.reset();
                     FastDpsWarning.onDpsEnd();
                     PearlWaypointManager.reset();
+                    SupplyWaypointTracker.reset();
                     KuudraSplitTimer.onEndStart();
                     com.phantomaddons.DataFeatures.onRunEnd();
                 }
 
-                case NONE -> com.phantomaddons.DataFeatures.onRunAbandoned();
+                case NONE -> {
+                    SupplyWaypointTracker.reset();
+                    com.phantomaddons.DataFeatures.onRunAbandoned();
+                }
 
                 default -> {}
             }

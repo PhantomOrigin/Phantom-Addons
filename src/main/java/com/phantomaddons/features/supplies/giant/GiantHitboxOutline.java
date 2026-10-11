@@ -41,7 +41,7 @@ public final class GiantHitboxOutline {
     public static void tick(Minecraft client) {
         if (!PhantomConfig.isGiantHitboxEnabled()) { outlined = Collections.emptySet(); return; }
         if (client.level == null || client.player == null) { outlined = Collections.emptySet(); return; }
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) { outlined = Collections.emptySet(); return; }
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) { outlined = Collections.emptySet(); return; }
         if (!PearlWaypointManager.isTrackingPickup()) { outlined = Collections.emptySet(); return; }
 
         Vec3 playerPos = client.player.position();

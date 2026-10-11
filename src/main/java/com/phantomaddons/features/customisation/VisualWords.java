@@ -3,7 +3,7 @@ package com.phantomaddons.features.customisation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.HudEditorScreen;
-import com.phantomaddons.PhantomScreen;
+import com.phantomaddons.gui.PhantomScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -26,6 +26,11 @@ public final class VisualWords {
     public static final class Rule {
         public String input       = "";
         public String replacement = "";
+        public String gradient          = "";
+        public int    gradientLength    = 0;
+        public String gradientDirection = "right";
+        public float  gradientSpeed     = NameGradient.DEFAULT_SPEED;
+        transient StyledText styled;
         transient Pattern pattern;
         transient String  replQuoted;
         transient String  inputLower;
@@ -68,8 +73,19 @@ public final class VisualWords {
         } catch (Exception ignored) {}
     }
 
+    private static boolean gradientsAvailable() { return com.phantomaddons.DataFeatures.isPresent(); }
+
+    private static boolean anyGradient = false;
+
     private static void recompile() {
+        anyGradient = false;
         for (Rule r : RULES) {
+            int[] cols = gradientsAvailable() && r.gradient != null ? NameGradient.parseColors(r.gradient) : new int[0];
+            boolean codes = gradientsAvailable() && r.replacement != null && r.replacement.matches("(?s).*&([0-9a-fA-Fk-oK-OrR]|#[0-9a-fA-F]{6}).*");
+            r.styled = cols.length == 0 && !codes ? null
+                    : new StyledText(r.replacement, cols.length == 0 ? null
+                            : new NameGradient(cols, r.gradientLength, r.gradientDirection, r.gradientSpeed));
+            anyGradient |= r.styled != null;
             if (r.input == null) r.input = "";
             if (r.replacement == null) r.replacement = "";
             r.inputLower = r.input.toLowerCase();
@@ -123,7 +139,45 @@ public final class VisualWords {
 
     private static final ThreadLocal<StringBuilder> SCRATCH = ThreadLocal.withInitial(StringBuilder::new);
 
-    public static FormattedCharSequence apply(FormattedCharSequence in) {
+    private record Seg(String text, StyledText styled) {}
+
+    private static boolean appendWithGradients(MutableComponent root, String orig, Style style, float y, double seconds) {
+        List<Seg> segs = new ArrayList<>();
+        segs.add(new Seg(orig, null));
+        for (Rule r : RULES) {
+            if (r.styled == null || r.pattern == null) continue;
+            List<Seg> next = new ArrayList<>();
+            for (Seg s : segs) {
+                if (s.styled != null) { next.add(s); continue; }
+                Matcher m = r.pattern.matcher(s.text);
+                int last = 0;
+                while (m.find()) {
+                    if (m.start() > last) next.add(new Seg(s.text.substring(last, m.start()), null));
+                    next.add(new Seg(m.group(), r.styled));
+                    last = m.end();
+                }
+                if (last < s.text.length()) next.add(new Seg(s.text.substring(last), null));
+            }
+            segs = next;
+        }
+        boolean changed = false;
+        for (Seg s : segs) {
+            if (s.styled == null) {
+                String rep = applyRules(s.text);
+                if (!rep.equals(s.text)) changed = true;
+                root.append(Component.literal(rep).setStyle(style));
+                continue;
+            }
+            changed = true;
+            s.styled.emit(s.text, style, y, seconds,
+                    (cp, st) -> root.append(Component.literal(new String(Character.toChars(cp))).setStyle(st)));
+        }
+        return changed;
+    }
+
+    public static FormattedCharSequence apply(FormattedCharSequence in) { return apply(in, 0f); }
+
+    public static FormattedCharSequence apply(FormattedCharSequence in, float y) {
         if (in == null || !active()) return in;
         try {
             StringBuilder scratch = SCRATCH.get();
@@ -148,8 +202,10 @@ public final class VisualWords {
 
             boolean changed = false;
             MutableComponent root = Component.empty();
+            double seconds = System.nanoTime() / 1e9;
             for (int i = 0; i < runs.size(); i++) {
                 String orig = runs.get(i).toString();
+                if (anyGradient) { changed |= appendWithGradients(root, orig, styles.get(i), y, seconds); continue; }
                 String rep  = applyRules(orig);
                 if (!rep.equals(orig)) changed = true;
                 root.append(Component.literal(rep).setStyle(styles.get(i)));

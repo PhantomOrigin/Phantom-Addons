@@ -18,6 +18,7 @@ public final class KuudraTierDetector {
     private static boolean inKuudraHollow   = false;
     private static boolean inDungeonHub     = false;
     private static boolean inForgottenSkull = false;
+    private static boolean inDungeon        = false;
 
     private static boolean registered = false;
 
@@ -38,6 +39,7 @@ public final class KuudraTierDetector {
         inKuudraHollow   = false;
         inDungeonHub     = false;
         inForgottenSkull = false;
+        inDungeon        = false;
         kuudraTier       = 0;
 
         for (String line : getSidebarLines(client)) {
@@ -46,6 +48,7 @@ public final class KuudraTierDetector {
             if (clean.contains("Kuudra's Hollow")) inKuudraHollow   = true;
             if (clean.contains("Dungeon Hub"))     inDungeonHub     = true;
             if (clean.contains("Forgotten Skull")) inForgottenSkull = true;
+            if (clean.contains("The Catacombs (")) inDungeon        = true;
 
             if (inKuudraHollow && kuudraTier == 0) {
                 if      (clean.contains("(T1)")) kuudraTier = 1;
@@ -83,6 +86,7 @@ public final class KuudraTierDetector {
     public static boolean isInKuudraHollow()     { return inKuudraHollow; }
     public static boolean isInDungeonHub()        { return inDungeonHub; }
     public static boolean isInForgottenSkull()    { return inForgottenSkull; }
+    public static boolean isInDungeon()           { return inDungeon; }
 
     public static void reset() {
         kuudraTier       = 0;
@@ -90,5 +94,6 @@ public final class KuudraTierDetector {
         inKuudraHollow   = false;
         inDungeonHub     = false;
         inForgottenSkull = false;
+        inDungeon        = false;
     }
 }

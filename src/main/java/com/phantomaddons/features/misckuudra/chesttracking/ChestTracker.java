@@ -70,7 +70,7 @@ public final class ChestTracker {
     private static void handleMessage(String raw) {
         String clean = TextUtil.stripColor(raw).trim();
 
-        if (clean.contains(WIN)) {
+        if (TextUtil.hasNoColon(clean) && clean.contains(WIN)) {
             success++;
             total = Math.min(total + 1, 60);
             save();

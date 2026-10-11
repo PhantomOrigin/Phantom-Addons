@@ -53,7 +53,7 @@ public final class SupplyGiantHitbox {
     public static void tick(Minecraft client) {
         if (!PhantomConfig.isSupplyGiantHitboxEnabled()
                 || client.level == null || client.player == null
-                || KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES
+                || !KuudraPhaseTracker.isSupplyCollectionPhase()
                 || !PearlWaypointManager.isTrackingPickup()) {
             warningGiant = null;
             showWarning  = false;

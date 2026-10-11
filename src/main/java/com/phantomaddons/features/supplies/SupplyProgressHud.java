@@ -38,7 +38,11 @@ public final class SupplyProgressHud {
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (!active) return;
-            long now     = System.currentTimeMillis();
+            if (!com.phantomaddons.PhantomConfig.isSupplySpawnCountdownEnabled()) {
+                NotificationHud.clearCountdown();
+                return;
+            }
+            long now    = System.currentTimeMillis();
             double elapsed = (now - phaseStartMs) / 1000.0;
             if (elapsed < SPAWN_DELAY_S) {
                 double remaining = SPAWN_DELAY_S - elapsed;

@@ -47,7 +47,7 @@ public final class SupplyRenderHelper {
         boolean showPearlHitbox = PhantomConfig.isSupplyPearlHitboxEnabled();
 
         if (!showHitbox && !showRodRadius && !showPearlHitbox) return;
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;

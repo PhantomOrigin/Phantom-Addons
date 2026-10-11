@@ -37,7 +37,7 @@ public final class WaypointLines {
     }
 
     public static Vec3 getTarget(Player player) {
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return null;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return null;
 
         boolean picking = PearlWaypointManager.isTrackingPickup();
 
@@ -48,7 +48,9 @@ public final class WaypointLines {
 
         if (picking && PhantomConfig.isWaypointLinesFlatPearlsEnabled()) {
             Vec3 spawn = new Vec3(player.getX(), player.getY() + 1.6, player.getZ());
-            return getPearlTarget(player.position(), spawn);
+            return KuudraPhaseTracker.isBallistaSupplyPhase()
+                    ? getBallistaPearlTarget(spawn)
+                    : getPearlTarget(player.position(), spawn);
         }
 
         return null;
@@ -111,6 +113,14 @@ public final class WaypointLines {
         if (etherAllowed) {
             Vec3 etherTarget = EtherwarpWaypointManager.getPriorityTargetPos(playerPos);
             if (etherTarget != null) return etherTarget;
+        }
+        return null;
+    }
+
+    private static Vec3 getBallistaPearlTarget(Vec3 spawn) {
+        if (pearlsThrownThisPickup > 0) return null;
+        for (PearlWaypointState s : PearlWaypointManager.getSnapshot()) {
+            if (s.isMyTarget() && s.centerAimDir() != null) return aimWaypoint(spawn, s.centerAimDir());
         }
         return null;
     }

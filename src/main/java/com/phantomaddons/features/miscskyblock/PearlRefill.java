@@ -1,5 +1,6 @@
 package com.phantomaddons.features.miscskyblock;
 
+import com.phantomaddons.utils.KuudraTierDetector;
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.phase.KuudraPhaseTracker;
@@ -75,7 +76,8 @@ public final class PearlRefill {
     public static void tick(Minecraft mc) {
         if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
         if (!PhantomConfig.isPearlRefillEnabled()) return;
-        if (!PhantomConfig.isPearlRefillOutsideKuudraEnabled() && !KuudraPhaseTracker.isRunActive()) return;
+        boolean inDungeons = PhantomConfig.isPearlRefillDungeonsEnabled() && KuudraTierDetector.isInDungeon();
+        if (!PhantomConfig.isPearlRefillOutsideKuudraEnabled() && !KuudraPhaseTracker.isRunActive() && !inDungeons) return;
         if (mc.player == null || mc.getConnection() == null) return;
 
         trackManualInteract(mc);

@@ -4,6 +4,8 @@ import net.minecraft.world.phys.Vec3;
 
 public record PearlWaypointState(
         PearlLocation target,
+        Vec3          landingPos,
+        Vec3          aimPos,
         Vec3          centerAimDir,
         Vec3[]        cornerAimDirs,
         boolean       isSky,

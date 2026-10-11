@@ -2,6 +2,7 @@ package com.phantomaddons.features.supplies;
 
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.NotificationHud;
+import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
@@ -61,6 +62,7 @@ public final class CratePriority {
     }
 
     public static void onChat(String clean) {
+        if (KuudraPhaseTracker.isBallistaSupplyPhase()) return;
         Matcher m = NO_PRE_PARTY.matcher(clean);
         if (!m.find()) return;
 
@@ -75,6 +77,11 @@ public final class CratePriority {
         if (!PhantomConfig.isCratePriorityEnabled()) return;
 
         int playerSpot = SupplyWaypointTracker.playerSpotIdx;
+        if (playerSpot < 0) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) return;
+            playerSpot = SupplyWaypointTracker.closestSpotIndex(mc.player.position());
+        }
         if (playerSpot < 0 || playerSpot >= SPOT_TO_PLAYER_PRE.length) return;
         String playerPre = SPOT_TO_PLAYER_PRE[playerSpot];
         if (playerPre == null) return;

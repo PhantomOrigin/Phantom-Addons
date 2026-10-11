@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 public final class KuudraProfileFetcher {
 
-    private static final String WORKER_BASE_URL = "https://kuudra-profile-worker-v2.phantomaddons.workers.dev/profile";
     private static final long CACHE_MS = 5 * 60 * 1000L;
 
     private static final Map<String, CacheEntry> CACHE = new HashMap<>();
@@ -45,7 +44,7 @@ public final class KuudraProfileFetcher {
             KuudraProfileData data = new KuudraProfileData(playerName);
             try {
                 String encoded = URLEncoder.encode(playerName, StandardCharsets.UTF_8);
-                String json = get(WORKER_BASE_URL + "?name=" + encoded);
+                String json = com.phantomaddons.utils.PhantomApi.authed(base -> get(base + "/profile?name=" + encoded));
                 JsonObject root = JsonParser.parseString(json).getAsJsonObject();
                 if (root.has("error")) {
                     throw new IllegalStateException(root.get("error").getAsString());
@@ -155,14 +154,23 @@ public final class KuudraProfileFetcher {
         HttpURLConnection conn = (HttpURLConnection) URI.create(urlStr).toURL().openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "PhantomAddons-KuudraProfile");
-        conn.setRequestProperty("X-Phantom-Key", com.phantomaddons.PhantomConfig.getKuudraApiKey());
+        com.phantomaddons.utils.PhantomApi.authorize(conn);
         conn.setConnectTimeout(8_000);
         conn.setReadTimeout(15_000);
         int code = conn.getResponseCode();
         InputStream is = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String body = br.lines().collect(Collectors.joining());
-            if (code >= 400) throw new IOException("HTTP " + code + ": " + body);
+            if (code >= 400) {
+                String reason = null, errorCode = null;
+                try {
+                    JsonObject parsed = JsonParser.parseString(body).getAsJsonObject();
+                    if (parsed.has("error")) reason = parsed.get("error").getAsString();
+                    if (parsed.has("code")) errorCode = parsed.get("code").getAsString();
+                } catch (RuntimeException ignored) {}
+                throw new com.phantomaddons.utils.PhantomApi.HttpException(code,
+                        reason != null ? reason : "HTTP " + code + ": " + body, errorCode);
+            }
             return body;
         }
     }

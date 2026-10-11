@@ -37,6 +37,10 @@ public final class ProfitHud {
     public static boolean shouldShow() {
         if (!PhantomConfig.isProfitTrackerEnabled()) return false;
         if (PhantomConfig.isProfitTrackerForced()) return true;
+        var screen = Minecraft.getInstance().gui.screen();
+        if (screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> cs
+                && (CroesusListener.isKuudraChest(cs) || CroesusListener.isCroesusMain(cs))) return true;
+        if (screen != null && !(screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)) return false;
         boolean inValidArea = KuudraTierDetector.isInKuudraHollow()
                            || KuudraTierDetector.isInDungeonHub()
                            || KuudraTierDetector.isInForgottenSkull();

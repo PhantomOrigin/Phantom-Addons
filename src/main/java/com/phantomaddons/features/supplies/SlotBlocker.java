@@ -28,7 +28,7 @@ public final class SlotBlocker {
 
     public static boolean shouldBlock(Player player) {
         if (!PhantomConfig.isBlockSlot9Enabled()) return false;
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return false;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return false;
         ItemStack slotStack = player.getInventory().getItem(BLOCKED_SLOT);
         if (slotStack.isEmpty()) return false;
         return slotStack == player.getItemInHand(InteractionHand.MAIN_HAND);

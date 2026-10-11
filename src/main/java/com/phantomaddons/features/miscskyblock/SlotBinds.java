@@ -1,7 +1,7 @@
 package com.phantomaddons.features.miscskyblock;
 
 import com.phantomaddons.PhantomConfig;
-import com.phantomaddons.PhantomScreen;
+import com.phantomaddons.gui.PhantomScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;

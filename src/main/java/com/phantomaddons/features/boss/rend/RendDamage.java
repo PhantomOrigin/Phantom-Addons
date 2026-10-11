@@ -120,6 +120,7 @@ public final class RendDamage {
         if (lastHp <= 0) return; // nothing left unaccounted for, or already finalized
 
         String msg = KuudraPhaseTracker.stripFormatting(raw);
+        if (!com.phantomaddons.utils.TextUtil.hasNoColon(msg)) return;
         if (!(msg.contains("KUUDRA DOWN") || msg.contains("DEFEAT KUUDRA")
                 || msg.contains("KUUDRA HAS BEEN DEFEATED"))) return;
 

@@ -7,6 +7,9 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class HudEditorScreen extends Screen {
 
     private static final int N = 12;
@@ -16,15 +19,6 @@ public class HudEditorScreen extends Screen {
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
         "Profit Tracker", "Chest Value", "Backbone Progress Bar", "Chest Tracker"
     };
-    
-    private static final int[] BASE_W = { 60, 110, 180, 290, 100, 160, 110, 165, 158, 140, 235, 0 };
-    private static final int[] BASE_H = { 30,  32,  95,  36,  22,  38,  18,  22, 135,  90,  28, 0 };
-
-    private static final float[] PREVIEW_SCALE = { 3.0f, 3.5f, 1.0f, 4.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f, 1.0f };
-
-    private static final boolean[] IS_X_CENTERED = { true, true, false, true, true, true, true, true, false, false, true, false };
-    private static final boolean[] IS_Y_CENTERED = { false, false, false, false, false, true, true, false, false, false, false, false };
-
     private final float[] px = new float[N];
     private final float[] py = new float[N];
     private final float[] ps = new float[N];
@@ -34,18 +28,6 @@ public class HudEditorScreen extends Screen {
     private float  dragStartPx, dragStartPy;
 
     private final Screen parent;
-
-    private static final String[] SPLIT_LINES = {
-        "§b§lKuudra Splits:",
-        "§bSupplies:§r 23.45s  §a[-1.2]",
-        "§bBuild:§r 45.67s  §c[+2.1]",
-        "§bEaten:§r 12.34s",
-        "§bStun:§r 5.67s",
-        "§bDPS:§r 8.90s",
-        "§bBoss:§r 34.56s",
-        "§bOverall:§r 2:10s",
-        "§bPredicted:§r 2:08s"
-    };
 
     public HudEditorScreen(Screen parent) {
         super(Component.literal("HUD Layout Editor"));
@@ -169,46 +151,42 @@ public class HudEditorScreen extends Screen {
         ctx.text(font, Component.literal("§bHUD Layout Editor"), 8, 8, 0xFFFFFFFF);
         ctx.text(font, Component.literal("§7Drag to reposition  •  Scroll to resize  •  ESC to save & exit"), 8, 18, 0xFFAAAAAA);
 
-        int hoveredIdx = -1;
+        int hoveredIdx = draggingIdx >= 0 ? -1 : elementAt(mx, my);
         for (int i = 0; i < N; i++) {
-            int bx = boxX(i), by = boxY(i), bw = boxW(i), bh = boxH(i);
-            boolean hover    = mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
-            boolean dragging = (i == draggingIdx);
-            if (hover) hoveredIdx = i;
+            int[] b = box(i);
+            int bx = b[0], by = b[1], bw = b[2], bh = b[3];
+            boolean active = i == draggingIdx || i == hoveredIdx;
 
-            int bg     = dragging ? 0x900055FF : (hover ? 0x600055FF : 0x40003388);
-            int border = (dragging || hover)    ? 0xFF00BBFF : 0xFF003E99;
+            int bg     = i == draggingIdx ? 0x900055FF : (i == hoveredIdx ? 0x600055FF : 0x40003388);
+            int border = active ? 0xFF00BBFF : 0xFF003E99;
 
             ctx.fill(bx, by, bx + bw, by + bh, bg);
-            ctx.fill(bx,          by,          bx + bw,     by + 1,      border);
-            ctx.fill(bx,          by + bh - 1, bx + bw,     by + bh,     border);
-            ctx.fill(bx,          by,          bx + 1,      by + bh,     border);
-            ctx.fill(bx + bw - 1, by,          bx + bw,     by + bh,     border);
+            ctx.fill(bx - 1,  by - 1,  bx + bw + 1, by,          border);
+            ctx.fill(bx - 1,  by + bh, bx + bw + 1, by + bh + 1, border);
+            ctx.fill(bx - 1,  by,      bx,          by + bh,     border);
+            ctx.fill(bx + bw, by,      bx + bw + 1, by + bh,     border);
 
-            renderPreview(ctx, i, bx, by, bw, bh);
-
-            String scaleStr = String.format("%.1f×", ps[i]);
-            ctx.text(font, Component.literal("§7" + scaleStr), bx + 2, by + bh - font.lineHeight - 1, 0xFFFFFFFF);
+            renderPreview(ctx, i);
         }
 
-        if (hoveredIdx >= 0) {
-            int i  = hoveredIdx;
-            int bx = boxX(i), by = boxY(i), bw = boxW(i);
-            String label = LABELS[i];
+        int labelIdx = draggingIdx >= 0 ? draggingIdx : hoveredIdx;
+        if (labelIdx >= 0) {
+            int i  = labelIdx;
+            int[] b = box(i);
+            String label = LABELS[i] + String.format("  §7%.1f×", ps[i]);
             int tw = font.width(label);
-            int tx = bx + (bw - tw) / 2;
-            int ty = by - font.lineHeight - 5;
-            if (ty < 4) ty = boxY(i) + boxH(i) + 5;
+            int tx = b[0] + (b[2] - tw) / 2;
+            int ty = b[1] - font.lineHeight - 6;
+            if (ty < 4) ty = b[1] + b[3] + 6;
 
             ctx.fill(tx - 3, ty - 2, tx + tw + 3, ty + font.lineHeight + 2, 0xFF111111);
             ctx.fill(tx - 3, ty + font.lineHeight + 2, tx + tw + 3, ty + font.lineHeight + 3, 0xFF00AAFF);
             ctx.text(font, Component.literal(label), tx, ty, 0xFFFFFFFF);
         }
 
-        int coordIdx = draggingIdx >= 0 ? draggingIdx : hoveredIdx;
-        if (coordIdx >= 0) {
-            float cx = (px[coordIdx] - 0.5f) * width;
-            float cy = (py[coordIdx] - 0.5f) * height;
+        if (labelIdx >= 0) {
+            float cx = (px[labelIdx] - 0.5f) * width;
+            float cy = (py[labelIdx] - 0.5f) * height;
             String coordStr = String.format("x: %+.0f  y: %+.0f", cx, cy);
             int cw = font.width(coordStr);
             int cx2 = (width - cw) / 2;
@@ -226,132 +204,161 @@ public class HudEditorScreen extends Screen {
         super.extractRenderState(ctx, mx, my, delta);
     }
 
-    private void renderPreview(GuiGraphicsExtractor ctx, int i, int bx, int by, int bw, int bh) {
-        var m = ctx.pose();
-        m.pushMatrix();
+    // ── Previews ──────────────────────────────────────────────────────────────
 
-        float s = PREVIEW_SCALE[i] * ps[i];
+    private record Line(int x, int y, String text) {}
 
-        switch (i) {
-            case 0 -> { // Mount Timer — real renderer only centers X, draws downward from the top
-                m.translate(bx + bw / 2f, by);
-                m.scale(s, s);
-                String txt = "182";
-                ctx.text(font, txt, -font.width(txt) / 2, 0, 0xFFFFFFFF, true);
-            }
-            case 1 -> { // Kuudra Direction — same top-anchored behaviour as Mount Timer
-                m.translate(bx + bw / 2f, by);
-                m.scale(s, s);
-                String txt = "RIGHT!";
-                ctx.text(font, txt, -font.width(txt) / 2, 0, 0xFFFFFFFF, true);
-            }
-            case 2 -> { // Split Timer
-                m.translate(bx + 2, by + 2);
-                m.scale(s, s);
-                int y = 0;
-                for (String line : SPLIT_LINES) {
-                    ctx.text(font, line, 0, y, 0xFFFFFFFF, true);
-                    y += 10;
-                }
-            }
-            case 3 -> { // Crate Pickup Progress ("Pearl Title") — top-anchored like the others
-                m.translate(bx + bw / 2f, by);
-                m.scale(s, s);
-                String txt = "§6[||||||||||||||||||||] §e75%";
-                ctx.text(font, txt, -font.width(txt) / 2, 0, 0xFFFFFFFF, true);
-            }
-            case 4 -> { // Build Progress
-                m.translate(bx + bw / 2f, by);
-                m.scale(s, s);
-                String h = "§e§lBuild Progress:";
-                String b = "Progress: 67%";
-                ctx.text(font, h, -font.width(h) / 2, 0, 0xFFFFFFFF, true);
-                ctx.text(font, b, -font.width(b) / 2, font.lineHeight + 2, 0xFFFFFFFF, true);
-            }
-            case 5 -> { // Notifications — one shared location for every countdown/alert text
-                m.translate(bx + bw / 2f, by + bh / 2f);
-                m.scale(s, s);
-                String txt = "§eNOTIFICATION";
-                ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
-            }
-            case 6 -> { // Crate Priority
-                m.translate(bx + bw / 2f, by + bh / 2f);
-                m.scale(s, s);
-                String txt = "§eGo Square!";
-                ctx.text(font, txt, -font.width(txt) / 2, -font.lineHeight / 2, 0xFFFFFFFF, true);
-            }
-            case 7 -> { // Kuudra HP — the real renderer's origin sits at the bar's top, with the
-                        // label drawn ABOVE it (negative y); box top must offset for that label height.
-                int labelH = font.lineHeight + 2;
-                m.translate(bx + bw / 2f, by + labelH);
-                m.scale(s, s);
-                String txt = "§cKuudra §f75.0%";
-                ctx.text(font, txt, -font.width(txt) / 2, -labelH, 0xFFFFFFFF, true);
-                int barW = 160;
-                ctx.fill(-barW / 2, 0, barW / 2, 8, 0xAA000000);
-                ctx.fill(-barW / 2, 0, barW / 4, 8, 0xFF44AA44);
-            }
-            case 8 -> { // Profit Tracker
-                m.translate(bx + 2, by + 2);
-                m.scale(s, s);
-                String[] lines = {
-                    "§6§lProfit Tracker §7(Session)",
-                    "§bTotal Gains:§r §f332M",
-                    "§7  Items: §f125M",
-                    "§7  Essence: §f172M",
-                    "§bTotal Expenses:§r §c-225M",
-                    "§7  Keys: §c-180M",
-                    "§7  Kismets: §c-45M",
-                    "§7  Wheel of Fate: §c-20M",
-                    "§bTotal Profit:§r §a107M",
-                    "§bTotal Runs:§r §f60",
-                    "§bProfit/Run:§r §f1.8M",
-                    "§bRuns/Hour:§r §f6.3",
-                    "§bProfit/Hour:§r §f11.3M"
-                };
-                int y = 0;
-                for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
-            }
-            case 9 -> { // Chest Value
-                m.translate(bx + 2, by + 2);
-                m.scale(s, s);
-                String[] lines = {
-                    "§6§lChest Value §7(T5)",
-                    "§bChest Value:§r §f50.0M",
-                    "§7  Items: §f35.0M",
-                    "§7  Essence: §f15.0M",
-                    "§bExpenses:§r §c-12.0M",
-                    "§7  Key: §c-10.0M",
-                    "§bChest Profit:§r §a38.0M"
-                };
-                int y = 0;
-                for (String line : lines) { ctx.text(font, line, 0, y, 0xFFFFFFFF, true); y += 10; }
-            }
-            case 10 -> { // Backbone Progress Bar — top-anchored like the others
-                m.translate(bx + bw / 2f, by);
-                m.scale(s, s);
-                String txt = "§8[§6||||||||||||§f||||||||§8] §b60%";
-                ctx.text(font, txt, -font.width(txt) / 2, 0, 0xFFFFFFFF, true);
-            }
-            case 11 -> {
-                m.translate(bx, by);
-                m.scale(s, s);
-                int cx = 0;
-                cx = previewSeg(ctx, cx, "12", 0xFFFFFF);
-                cx = previewSeg(ctx, cx, " (", 0xAAAAAA);
-                cx = previewSeg(ctx, cx, "5", 0x55FF55);
-                cx = previewSeg(ctx, cx, " / ", 0xAAAAAA);
-                cx = previewSeg(ctx, cx, "2", 0xFF5555);
-                previewSeg(ctx, cx, ")", 0xAAAAAA);
-            }
-        }
+    private record Element(boolean centered, boolean intAnchor, float baseScale, List<Line> lines, boolean hpBar) {}
 
-        m.popMatrix();
+    private static final int HP_BAR_W = 160, HP_BAR_H = 8;
+
+    private Element element(int i) {
+        int lh = font.lineHeight;
+        return switch (i) {
+            case 0  -> centered(3.0f, new Line(0, 0, "182"));
+            case 1  -> centered(3.5f, new Line(0, 0, "RIGHT!"));
+            case 2  -> leftAligned(stacked(0,
+                    "§b§lKuudra Splits:",
+                    "§bSupplies:§r 23.45s   §a[-1.2]§r",
+                    "§bBuild:§r 45.67s   §c[+2.1]§r",
+                    "§bEaten:§r 12.34s",
+                    "§bStun:§r 5.67s",
+                    "§bDPS:§r 8.90s",
+                    "§bBoss:§r 34.56s",
+                    "§bOverall:§r 2:10s",
+                    "§bPredicted:§r 2:08s"));
+            case 3  -> centered(4.0f, new Line(0, 0, "§6[||||||||||||||||||||] §e75%"));
+            case 4  -> centered(1.0f, new Line(0, 0, "§e§lBuild Progress:"), new Line(0, lh + 2, "Progress: 67%"));
+            case 5  -> centered(1.0f, new Line(0, -(lh + 2) / 2, "§eNOTIFICATION"));
+            case 6  -> centered(1.0f, new Line(0, -lh / 2, "§eGo Square!"));
+            case 7  -> kuudraHp();
+            case 8  -> profitTracker();
+            case 9  -> leftAligned(List.of(
+                    new Line(0,          0, "§6§lChest Value §7(T5)"),
+                    new Line(0,         10, "§bChest Value:§r §f50.0M§r"),
+                    new Line(INDENT,    20, "§7Items: §f35.0M§r"),
+                    new Line(INDENT,    30, "§7Essence: §f15.0M§r"),
+                    new Line(0,         40, "§bExpenses:§r §c-12.0M§r"),
+                    new Line(INDENT,    50, "§7Key: §c-10.0M§r"),
+                    new Line(0,         60, "§bChest Profit:§r §a§f38.0M§r")));
+            case 10 -> centered(3.0f, new Line(0, 0, "§8[§6||||||||||||§f||||||||§8] §b60%"));
+            case 11 -> leftAligned(List.of(new Line(0, 0, "§f12§7 (§a5§7 / §c2§7)")));
+            default -> throw new IllegalArgumentException("No HUD element " + i);
+        };
     }
 
-    private int previewSeg(GuiGraphicsExtractor ctx, int x, String text, int color) {
-        ctx.text(font, text, x, 0, color | 0xFF000000, true);
-        return x + font.width(text);
+    private static final int INDENT = 8;
+
+    private static Element centered(float baseScale, Line... lines) {
+        return new Element(true, false, baseScale, List.of(lines), false);
+    }
+
+    private static Element leftAligned(List<Line> lines) {
+        return new Element(false, true, 1.0f, lines, false);
+    }
+
+    private static List<Line> stacked(int x, String... texts) {
+        List<Line> out = new ArrayList<>();
+        for (int i = 0; i < texts.length; i++) out.add(new Line(x, i * 10, texts[i]));
+        return out;
+    }
+
+    private Element kuudraHp() {
+        boolean hideBar = PhantomConfig.isKuudraHpHideBar();
+        String label = PhantomConfig.isKuudraHpShowRaw() ? "§f75,000 §7/ §f100,000" : "§f75.0%";
+        int labelY = hideBar ? -font.lineHeight / 2 : -font.lineHeight - 2;
+        return new Element(true, false, 1.0f, List.of(new Line(0, labelY, label)), !hideBar);
+    }
+
+    private Element profitTracker() {
+        List<Line> lines = new ArrayList<>(List.of(
+                new Line(0,       0, "§6§lProfit Tracker §7(Session)"),
+                new Line(0,      10, "§bTotal Gains:§r §f332.0M§r"),
+                new Line(INDENT, 20, "§7Items: §f125.0M§r"),
+                new Line(INDENT, 30, "§7Essence: §f172.0M§r"),
+                new Line(0,      40, "§bTotal Expenses:§r §c-225.0M§r"),
+                new Line(INDENT, 50, "§7Keys: §c-180.0M§r"),
+                new Line(INDENT, 60, "§7Kismets: §c-45.0M§r"),
+                new Line(INDENT, 70, "§7Wheel of Fate: §c-20.0M§r"),
+                new Line(0,      80, "§bTotal Profit:§r §a§f107.0M§r"),
+                new Line(0,      90, "§bTotal Runs:§r 60"),
+                new Line(0,     100, "§bProfit/Run:§r §f1.8M§r"),
+                new Line(0,     110, "§bRuns/Hour:§r §f6.3§r"),
+                new Line(0,     120, "§bProfit/Hour:§r §f11.3M§r")));
+        int rowY = 132, gap = 8;
+        int sesW = font.width("Session"), atW = font.width("All Time");
+        lines.add(new Line(0,                          rowY, "§n§fSession§r"));
+        lines.add(new Line(sesW + gap,                 rowY, "§7All Time"));
+        lines.add(new Line(sesW + gap + atW + gap,     rowY, "§cReset§r"));
+        return new Element(false, true, 1.0f, lines, false);
+    }
+
+    private int lineX(Element e, Line l) {
+        return e.centered() ? -font.width(l.text()) / 2 : l.x();
+    }
+
+    private int[] localBounds(Element e) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        for (Line l : e.lines()) {
+            int x = lineX(e, l);
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, l.y());
+            maxX = Math.max(maxX, x + font.width(l.text()));
+            maxY = Math.max(maxY, l.y() + font.lineHeight);
+        }
+        if (e.hpBar()) {
+            int half = HP_BAR_W / 2;
+            minX = Math.min(minX, -half - 1);
+            minY = Math.min(minY, -1);
+            maxX = Math.max(maxX, half + 1);
+            maxY = Math.max(maxY, HP_BAR_H + 1);
+        }
+        return new int[]{ minX, minY, maxX, maxY };
+    }
+
+    private float anchorX(int i, Element e) { float v = px[i] * width;  return e.intAnchor() ? (int) v : v; }
+    private float anchorY(int i, Element e) { float v = py[i] * height; return e.intAnchor() ? (int) v : v; }
+
+    private int[] box(int i) {
+        Element e = element(i);
+        int[] b = localBounds(e);
+        float s = e.baseScale() * ps[i];
+        float ax = anchorX(i, e), ay = anchorY(i, e);
+        int x0 = (int) Math.floor(ax + b[0] * s), y0 = (int) Math.floor(ay + b[1] * s);
+        int x1 = (int) Math.ceil(ax + b[2] * s),  y1 = (int) Math.ceil(ay + b[3] * s);
+        return new int[]{ x0, y0, x1 - x0, y1 - y0 };
+    }
+
+    private static final int MIN_HIT = 8;
+
+    private boolean hit(int[] b, double mx, double my) {
+        int padX = Math.max(0, (MIN_HIT - b[2]) / 2), padY = Math.max(0, (MIN_HIT - b[3]) / 2);
+        return mx >= b[0] - padX && mx <= b[0] + b[2] + padX && my >= b[1] - padY && my <= b[1] + b[3] + padY;
+    }
+
+    private int elementAt(double mx, double my) {
+        for (int i = 0; i < N; i++) if (hit(box(i), mx, my)) return i;
+        return -1;
+    }
+
+    private void renderPreview(GuiGraphicsExtractor ctx, int i) {
+        Element e = element(i);
+        float s = e.baseScale() * ps[i];
+        var m = ctx.pose();
+        m.pushMatrix();
+        m.translate(anchorX(i, e), anchorY(i, e));
+        m.scale(s, s);
+        if (e.hpBar()) {
+            int half = HP_BAR_W / 2;
+            ctx.fill(-half, 0, half, HP_BAR_H, 0xAA000000);
+            ctx.fill(-half, 0, -half + Math.round(HP_BAR_W * 0.75f), HP_BAR_H, 0xFF44AA44);
+            ctx.fill(-half - 1, -1,       half + 1, 0,            0xFF000000);
+            ctx.fill(-half - 1, HP_BAR_H, half + 1, HP_BAR_H + 1, 0xFF000000);
+            ctx.fill(-half - 1, -1,       -half,    HP_BAR_H + 1, 0xFF000000);
+            ctx.fill( half,     -1,       half + 1, HP_BAR_H + 1, 0xFF000000);
+        }
+        for (Line l : e.lines()) ctx.text(font, l.text(), lineX(e, l), l.y(), 0xFFFFFFFF, true);
+        m.popMatrix();
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────
@@ -368,16 +375,14 @@ public class HudEditorScreen extends Screen {
             return true;
         }
 
-        for (int i = 0; i < N; i++) {
-            int bx = boxX(i), by = boxY(i), bw = boxW(i), bh = boxH(i);
-            if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
-                draggingIdx = i;
-                dragStartMX = mx;
-                dragStartMY = my;
-                dragStartPx = px[i];
-                dragStartPy = py[i];
-                return true;
-            }
+        int i = elementAt(mx, my);
+        if (i >= 0) {
+            draggingIdx = i;
+            dragStartMX = mx;
+            dragStartMY = my;
+            dragStartPx = px[i];
+            dragStartPy = py[i];
+            return true;
         }
         draggingIdx = -1;
         return super.mouseClicked(click, isDoubleClick);
@@ -401,12 +406,10 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hScroll, double vScroll) {
-        for (int i = 0; i < N; i++) {
-            int bx = boxX(i), by = boxY(i), bw = boxW(i), bh = boxH(i);
-            if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
-                ps[i] = clampScale(ps[i] + (float)vScroll * 0.1f);
-                return true;
-            }
+        int i = elementAt(mx, my);
+        if (i >= 0) {
+            ps[i] = clampScale(ps[i] + (float)vScroll * 0.1f);
+            return true;
         }
         return super.mouseScrolled(mx, my, hScroll, vScroll);
     }
@@ -422,32 +425,6 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() { return false; }
-
-    // ── Box geometry ──────────────────────────────────────────────────────────
-
-    private static final String CHEST_TRACKER_PREVIEW_TEXT = "12 (5 / 2)";
-
-    private int boxW(int i) {
-        int base = i == 11 ? font.width(CHEST_TRACKER_PREVIEW_TEXT) : BASE_W[i];
-        return Math.max(10, (int)(base * ps[i]));
-    }
-    private int boxH(int i) {
-        int base = i == 11 ? font.lineHeight * 2 + 2 : BASE_H[i];
-        return Math.max(10, (int)(base * ps[i]));
-    }
-
-    private int boxX(int i) {
-        int bw = boxW(i);
-        return IS_X_CENTERED[i] ? (int)(px[i] * width)  - bw / 2 : (int)(px[i] * width);
-    }
-    private int boxY(int i) {
-        int bh = boxH(i);
-        if (i == 7) { // Kuudra HP: real origin is the bar's top, label sits above it
-            int labelH = Math.round((font.lineHeight + 2) * ps[i]);
-            return (int)(py[i] * height) - labelH;
-        }
-        return IS_Y_CENTERED[i] ? (int)(py[i] * height) - bh / 2 : (int)(py[i] * height);
-    }
 
     private void resetDefaults() {
         px[0] = 0.5f;   py[0] = 0.56f; ps[0] = 1.0f;

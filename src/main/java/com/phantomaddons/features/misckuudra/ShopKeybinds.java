@@ -3,7 +3,7 @@ package com.phantomaddons.features.misckuudra;
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.PhantomAddons;
-import com.phantomaddons.PhantomScreen;
+import com.phantomaddons.gui.PhantomScreen;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;

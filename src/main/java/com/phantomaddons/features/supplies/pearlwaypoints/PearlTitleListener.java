@@ -23,9 +23,7 @@ public final class PearlTitleListener {
 
     public static void onTitleText(String raw) {
 
-        if (KuudraPhaseTracker.getPhase()
-                != KuudraPhaseTracker.Phase.SUPPLIES)
-            return;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return;
 
         String clean = TextUtil.stripColor(raw).trim();
 
@@ -106,7 +104,7 @@ public final class PearlTitleListener {
     // ── Pearl title HUD support ───────────────────────────────────────────────
 
     public static boolean isMatchingTitle(String stripped) {
-        if (KuudraPhaseTracker.getPhase() != KuudraPhaseTracker.Phase.SUPPLIES) return false;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return false;
         return TextUtil.stripColor(stripped).trim().contains("[|");
     }
 

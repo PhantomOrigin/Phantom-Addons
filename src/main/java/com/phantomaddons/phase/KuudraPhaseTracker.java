@@ -45,8 +45,10 @@ public final class KuudraPhaseTracker {
         });
     }
 
+    private static final java.util.regex.Pattern FORMATTING_CODES = java.util.regex.Pattern.compile("§[0-9a-fk-or]");
+
     public static String stripFormatting(String msg) {
-        return msg.replaceAll("§[0-9a-fk-or]", "");
+        return FORMATTING_CODES.matcher(msg).replaceAll("");
     }
 
     private static void handle(String raw) {
@@ -58,28 +60,30 @@ public final class KuudraPhaseTracker {
             PhantomAddons.LOGGER.info("[PhaseTracker] msg='{}'", msg);
         }
 
+        boolean elle = com.phantomaddons.utils.TextUtil.isElleLine(msg);
+
         // ── Run reset ─────────────────────────────────────────────────────────────
-        if (msg.contains("Talk with me to begin")) {
+        if (elle && msg.contains("Talk with me to begin")) {
             runActive = false;
             setPhase(Phase.NONE);
             return;
         }
 
         // ── SUPPLIES ─────────────────────────────────────────────────────────────
-        if (msg.contains("I will go and fish up Kuudra")) {
+        if (elle && msg.contains("I will go and fish up Kuudra")) {
             runActive = true;
             setPhase(Phase.SUPPLIES);
             return;
         }
 
         // ── BUILD ─────────────────────────────────────────────────────────────────
-        if (msg.contains("Great work collecting my supplies")) {
+        if (elle && msg.contains("Great work collecting my supplies")) {
             setPhase(Phase.BUILD);
             return;
         }
 
         // ── EATEN / KILL (T1/T2) ─────────────────────────────────────────────────
-        if (msg.contains("The Ballista is finally ready")) {
+        if (elle && msg.contains("The Ballista is finally ready")) {
             int tier = KuudraTierDetector.getTier();
             setPhase((tier == 1 || tier == 2) ? Phase.KILL : Phase.EATEN);
             return;
@@ -100,7 +104,7 @@ public final class KuudraPhaseTracker {
         }
 
         // ── SKIP (T5) / DEATH (T1-T4) ────────────────────────────────────────────
-        if (msg.contains("SURELY THAT'S IT") || msg.contains("POW! SURELY")) {
+        if (elle && (msg.contains("SURELY THAT'S IT") || msg.contains("POW! SURELY"))) {
             runActive = true;
             int tier = KuudraTierDetector.getTier();
             if (tier >= 1 && tier <= 4) {
@@ -113,8 +117,9 @@ public final class KuudraPhaseTracker {
         }
 
         // ── END ───────────────────────────────────────────────────────────────────
-        if (msg.contains("KUUDRA DOWN") || msg.contains("DEFEAT KUUDRA")
-                || msg.contains("KUUDRA HAS BEEN DEFEATED")) {
+        if (com.phantomaddons.utils.TextUtil.hasNoColon(msg)
+                && (msg.contains("KUUDRA DOWN") || msg.contains("DEFEAT KUUDRA")
+                || msg.contains("KUUDRA HAS BEEN DEFEATED"))) {
             runActive = false;
             setPhase(Phase.END);
         }
@@ -165,6 +170,10 @@ public final class KuudraPhaseTracker {
         currentPhase = phase;
         KuudraPhaseEvents.onPhaseChanged(phase);
     }
+
+
+    public static boolean isBallistaSupplyPhase()   { return currentPhase == Phase.KILL; }
+    public static boolean isSupplyCollectionPhase() { return currentPhase == Phase.SUPPLIES || currentPhase == Phase.KILL; }
 
     public static Phase   getPhase()      { return currentPhase; }
     public static boolean is(Phase phase) { return currentPhase == phase; }

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.features.customisation.items.ItemCustomization;
 import com.phantomaddons.features.customisation.items.ItemTransformSettings;
+import com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate;
 import com.phantomaddons.utils.KuudraTierDetector;
 import net.minecraft.client.Minecraft;
 
@@ -11,6 +12,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,86 +28,6 @@ public class PhantomConfig {
     public enum KuudraTalisman { NONE, KIDNEY, LUNG, HEART }
     public enum UiTheme        { DARK, LIGHT }
 
-    // ── General ───────────────────────────────────────────────────────────────
-
-    private static RoleMode roleMode          = RoleMode.AUTO;
-    private static int      dpsValue          = 40;
-    private static int      stunValue         = 9;
-    private static int      dpsRefillAmount   = 10;
-    private static int      autoGfsDisableHpPercent = 40;
-    private static boolean  eatenTimerEnabled              = false;
-    private static boolean  eatenTimerSubtractPingEnabled  = false;
-    private static boolean  etherwarpLavaBlock = true;
-    private static boolean  etherwarpLavaBlockOnlyInKuudra = false;
-    private static boolean  pickoblockEnabled  = false;
-    private static boolean  hideElleDialogue   = false;
-    private static boolean  autoGfsEnabled     = true;
-
-    // ── Lava ──────────────────────────────────────────────────────────────────
-
-    private static boolean  lavaTweaksEnabled = true;
-    private static LavaMode lavaMode          = LavaMode.DEFAULT;
-    private static float    lavaOpacity       = 1.0f;
-    private static int      lavaColor         = 0xFFAA0000;
-    private static boolean  lavaAsWater       = false;
-    private static boolean  lavaColorOverride = false;
-
-    // ── Misc ──────────────────────────────────────────────────────────────────
-
-    private static boolean fastDpsWarning           = true;
-    private static boolean chestTrackerVisible      = true;
-    private static boolean soloDetectorEnabled      = true;
-    private static boolean cannonAutoClose          = false;
-    private static boolean kuudraDirectionEnabled   = false;
-    private static boolean tuxedoWarningEnabled     = true;
-    private static boolean boneTimingAssistEnabled  = false;
-    private static float   boneTimingAssistOffset   = 0f; // blocks; -3.00 (early) to +1.00 (late), Kuudra-hitbox only
-    private static boolean boneTimingHitboxOutlineEnabled = false;
-    private static boolean boneTimingHitboxOutlineFilled  = true;
-    private static int     boneTimingHitboxOutlineColor   = 0x00FFFF; // aqua
-    private static boolean boneTimingHitboxOutlineOnlyCurrentDirection = false;
-    private static boolean boneTimingHitboxHighlightInRange = false;
-    private static boolean shopKeybindsEnabled      = false;
-    private static int     shopMainKey              = 49;
-    private static int     shopCannonKey            = 50;
-    private static boolean middleClickShopGuiEnabled = false;
-    private static boolean explosionFilterEnabled   = false;
-    private static float   explosionHideRadius      = 0.3f;
-
-    // ── Auto Kick ─────────────────────────────────────────────────────────────
-
-    private static boolean autoKickEnabled       = false;
-    private static boolean profileViewerEnabled  = true;
-    private static int     akMinCatacombs        = -1;
-    private static int     akMinForaging         = -1;
-    private static int     akMinMagicalPower     = -1;
-    private static int     akMinInfernal         = -1;
-    private static int     akMinFiery            = -1;
-    private static int     akMinBurning          = -1;
-    private static int     akMinHot              = -1;
-    private static int     akMinBasic            = -1;
-    private static boolean akRequireRend         = false;
-    private static int     akMinGdragLevel       = -1;
-    private static float   explosionSizeMultiplier  = 0.33f;
-    private static boolean chestAnnouncerEnabled    = true;
-    private static boolean partyCmdsEnabled         = true;
-    private static boolean autoRequeueEnabled       = true;
-    private static boolean autoRequeueMessageEnabled = true;
-    private static boolean autoUpdatesEnabled       = true;
-    private static boolean developerFeaturesEnabled = false;
-    private static boolean tentacleDbLoggingEnabled = false;
-    private static boolean tentacleHighlightEnabled = false;
-    private static UiTheme uiTheme = UiTheme.DARK;
-    private static float   uiGuiScale = 1.0f;
-    private static boolean uiTransparencyEnabled = true;
-    private static boolean autoSprintEnabled        = false;
-    private static boolean slotBindsEnabled         = false;
-    private static int     slotBindSetKey           = -1;
-    private static boolean slotBindsShowOnHover     = true;
-    private static final java.util.LinkedHashMap<Integer,Integer> slotBindings = new java.util.LinkedHashMap<>();
-
-    // ── Profit tracker ───────────────────────────────────────────────────────────
-
     public enum KuudraPetRarity {
         COMMON, UNCOMMON, RARE, EPIC, LEGENDARY;
         public double bonusPerLevel() {
@@ -118,239 +40,18 @@ public class PhantomConfig {
         public double essenceMultiplier(int level) { return 1.0 + bonusPerLevel() * level; }
     }
 
-    private static boolean         profitTrackerForced    = false; // not saved — session-only
-    private static boolean         profitTrackerEnabled   = false;
-    private static boolean         profitShowDuringRun    = false;
-    private static boolean         profitArmorSalvage     = true;  // true = salvage, false = sell AH
-    private static boolean         profitFactionMage      = true;  // true = mage (mycelium), false = barbarian (red sand)
-    private static boolean         highlightUnopenedChestsEnabled  = true;
-    private static boolean         profitRerollCalc       = true;
-    private static boolean         blockExpensiveReroll   = true;
-    private static boolean         profitBazaarInstaSell  = true;  // sell items: instasell vs sell order
-    private static boolean         profitBazaarInstaBuy   = false; // buy items: instabuy vs buy order (false = buy order = cheaper)
-    private static float           profitHudX             = 0.01f;
-    private static float           profitHudY             = 0.5f;
-    private static float           profitHudScale         = 1.0f;
-    private static KuudraPetRarity kuudraPetRarity        = KuudraPetRarity.LEGENDARY;
-    private static int             kuudraPetLevel         = 100;
-    private static int             essenceOfCrimson       = 10;
-    private static int             echoOfEssence          = 10;
-
-    private static boolean chestValueGuiEnabled   = true;
-    private static float   chestValueHudX         = 0.3f;
-    private static float   chestValueHudY         = 0.3f;
-    private static float   chestValueHudScale     = 1.0f;
-
-    private static float   chestTrackerHudX       = 0.556f;
-    private static float   chestTrackerHudY       = 0.958f;
-    private static float   chestTrackerHudScale   = 1.0f;
-
-    public static boolean         isProfitTrackerEnabled()    { return profitTrackerEnabled; }
-    public static boolean         isProfitTrackerForced()     { return profitTrackerForced; }
-    public static boolean         toggleProfitTrackerForced() { return profitTrackerForced = !profitTrackerForced; }
-    public static boolean         isProfitShowDuringRun()     { return profitShowDuringRun; }
-    public static boolean         isProfitArmorSalvage()      { return profitArmorSalvage; }
-    public static boolean         isProfitFactionMage()       { return profitFactionMage; }
-    public static boolean         isHighlightUnopenedChestsEnabled()   { return highlightUnopenedChestsEnabled; }
-    public static boolean         isProfitRerollCalc()        { return profitRerollCalc; }
-    public static boolean         isBlockExpensiveRerollEnabled() { return blockExpensiveReroll; }
-    public static boolean         isProfitBazaarInstaSell()   { return profitBazaarInstaSell; }
-    public static boolean         isProfitBazaarInstaBuy()    { return profitBazaarInstaBuy; }
-    public static float           getProfitHudX()             { return profitHudX; }
-    public static float           getProfitHudY()             { return profitHudY; }
-    public static float           getProfitHudScale()         { return profitHudScale; }
-    public static KuudraPetRarity getKuudraPetRarity()        { return kuudraPetRarity; }
-    public static int             getKuudraPetLevel()         { return kuudraPetLevel; }
-    public static int             getEssenceOfCrimson()       { return essenceOfCrimson; }
-    public static int             getEchoOfEssence()          { return echoOfEssence; }
-    public static double          getKuudraPetEssenceMultiplier() {
-        double crimsonBonus = 0.01 * essenceOfCrimson * (1.0 + 0.03 * echoOfEssence);
-        return kuudraPetRarity.essenceMultiplier(kuudraPetLevel) * (1.0 + crimsonBonus);
-    }
-
-    public static void setProfitTrackerEnabled(boolean v)       { profitTrackerEnabled  = v; save(); }
-    public static void setProfitShowDuringRun(boolean v)        { profitShowDuringRun   = v; save(); }
-    public static void setProfitArmorSalvage(boolean v)         { profitArmorSalvage    = v; save(); }
-    public static void setProfitFactionMage(boolean v)          { profitFactionMage     = v; save(); }
-    public static void setHighlightUnopenedChestsEnabled(boolean v)      { highlightUnopenedChestsEnabled = v; save(); }
-    public static void setProfitRerollCalc(boolean v)           { profitRerollCalc      = v; save(); }
-    public static void setBlockExpensiveRerollEnabled(boolean v) { blockExpensiveReroll = v; save(); }
-    public static void setProfitBazaarInstaSell(boolean v)      { profitBazaarInstaSell = v; save(); }
-    public static void setProfitBazaarInstaBuy(boolean v)       { profitBazaarInstaBuy  = v; save(); }
-    public static void setProfitHudX(float v)                   { profitHudX    = v; save(); }
-    public static void setProfitHudY(float v)                   { profitHudY    = v; save(); }
-    public static void setProfitHudScale(float v)               { profitHudScale = v; save(); }
-    public static void setKuudraPetRarity(KuudraPetRarity v)    { kuudraPetRarity = v; save(); }
-    public static void setKuudraPetLevel(int v)                 { kuudraPetLevel = Math.clamp(v, 1, 100); save(); }
-    public static void setEssenceOfCrimson(int v)                { essenceOfCrimson = Math.clamp(v, 0, 10); save(); }
-    public static void setEchoOfEssence(int v)                   { echoOfEssence = Math.clamp(v, 0, 10); save(); }
-
-    public static boolean isChestValueGuiEnabled()  { return chestValueGuiEnabled; }
-    public static float   getChestValueHudX()       { return chestValueHudX; }
-    public static float   getChestValueHudY()       { return chestValueHudY; }
-    public static float   getChestValueHudScale()   { return chestValueHudScale; }
-
-    public static void setChestValueGuiEnabled(boolean v) { chestValueGuiEnabled = v; save(); }
-    public static void setChestValueHudX(float v)         { chestValueHudX    = v; save(); }
-    public static void setChestValueHudY(float v)         { chestValueHudY    = v; save(); }
-    public static void setChestValueHudScale(float v)     { chestValueHudScale = v; save(); }
-
-    public static float getChestTrackerHudX()       { return chestTrackerHudX; }
-    public static float getChestTrackerHudY()       { return chestTrackerHudY; }
-    public static float getChestTrackerHudScale()   { return chestTrackerHudScale; }
-    public static void  setChestTrackerHudX(float v)     { chestTrackerHudX     = v; save(); }
-    public static void  setChestTrackerHudY(float v)     { chestTrackerHudY     = v; save(); }
-    public static void  setChestTrackerHudScale(float v) { chestTrackerHudScale = v; save(); }
-
-    // ── Pearl ─────────────────────────────────────────────────────────────────
-
-    private static boolean        pearlWaypointsEnabled = true;
-    private static boolean        showAllWaypoints      = true;
-    private static boolean        pearlFlatEnabled      = true;
-    private static boolean        pearlSkyEnabled       = true;
-    private static boolean        pearlDoubleEnabled    = true;
-    private static float          doublePearlDelayS     = 0.2f;
-    private static WaypointType   waypointType          = WaypointType.CIRCLE;
-    private static boolean        waypointFill          = true;
-    private static boolean        pearlTickUpdate       = true;
-    private static boolean        dropLocationsEnabled  = true;
-    private static boolean        waypointLinesEnabled        = false;
-    private static boolean        waypointLinesSuppliesEnabled   = true;
-    private static boolean        waypointLinesFlatPearlsEnabled = true;
+    private static RoleMode               roleMode               = RoleMode.AUTO;
+    private static LavaMode               lavaMode               = LavaMode.DEFAULT;
+    private static UiTheme                uiTheme                = UiTheme.DARK;
+    private static WaypointType           waypointType           = WaypointType.CIRCLE;
     private static SecondSupplyPreference secondSupplyPreference = SecondSupplyPreference.DOUBLE_PEARL;
-    private static boolean        pearlTimerEnabled     = true;
-    private static float          pearlTimerHeight      = 0.35f;
-    private static float          pearlTimerSize        = 0.5f;
-    private static float          pearlCircleSize       = 0.5f;
-    private static KuudraTalisman kuudraTalisman        = KuudraTalisman.NONE;
-    private static int            lowPing               = 0;
-    private static float          waypointFillAlpha     = 0.25f;
-    private static float          beaconAlpha           = 0.63f;
-    private static int            wpColNormal           = 0xFFFFFF;
-    private static int            wpColCorrect          = 0xFF4444;
-    private static int            wpColHovered          = 0xFFAA00;
-    private static int            wpColReady            = 0x33FF33;
-    private static int            beaconColNormal       = 0xFFFFFF;
-    private static int            beaconColCorrect      = 0x00C800;
-    private static float          buildBeaconAlpha      = 0.63f;
-    private static int            elleOutlineColor      = 0xFF0000;
-    private static int            elleBeaconColor       = 0x00FFFF;
-    private static String         kuudraApiKey               = "";
-    private static boolean        blockSlot9Enabled          = false;
-    private static boolean        blockAtomsplitEnabled      = false;
-    private static boolean        ichorRadiusEnabled         = false;
-    private static boolean        stunPreviewEnabled         = false;
-    private static boolean        stunPreviewLeftEnabled     = false;
-    private static boolean        stunPreviewRightEnabled    = false;
-    private static boolean        stunPreviewBackEnabled     = false;
-    private static boolean        dpsWaypointEnabled    = false;
-    private static boolean        buildBeaconsEnabled        = false;
-    private static boolean        elleHighlightEnabled       = false;
-    private static boolean        elleHighlightBeaconEnabled = true;
-    private static boolean        rendDamageEnabled          = false;
-    private static boolean        rendPullAttributionEnabled = true;
-    private static boolean        rendTrackerEnabled         = false;
-    private static boolean        backboneProgressBarEnabled = false;
-    private static boolean        backboneProgressBarOutsideKuudraEnabled = false;
-    private static float          backboneProgressBarHudX     = 0.5f;
-    private static float          backboneProgressBarHudY     = 0.6f;
-    private static float          backboneProgressBarHudScale = 1.0f;
-    private static boolean        kuudraHighlightEnabled     = false;
-    private static boolean        kuudraHighlightFilled      = false;
-    private static boolean        etherwarpSlotBlockerEnabled = false;
-    private static boolean        supplyWaypointsEnabled       = false; // legacy — kept for migration
-    private static boolean        supplyBeaconsEnabled         = false;
-    private static boolean        noPreAnnounceEnabled         = false;
-    private static boolean        supplyLocationAnnounceEnabled = false;
-    private static boolean        supplyProgressHudEnabled     = false;
-    private static boolean        buildProgressHudEnabled      = false;
-    private static boolean        announceFreshEnabled         = false;
-    private static boolean        supplyHitboxEnabled          = false;
-    private static boolean        supplyRodRadiusEnabled       = false;
-    private static boolean        supplyPearlHitboxEnabled     = false;
-    private static boolean        pearlRefillEnabled           = false;
-    private static boolean        pearlRefillOutsideKuudraEnabled = false;
-    private static boolean        hideSelfieEnabled            = false;
-    private static boolean        preventPlacingPlayerHeadsEnabled      = false;
-    private static boolean        preventPlacingPlayerHeadsExceptGarden = true;
-    private static boolean        preventPlacingWeaponsEnabled          = false;
-    private static boolean        blockBossPhaseJumpEnabled             = false;
-    private static boolean        blockCloseItemEnabled                 = false;
-    private static boolean        supplyGiantHitboxEnabled              = false;
-    private static boolean        giantHitboxEnabled                    = false;
-    private static boolean        giantHitboxFilled                     = false;
-    private static float          giantHitboxFillOpacity                = 0.05f;
-    private static int            giantHitboxColor                      = 0xFFFFFF;
+    private static KuudraTalisman         kuudraTalisman         = KuudraTalisman.NONE;
+    private static KuudraPetRarity        kuudraPetRarity        = KuudraPetRarity.LEGENDARY;
 
-    // ── HUD layout ────────────────────────────────────────────────────────────
+    private static boolean profitTrackerForced = false; // not saved — session-only
+    private static final LinkedHashMap<Integer,Integer> slotBindings = new LinkedHashMap<>();
 
-    private static float mountTimerHudX     = 0.5f;
-    private static float mountTimerHudY     = 0.56f;
-    private static float mountTimerHudScale = 1.0f;
-    private static float directionHudX     = 0.5f;
-    private static float directionHudY     = 0.25f;
-    private static float directionHudScale = 1.0f;
-    private static float splitHudX         = 0.005f;
-    private static float splitHudY         = 0.01f;
-    private static float splitHudScale     = 1.0f;
-    private static float pearlTitleHudX    = 0.5f;
-    private static float pearlTitleHudY    = 0.5f;
-    private static float pearlTitleHudScale = 1.0f;
-    private static boolean smoothCratePickupEnabled = false;
-    private static float supplyProgressHudX     = 0.5f;
-    private static float supplyProgressHudY     = 0.35f;
-    private static float supplyProgressHudScale = 1.0f;
-    private static float buildProgressHudX      = 0.5f;
-    private static float buildProgressHudY      = 0.45f;
-    private static float buildProgressHudScale  = 1.0f;
-    private static float notificationHudX       = 0.5f;
-    private static float notificationHudY       = 0.15f;
-    private static float notificationHudScale   = 1.5f;
-    private static float cratePriorityHudX      = 0.5f;
-    private static float cratePriorityHudY      = 0.6f;
-    private static float cratePriorityHudScale  = 2.0f;
-
-    private static boolean supplyRecoveryMsgEnabled = false;
-    private static boolean freshNotifyEnabled       = false;
-    private static boolean buildStartedNotifyEnabled= false;
-    private static boolean fastDpsNotifyEnabled       = false;
-    private static boolean soloNotifyEnabled          = false;
-    private static boolean noPreNotifyEnabled         = false;
-    private static boolean supplyGrabbedNotifyEnabled = false;
-    private static boolean supplyDroppedNotifyEnabled = false;
-    private static boolean cratePriorityEnabled     = false;
-    private static boolean hideArmorStandsEnabled      = false;
-    private static boolean hideArmorStandsBuild        = true;
-    private static boolean hideArmorStandsRightCannon  = true;
-    private static boolean hideArmorStandsLeftCannon   = true;
-    private static boolean hideArmorStandsShop         = true;
-    private static boolean hideArmorStandsOthers       = true;
-    private static boolean cannonHitboxesEnabled       = true;
-    private static boolean cannonHitboxesLeftEnabled   = true;
-    private static boolean cannonHitboxesRightEnabled  = false;
-
-    private static boolean kuudraHpHudEnabled       = false;
-    private static boolean kuudraHpShowRaw          = false;
-    private static boolean kuudraHpHideBar          = false;
-    private static boolean hollowWandEnabled        = false;
-    private static boolean kickedNotificationEnabled = false;
-    private static boolean hideBossBarEnabled       = false;
-    private static boolean hideBossBarOnlyInKuudra  = false;
-    private static boolean hideFallingBlocksEnabled  = false;
-    private static boolean manaDrainAnnouncerEnabled = false;
-    private static boolean hideEntityFireEnabled  = false;
-    private static boolean lavaBobberFixEnabled    = false;
-    private static boolean legacyRodPhysicsEnabled = false;
-    private static boolean hideDamageTitleEnabled  = false;
-    private static boolean hideDeadEntitiesEnabled    = false;
-    private static boolean etherwarpWaypointsEnabled  = false;
-    private static float   selfPlayerScale        = 100.0f;
-    private static float   otherPlayerScale       = 100.0f;
-    private static float   kuudraSizeScale        = 100.0f;
-
-    private static float kuudraHpHudX     = 0.5f;
-    private static float kuudraHpHudY     = 0.07f;
-    private static float kuudraHpHudScale = 1.0f;
+    private static Data cfg = freshState();
 
     private static final int[][] PEARL_DELAY = {
             {0, 3000, 4000, 5000, 6000, 6000},
@@ -359,50 +60,20 @@ public class PhantomConfig {
             {0, 2250, 3000, 3500, 4250, 4250},
     };
 
-    // ── Dungeons ──────────────────────────────────────────────────────────────
-
-    // ── Wardrobe keybinds ─────────────────────────────────────────────────────
-
-    private static boolean wardrobeEnabled      = false;
-    private static boolean loadoutsEnabled      = false;
-    private static int     openGuiKey           = -1;
-    private static int     wardrobeOpenKey      = -1;
-    private static int     statsOpenKey         = -1;
-    private static int     petsOpenKey          = -1;
-    private static int     eqWardrobeOpenKey    = -1;
-    private static int     loadoutsOpenKey      = -1;
-    private static int[]   wardrobeSlotKeys     = {49,50,51,52,53,54,55,56,57};
-    private static int[]   loadoutSlotKeys      = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-    private static int     wardrobeNextPageKey  = 262; // GLFW_KEY_RIGHT
-    private static int     wardrobePrevPageKey  = 263; // GLFW_KEY_LEFT
-    private static int     wardrobeUnequipKey   = 85;  // GLFW_KEY_U
-    private static boolean wardrobeDisableUnequipEnabled = true;
-    private static boolean wardrobeAutoCloseEnabled      = true;
-    private static int     wardrobeExtraAutoCloseMs      = 0;
-    private static int     lastEquippedWardrobeSlot      = -1;
-
-    private static boolean autoGfsToxic    = false;
-    private static boolean autoGfsTwilight = false;
-    private static int     toxicAmount     = 10;
-    private static int     twilightAmount  = 10;
-
-    // ── Chest tracker ─────────────────────────────────────────────────────────
-
-    private static int chestTotal   = 0;
-    private static int chestSuccess = 0;
-    private static int chestFail    = 0;
-
-    // ── Split timer ───────────────────────────────────────────────────────────
-
-    private static boolean splitTimerEnabled  = true;
-    private static boolean supplyTimesEnabled = true;
-
-    private static double[][] splitPbs    = defaultPbs();
-    private static double[]   totalRunPbs = defaultTotalPbs();
-    private static PbRecord[] pbRecords   = new PbRecord[6];
-
-    private static double[] totalRunTimeSum = new double[6];
-    private static int[]    totalRunCount   = new int[6];
+    private static Data freshState() {
+        Data d = new Data();
+        d.dpsValue                = 40;
+        d.stunPreviewLeftEnabled  = false;
+        d.stunPreviewRightEnabled = false;
+        d.stunPreviewBackEnabled  = false;
+        d.loadoutsEnabled         = false;
+        d.splitPbs        = defaultPbs();
+        d.totalRunPbs     = defaultTotalPbs();
+        d.pbRecords       = new PbRecord[6];
+        d.totalRunTimeSum = new double[6];
+        d.totalRunCount   = new int[6];
+        return d;
+    }
 
     private static double[][] defaultPbs() {
         double[][] a = new double[6][7];
@@ -416,9 +87,64 @@ public class PhantomConfig {
         return a;
     }
 
-    // ── Item customisation ────────────────────────────────────────────────────
+    // ── Profit tracker ───────────────────────────────────────────────────────────
 
-    private static boolean itemCustomizationEnabled = true;
+    public static boolean         isProfitTrackerEnabled()    { return cfg.profitTrackerEnabled; }
+    public static boolean         isProfitTrackerForced()     { return profitTrackerForced; }
+    public static boolean         toggleProfitTrackerForced() { return profitTrackerForced = !profitTrackerForced; }
+    public static boolean         isProfitShowDuringRun()     { return cfg.profitShowDuringRun; }
+    public static boolean         isProfitArmorSalvage()      { return cfg.profitArmorSalvage; }
+    public static boolean         isProfitFactionMage()       { return cfg.profitFactionMage; }
+    public static boolean         isHighlightUnopenedChestsEnabled()   { return cfg.highlightUnopenedChestsEnabled; }
+    public static boolean         isProfitRerollCalc()        { return cfg.profitRerollCalc; }
+    public static boolean         isBlockExpensiveRerollEnabled() { return cfg.blockExpensiveReroll; }
+    public static boolean         isProfitBazaarInstaSell()   { return cfg.profitBazaarInstaSell; }
+    public static boolean         isProfitBazaarInstaBuy()    { return cfg.profitBazaarInstaBuy; }
+    public static float           getProfitHudX()             { return cfg.profitHudX; }
+    public static float           getProfitHudY()             { return cfg.profitHudY; }
+    public static float           getProfitHudScale()         { return cfg.profitHudScale; }
+    public static KuudraPetRarity getKuudraPetRarity()        { return kuudraPetRarity; }
+    public static int             getKuudraPetLevel()         { return cfg.kuudraPetLevel; }
+    public static int             getEssenceOfCrimson()       { return cfg.essenceOfCrimson; }
+    public static int             getEchoOfEssence()          { return cfg.echoOfEssence; }
+    public static double          getKuudraPetEssenceMultiplier() {
+        double crimsonBonus = 0.01 * cfg.essenceOfCrimson * (1.0 + 0.03 * cfg.echoOfEssence);
+        return kuudraPetRarity.essenceMultiplier(cfg.kuudraPetLevel) * (1.0 + crimsonBonus);
+    }
+
+    public static void setProfitTrackerEnabled(boolean v)       { cfg.profitTrackerEnabled  = v; save(); }
+    public static void setProfitShowDuringRun(boolean v)        { cfg.profitShowDuringRun   = v; save(); }
+    public static void setProfitArmorSalvage(boolean v)         { cfg.profitArmorSalvage    = v; save(); }
+    public static void setProfitFactionMage(boolean v)          { cfg.profitFactionMage     = v; save(); }
+    public static void setHighlightUnopenedChestsEnabled(boolean v)      { cfg.highlightUnopenedChestsEnabled = v; save(); }
+    public static void setProfitRerollCalc(boolean v)           { cfg.profitRerollCalc      = v; save(); }
+    public static void setBlockExpensiveRerollEnabled(boolean v) { cfg.blockExpensiveReroll = v; save(); }
+    public static void setProfitBazaarInstaSell(boolean v)      { cfg.profitBazaarInstaSell = v; save(); }
+    public static void setProfitBazaarInstaBuy(boolean v)       { cfg.profitBazaarInstaBuy  = v; save(); }
+    public static void setProfitHudX(float v)                   { cfg.profitHudX    = v; save(); }
+    public static void setProfitHudY(float v)                   { cfg.profitHudY    = v; save(); }
+    public static void setProfitHudScale(float v)               { cfg.profitHudScale = v; save(); }
+    public static void setKuudraPetRarity(KuudraPetRarity v)    { kuudraPetRarity = v; save(); }
+    public static void setKuudraPetLevel(int v)                 { cfg.kuudraPetLevel = Math.clamp(v, 1, 100); save(); }
+    public static void setEssenceOfCrimson(int v)                { cfg.essenceOfCrimson = Math.clamp(v, 0, 10); save(); }
+    public static void setEchoOfEssence(int v)                   { cfg.echoOfEssence = Math.clamp(v, 0, 10); save(); }
+
+    public static boolean isChestValueGuiEnabled()  { return cfg.chestValueGuiEnabled; }
+    public static float   getChestValueHudX()       { return cfg.chestValueHudX; }
+    public static float   getChestValueHudY()       { return cfg.chestValueHudY; }
+    public static float   getChestValueHudScale()   { return cfg.chestValueHudScale; }
+
+    public static void setChestValueGuiEnabled(boolean v) { cfg.chestValueGuiEnabled = v; save(); }
+    public static void setChestValueHudX(float v)         { cfg.chestValueHudX    = v; save(); }
+    public static void setChestValueHudY(float v)         { cfg.chestValueHudY    = v; save(); }
+    public static void setChestValueHudScale(float v)     { cfg.chestValueHudScale = v; save(); }
+
+    public static float getChestTrackerHudX()       { return cfg.chestTrackerHudX; }
+    public static float getChestTrackerHudY()       { return cfg.chestTrackerHudY; }
+    public static float getChestTrackerHudScale()   { return cfg.chestTrackerHudScale; }
+    public static void  setChestTrackerHudX(float v)     { cfg.chestTrackerHudX     = v; save(); }
+    public static void  setChestTrackerHudY(float v)     { cfg.chestTrackerHudY     = v; save(); }
+    public static void  setChestTrackerHudScale(float v) { cfg.chestTrackerHudScale = v; save(); }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
@@ -427,160 +153,194 @@ public class PhantomConfig {
     public static boolean  isDpsMode()                   { return roleMode == RoleMode.DPS; }
     public static boolean  isStunMode()                  { return roleMode == RoleMode.STUN; }
     public static boolean  isAutoMode()                  { return roleMode == RoleMode.AUTO; }
-    public static int      getDpsValue()                 { return dpsValue; }
-    public static int      getDpsRefillAmount()          { return dpsRefillAmount; }
-    public static int      getAutoGfsDisableHpPercent()  { return autoGfsDisableHpPercent; }
-    public static int      getStunValue()                { return stunValue; }
-    public static boolean  isEatenTimerEnabled()              { return eatenTimerEnabled; }
-    public static boolean  isEatenTimerSubtractPingEnabled()  { return eatenTimerSubtractPingEnabled; }
-    public static boolean  isPickoblockEnabled()         { return pickoblockEnabled; }
-    public static boolean  isEtherwarpLavaBlockEnabled() { return etherwarpLavaBlock; }
-    public static boolean  isEtherwarpLavaBlockOnlyInKuudra() { return etherwarpLavaBlockOnlyInKuudra; }
-    public static boolean  isHideElleDialogueEnabled()   { return hideElleDialogue; }
-    public static boolean  isAutoGfsEnabled()            { return autoGfsEnabled; }
+    public static int      getDpsValue()                 { return cfg.dpsValue; }
+    public static int      getDpsRefillAmount()          { return cfg.dpsRefillAmount; }
+    public static int      getAutoGfsDisableHpPercent()  { return cfg.autoGfsDisableHpPercent; }
+    public static int      getStunValue()                { return cfg.stunValue; }
+    public static boolean  isEatenTimerEnabled()              { return cfg.eatenTimerEnabled; }
+    public static boolean  isEatenTimerSubtractPingEnabled()  { return cfg.eatenTimerSubtractPingEnabled; }
+    public static boolean  isPickoblockEnabled()         { return cfg.pickoblockEnabled; }
+    public static boolean  isEtherwarpLavaBlockEnabled() { return cfg.etherwarpLavaBlock; }
+    public static boolean  isEtherwarpLavaBlockOnlyInKuudra() { return cfg.etherwarpLavaBlockOnlyInKuudra; }
+    public static boolean  isHideElleDialogueEnabled()   { return cfg.hideElleDialogue; }
+    public static boolean  isAutoGfsEnabled()            { return cfg.autoGfsEnabled; }
 
     // Lava
-    public static boolean  isLavaTweaksEnabled() { return lavaTweaksEnabled; }
+    public static boolean  isLavaTweaksEnabled() { return cfg.lavaTweaksEnabled; }
     public static LavaMode getLavaMode()         { return lavaMode; }
-    public static float    getLavaOpacity()      { return lavaTweaksEnabled ? lavaOpacity : 1.0f; }
-    public static int      getLavaColor()        { return lavaColor; }
-    public static boolean  isLavaAsWater()       { return lavaTweaksEnabled && lavaAsWater; }
-    public static boolean  isLavaColorOverride() { return lavaTweaksEnabled && lavaColorOverride; }
+    public static float    getLavaOpacity()      { return cfg.lavaTweaksEnabled ? cfg.lavaOpacity : 1.0f; }
+    public static int      getLavaColor()        { return cfg.lavaColor; }
+    public static boolean  isLavaAsWater()       { return cfg.lavaTweaksEnabled && cfg.lavaAsWater; }
+    public static boolean  isLavaColorOverride() { return cfg.lavaTweaksEnabled && cfg.lavaColorOverride; }
 
     // Misc
-    public static boolean isFastDpsWarningEnabled()   { return fastDpsWarning; }
-    public static boolean isChestTrackerVisible()     { return chestTrackerVisible; }
-    public static boolean isSoloDetectorEnabled()     { return soloDetectorEnabled; }
-    public static boolean isCannonAutoCloseEnabled()  { return cannonAutoClose; }
-    public static boolean isKuudraDirectionEnabled()   { return kuudraDirectionEnabled; }
-    public static boolean isTuxedoWarningEnabled()     { return tuxedoWarningEnabled; }
-    public static boolean isBoneTimingAssistEnabled()  { return boneTimingAssistEnabled; }
-    public static float   getBoneTimingAssistOffset()  { return boneTimingAssistOffset; }
-    public static boolean isBoneTimingHitboxOutlineEnabled() { return boneTimingHitboxOutlineEnabled; }
-    public static boolean isBoneTimingHitboxOutlineFilled()  { return boneTimingHitboxOutlineFilled; }
-    public static int     getBoneTimingHitboxOutlineColor()  { return boneTimingHitboxOutlineColor; }
-    public static boolean isBoneTimingHitboxOutlineOnlyCurrentDirection() { return boneTimingHitboxOutlineOnlyCurrentDirection; }
-    public static boolean isBoneTimingHitboxHighlightInRangeEnabled() { return boneTimingHitboxHighlightInRange; }
-    public static boolean isShopKeybindsEnabled()     { return shopKeybindsEnabled; }
-    public static boolean isMiddleClickShopGuiEnabled() { return middleClickShopGuiEnabled; }
-    public static int     getShopMainKey()            { return shopMainKey; }
-    public static int     getShopCannonKey()          { return shopCannonKey; }
-    public static boolean isExplosionFilterEnabled()  { return explosionFilterEnabled; }
-    public static float   getExplosionHideRadius()    { return explosionHideRadius * 50f; }
-    public static float   getExplosionHideRadiusRaw() { return explosionHideRadius; }
-    public static float   getExplosionSizeMultiplier(){ return explosionSizeMultiplier * 3.0f; }
-    public static float   getExplosionSizeRaw()       { return explosionSizeMultiplier; }
-    public static boolean isChestAnnouncerEnabled()   { return chestAnnouncerEnabled; }
+    public static boolean isFastDpsWarningEnabled()   { return cfg.fastDpsWarning; }
+    public static boolean isChestTrackerVisible()     { return cfg.chestTrackerVisible; }
+    public static boolean isSoloDetectorEnabled()     { return cfg.soloDetectorEnabled; }
+    public static boolean isCannonAutoCloseEnabled()  { return cfg.cannonAutoClose; }
+    public static boolean isKuudraDirectionEnabled()   { return cfg.kuudraDirectionEnabled; }
+    public static boolean isTuxedoWarningEnabled()     { return cfg.tuxedoWarningEnabled; }
+    public static boolean isBoneTimingAssistEnabled()  { return cfg.boneTimingAssistEnabled; }
+    public static float   getBoneTimingAssistOffset()  { return cfg.boneTimingAssistOffset; }
+    public static boolean isBoneTimingHitboxOutlineEnabled() { return cfg.boneTimingHitboxOutlineEnabled; }
+    public static boolean isBoneTimingHitboxOutlineFilled()  { return cfg.boneTimingHitboxOutlineFilled; }
+    public static int     getBoneTimingHitboxOutlineColor()  { return cfg.boneTimingHitboxOutlineColor; }
+    public static boolean isBoneTimingHitboxOutlineOnlyCurrentDirection() { return cfg.boneTimingHitboxOutlineOnlyCurrentDirection; }
+    public static boolean isBoneTimingHitboxHighlightInRangeEnabled() { return cfg.boneTimingHitboxHighlightInRange; }
+    public static boolean isShopKeybindsEnabled()     { return cfg.shopKeybindsEnabled; }
+    public static boolean isMiddleClickShopGuiEnabled() { return cfg.middleClickShopGuiEnabled; }
+    public static int     getShopMainKey()            { return cfg.shopMainKey; }
+    public static int     getShopCannonKey()          { return cfg.shopCannonKey; }
+    public static boolean isExplosionFilterEnabled()  { return cfg.explosionFilterEnabled; }
+    public static float   getExplosionHideRadius()    { return cfg.explosionHideRadius * 50f; }
+    public static float   getExplosionHideRadiusRaw() { return cfg.explosionHideRadius; }
+    public static float   getExplosionSizeMultiplier(){ return cfg.explosionSizeMultiplier * 3.0f; }
+    public static float   getExplosionSizeRaw()       { return cfg.explosionSizeMultiplier; }
+    public static boolean isChestAnnouncerEnabled()   { return cfg.chestAnnouncerEnabled; }
 
-    public static boolean isAutoKickEnabled()     { return com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled() && autoKickEnabled; }
-    public static boolean isProfileViewerEnabled() { return com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled() && profileViewerEnabled; }
-    public static int     getAkMinCatacombs()     { return akMinCatacombs; }
-    public static int     getAkMinForaging()      { return akMinForaging; }
-    public static int     getAkMinMagicalPower()  { return akMinMagicalPower; }
-    public static int     getAkMinInfernal()      { return akMinInfernal; }
-    public static int     getAkMinFiery()         { return akMinFiery; }
-    public static int     getAkMinBurning()       { return akMinBurning; }
-    public static int     getAkMinHot()           { return akMinHot; }
-    public static int     getAkMinBasic()         { return akMinBasic; }
-    public static boolean isAkRequireRend()       { return akRequireRend; }
-    public static int     getAkMinGdragLevel()    { return akMinGdragLevel; }
-    public static boolean isPartyCmdsEnabled()        { return partyCmdsEnabled; }
-    public static boolean isAutoRequeueEnabled()      { return autoRequeueEnabled; }
-    public static boolean isAutoRequeueMessageEnabled() { return autoRequeueMessageEnabled; }
-    public static boolean isAutoUpdatesEnabled()      { return autoUpdatesEnabled; }
-    public static boolean isDeveloperFeaturesEnabled() { return developerFeaturesEnabled; }
-    public static boolean isTentacleDbLoggingEnabled() { return developerFeaturesEnabled && tentacleDbLoggingEnabled; }
-    public static boolean isTentacleHighlightEnabled() { return developerFeaturesEnabled && tentacleHighlightEnabled; }
+    public static boolean isAutoKickEnabled()     { return RemoteFeatureGate.isEnabled() && cfg.autoKickEnabled; }
+    public static boolean isProfileViewerEnabled() { return RemoteFeatureGate.isEnabled() && cfg.profileViewerEnabled; }
+    public static int     getAkMinCatacombs()     { return cfg.akMinCatacombs; }
+    public static int     getAkMinForaging()      { return cfg.akMinForaging; }
+    public static int     getAkMinMagicalPower()  { return cfg.akMinMagicalPower; }
+    public static int     getAkMinInfernal()      { return cfg.akMinInfernal; }
+    public static int     getAkMinFiery()         { return cfg.akMinFiery; }
+    public static int     getAkMinBurning()       { return cfg.akMinBurning; }
+    public static int     getAkMinHot()           { return cfg.akMinHot; }
+    public static int     getAkMinBasic()         { return cfg.akMinBasic; }
+    public static boolean isAkRequireRend()       { return cfg.akRequireRend; }
+    public static int     getAkMinGdragLevel()    { return cfg.akMinGdragLevel; }
+    public static boolean isPartyCmdsEnabled()        { return cfg.partyCmdsEnabled; }
+    public static boolean isAutoRequeueEnabled()      { return cfg.autoRequeueEnabled; }
+    public static boolean isAutoRequeueMessageEnabled() { return cfg.autoRequeueMessageEnabled; }
+    public static boolean isAutoUpdatesEnabled()      { return cfg.autoUpdatesEnabled; }
+    public static boolean isDeveloperFeaturesEnabled() { return cfg.developerFeaturesEnabled; }
+    public static boolean isTentacleDbLoggingEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleDbLoggingEnabled; }
+    public static boolean isTentacleHighlightEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleHighlightEnabled; }
     public static UiTheme  getUiTheme() { return uiTheme; }
-    public static float    getUiGuiScale() { return uiGuiScale; }
-    public static boolean  isUiTransparencyEnabled() { return uiTransparencyEnabled; }
-    public static boolean isAutoSprintEnabled()       { return autoSprintEnabled; }
-    public static boolean isSlotBindsEnabled()        { return slotBindsEnabled; }
-    public static int     getSlotBindSetKey()          { return slotBindSetKey; }
-    public static boolean isSlotBindsShowOnHover()     { return slotBindsShowOnHover; }
-    public static void    setSlotBindsShowOnHover(boolean v) { slotBindsShowOnHover = v; save(); }
-    public static java.util.LinkedHashMap<Integer,Integer> getSlotBindings() { return slotBindings; }
-    public static void    setSlotBindSetKey(int v)    { slotBindSetKey = v; save(); }
+    public static float    getUiGuiScale() { return cfg.uiGuiScale; }
+    public enum PvTheme { MATCH, DARK, LIGHT }
+    public static boolean  isPvEnabled()      { return RemoteFeatureGate.isEnabled() && cfg.pvEnabled; }
+    public static float    getPvGuiScale()    { return cfg.pvGuiScale; }
+    /** How much fits in the viewer: 0 small items (more content), 1 medium, 2 large items (less content). */
+    public enum PvContent { SMALL, MEDIUM, LARGE }
+    public static PvContent getPvContent()    { return safeEnum(PvContent.class, cfg.pvContent, PvContent.MEDIUM); }
+    public static float    getPvElementScale(){ return cfg.pvElementScale; }
+    public static PvTheme  getPvTheme()       { return safeEnum(PvTheme.class, cfg.pvTheme, PvTheme.MATCH); }
+    public static UiTheme  getEffectivePvTheme() {
+        return switch (getPvTheme()) {
+            case MATCH -> uiTheme;
+            case DARK  -> UiTheme.DARK;
+            case LIGHT -> UiTheme.LIGHT;
+        };
+    }
+    public static void setPvEnabled(boolean v)      { cfg.pvEnabled = v; save(); }
+    /** Raw setting, ignoring the remote feature gate. */
+    public static boolean  isPvEnabledSetting()        { return cfg.pvEnabled; }
+    public static boolean  isPvPromptAnswered()        { return cfg.pvPromptAnswered; }
+    public static void setPvPromptAnswered(boolean v)  { cfg.pvPromptAnswered = v; save(); }
+    public static boolean  hasOpenedPv()               { return cfg.pvOpened; }
+    public static void markPvOpened()                  { if (!cfg.pvOpened) { cfg.pvOpened = true; save(); } }
+    public static void setPvGuiScale(float v)       { cfg.pvGuiScale = Math.max(0.6f, Math.min(2.5f, v)); save(); }
+    public static void setPvContent(PvContent v)    { cfg.pvContent = v.name(); save(); }
+    public static void setPvElementScale(float v)   { cfg.pvElementScale = Math.max(0.6f, Math.min(1.6f, v)); save(); }
+    public static void setPvTheme(PvTheme v)        { cfg.pvTheme = v.name(); save(); }
+    public static boolean isPvArabicNumerals()      { return cfg.pvArabicNumerals; }
+    public static void setPvArabicNumerals(boolean v) { cfg.pvArabicNumerals = v; save(); }
+    public static boolean isPvTabIcons()          { return cfg.pvTabIcons; }
+    public static void setPvTabIcons(boolean v)   { cfg.pvTabIcons = v; save(); }
+    public static boolean isPvOverflowSkills()      { return cfg.pvOverflowSkills; }
+    public static void setPvOverflowSkills(boolean v) { cfg.pvOverflowSkills = v; save(); }
+    public static boolean  isUiTransparencyEnabled() { return cfg.uiTransparencyEnabled; }
+    public static boolean isAutoSprintEnabled()       { return cfg.autoSprintEnabled; }
+    public static boolean isSlotBindsEnabled()        { return cfg.slotBindsEnabled; }
+    public static int     getSlotBindSetKey()          { return cfg.slotBindSetKey; }
+    public static boolean isSlotBindsShowOnHover()     { return cfg.slotBindsShowOnHover; }
+    public static void    setSlotBindsShowOnHover(boolean v) { cfg.slotBindsShowOnHover = v; save(); }
+    public static LinkedHashMap<Integer,Integer> getSlotBindings() { return slotBindings; }
+    public static void    setSlotBindSetKey(int v)    { cfg.slotBindSetKey = v; save(); }
 
     // Pearl
-    public static boolean        isPearlWaypointsEnabled() { return pearlWaypointsEnabled; }
-    public static boolean        isShowAllWaypoints()      { return showAllWaypoints; }
-    public static boolean        isPearlFlatEnabled()      { return pearlFlatEnabled; }
-    public static boolean        isPearlSkyEnabled()       { return pearlSkyEnabled; }
-    public static boolean        isPearlDoubleEnabled()    { return pearlDoubleEnabled; }
-    public static float          getDoublePearlDelayS()    { return doublePearlDelayS; }
-    public static long           getDoublePearlDelayMs()   { return (long)(doublePearlDelayS * 1000); }
+    public static boolean        isPearlWaypointsEnabled() { return cfg.pearlWaypointsEnabled; }
+    public static boolean        isShowAllWaypoints()      { return cfg.showAllWaypoints; }
+    public static boolean        isPearlFlatEnabled()      { return cfg.pearlFlatEnabled; }
+    public static boolean        isPearlSkyEnabled()       { return cfg.pearlSkyEnabled; }
+    public static boolean        isPearlDoubleEnabled()    { return cfg.pearlDoubleEnabled; }
+    public static float          getDoublePearlDelayS()    { return cfg.doublePearlDelayS; }
+    public static long           getDoublePearlDelayMs()   { return (long)(cfg.doublePearlDelayS * 1000); }
     public static WaypointType   getWaypointType()         { return waypointType; }
-    public static boolean        isWaypointFillEnabled()   { return waypointFill; }
-    public static boolean        isPearlTickUpdate()       { return pearlTickUpdate; }
-    public static boolean        isDropLocationsEnabled()  { return dropLocationsEnabled; }
-    public static boolean        isWaypointLinesEnabled()            { return waypointLinesEnabled; }
-    public static boolean        isWaypointLinesSuppliesEnabled()    { return waypointLinesSuppliesEnabled; }
-    public static boolean        isWaypointLinesFlatPearlsEnabled()  { return waypointLinesFlatPearlsEnabled; }
+    public static boolean        isWaypointFillEnabled()   { return cfg.waypointFill; }
+    public static boolean        isPearlTickUpdate()       { return cfg.pearlTickUpdate; }
+    public static boolean        isDropLocationsEnabled()  { return cfg.dropLocationsEnabled; }
+    public static boolean        isWaypointLinesEnabled()            { return cfg.waypointLinesEnabled; }
+    public static boolean        isWaypointLinesSuppliesEnabled()    { return cfg.waypointLinesSuppliesEnabled; }
+    public static boolean        isWaypointLinesFlatPearlsEnabled()  { return cfg.waypointLinesFlatPearlsEnabled; }
     public static SecondSupplyPreference getSecondSupplyPreference() { return secondSupplyPreference; }
-    public static boolean        isPearlTimerEnabled()     { return pearlTimerEnabled; }
-    public static float          getPearlTimerHeight()     { return pearlTimerHeight; }
-    public static float          getPearlTimerSize()       { return pearlTimerSize; }
-    public static float          getPearlCircleSize()      { return pearlCircleSize; }
+    public static boolean        isPearlTimerEnabled()     { return cfg.pearlTimerEnabled; }
+    public static float          getPearlTimerHeight()     { return cfg.pearlTimerHeight; }
+    public static float          getPearlTimerSize()       { return cfg.pearlTimerSize; }
+    public static float          getPearlCircleSize()      { return cfg.pearlCircleSize; }
     public static KuudraTalisman getKuudraTalisman()       { return kuudraTalisman; }
-    public static int            getLowPing()              { return lowPing; }
-    public static float          getWaypointFillAlpha()    { return waypointFillAlpha; }
-    public static float          getBeaconAlpha()          { return beaconAlpha; }
-    public static int            getWpColNormal()          { return wpColNormal; }
-    public static int            getWpColCorrect()         { return wpColCorrect; }
-    public static int            getWpColHovered()         { return wpColHovered; }
-    public static int            getWpColReady()           { return wpColReady; }
-    public static int            getBeaconColNormal()      { return beaconColNormal; }
-    public static int            getBeaconColCorrect()     { return beaconColCorrect; }
-    public static float          getBuildBeaconAlpha()     { return buildBeaconAlpha; }
-    public static int            getElleOutlineColor()     { return elleOutlineColor; }
-    public static int            getElleBeaconColor()      { return elleBeaconColor; }
-    public static String         getKuudraApiKey()         { return kuudraApiKey; }
-    public static boolean        isBlockSlot9Enabled()     { return blockSlot9Enabled; }
-    public static boolean        isBlockAtomsplitEnabled() { return blockAtomsplitEnabled; }
-    public static boolean        isIchorRadiusEnabled()    { return ichorRadiusEnabled; }
-    public static boolean        isStunPreviewEnabled()           { return stunPreviewEnabled; }
-    public static boolean        isStunPreviewLeftEnabled()       { return stunPreviewLeftEnabled; }
-    public static boolean        isStunPreviewRightEnabled()      { return stunPreviewRightEnabled; }
-    public static boolean        isStunPreviewBackEnabled()       { return stunPreviewBackEnabled; }
-    public static boolean        isDpsWaypointEnabled()      { return dpsWaypointEnabled; }
-    public static boolean        isBuildBeaconsEnabled()         { return buildBeaconsEnabled; }
-    public static boolean        isElleHighlightEnabled()        { return elleHighlightEnabled; }
-    public static boolean        isElleHighlightBeaconEnabled()  { return elleHighlightBeaconEnabled; }
-    public static boolean        isRendDamageEnabled()           { return rendDamageEnabled; }
-    public static boolean        isRendPullAttributionEnabled()  { return rendPullAttributionEnabled; }
-    public static boolean        isRendTrackerEnabled()          { return rendTrackerEnabled; }
-    public static boolean        isBackboneProgressBarEnabled()   { return backboneProgressBarEnabled; }
-    public static boolean        isBackboneProgressBarOutsideKuudraEnabled() { return backboneProgressBarOutsideKuudraEnabled; }
-    public static float          getBackboneProgressBarHudX()     { return backboneProgressBarHudX; }
-    public static float          getBackboneProgressBarHudY()     { return backboneProgressBarHudY; }
-    public static float          getBackboneProgressBarHudScale() { return backboneProgressBarHudScale; }
-    public static boolean        isKuudraHighlightEnabled()      { return kuudraHighlightEnabled; }
-    public static boolean        isKuudraHighlightFilled()       { return kuudraHighlightFilled; }
-    public static boolean        isEtherwarpSlotBlockerEnabled()  { return etherwarpSlotBlockerEnabled; }
-    public static boolean        isSupplyWaypointsEnabled()        { return supplyWaypointsEnabled; }
-    public static boolean        isSupplyBeaconsEnabled()          { return supplyBeaconsEnabled; }
-    public static boolean        isNoPreAnnounceEnabled()          { return noPreAnnounceEnabled; }
-    public static boolean        isSupplyLocationAnnounceEnabled() { return supplyLocationAnnounceEnabled; }
-    public static boolean        isSupplyProgressHudEnabled()      { return supplyProgressHudEnabled; }
-    public static boolean        isBuildProgressHudEnabled()       { return buildProgressHudEnabled; }
-    public static boolean        isAnnounceFreshEnabled()          { return announceFreshEnabled; }
-    public static boolean        isSupplyHitboxEnabled()           { return supplyHitboxEnabled; }
-    public static boolean        isSupplyRodRadiusEnabled()        { return supplyRodRadiusEnabled; }
-    public static boolean        isSupplyPearlHitboxEnabled()      { return supplyPearlHitboxEnabled; }
-    public static boolean        isPearlRefillEnabled()            { return pearlRefillEnabled; }
-    public static boolean        isPearlRefillOutsideKuudraEnabled() { return pearlRefillOutsideKuudraEnabled; }
-    public static boolean        isHideSelfieEnabled()             { return hideSelfieEnabled; }
-    public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return preventPlacingPlayerHeadsEnabled; }
-    public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return preventPlacingPlayerHeadsExceptGarden; }
-    public static boolean        isPreventPlacingWeaponsEnabled()          { return preventPlacingWeaponsEnabled; }
-    public static boolean        isBlockBossPhaseJumpEnabled()             { return blockBossPhaseJumpEnabled; }
-    public static boolean        isBlockCloseItemEnabled()                 { return blockCloseItemEnabled; }
-    public static boolean        isSupplyGiantHitboxEnabled()              { return supplyGiantHitboxEnabled; }
-    public static boolean        isGiantHitboxEnabled()                    { return giantHitboxEnabled; }
-    public static boolean        isGiantHitboxFilled()                     { return giantHitboxFilled; }
-    public static float          getGiantHitboxFillOpacity()               { return giantHitboxFillOpacity; }
-    public static int            getGiantHitboxColor()                     { return giantHitboxColor; }
+    public static int            getLowPing()              { return cfg.lowPing; }
+    public static float          getWaypointFillAlpha()    { return cfg.waypointFillAlpha; }
+    public static float          getBeaconAlpha()          { return cfg.beaconAlpha; }
+    public static int            getWpColNormal()          { return cfg.wpColNormal; }
+    public static int            getWpColCorrect()         { return cfg.wpColCorrect; }
+    public static int            getWpColHovered()         { return cfg.wpColHovered; }
+    public static int            getWpColReady()           { return cfg.wpColReady; }
+    public static int            getBeaconColNormal()      { return cfg.beaconColNormal; }
+    public static int            getBeaconColCorrect()     { return cfg.beaconColCorrect; }
+    public static float          getBuildBeaconAlpha()     { return cfg.buildBeaconAlpha; }
+    public static int            getElleOutlineColor()     { return cfg.elleOutlineColor; }
+    public static int            getElleBeaconColor()      { return cfg.elleBeaconColor; }
+    /** The Discord API key from older versions. Still saved so it isn't lost, but nothing uses it any more. */
+    public static String         getKuudraApiKey()         { return cfg.kuudraApiKey; }
+    public static boolean        isBlockSlot9Enabled()     { return cfg.blockSlot9Enabled; }
+    public static boolean        isBlockAtomsplitEnabled() { return cfg.blockAtomsplitEnabled; }
+    public static boolean        isIchorRadiusEnabled()    { return cfg.ichorRadiusEnabled; }
+    public static boolean        isStunPreviewEnabled()           { return cfg.stunPreviewEnabled; }
+    public static boolean        isStunPreviewLeftEnabled()       { return cfg.stunPreviewLeftEnabled; }
+    public static boolean        isStunPreviewRightEnabled()      { return cfg.stunPreviewRightEnabled; }
+    public static boolean        isStunPreviewBackEnabled()       { return cfg.stunPreviewBackEnabled; }
+    public static boolean        isDpsWaypointEnabled()      { return cfg.dpsWaypointEnabled; }
+    public static boolean        isBuildBeaconsEnabled()         { return cfg.buildBeaconsEnabled; }
+    public static boolean        isElleHighlightEnabled()        { return cfg.elleHighlightEnabled; }
+    public static boolean        isElleHighlightBeaconEnabled()  { return cfg.elleHighlightBeaconEnabled; }
+    public static boolean        isRendDamageEnabled()           { return cfg.rendDamageEnabled; }
+    public static boolean        isRendPullAttributionEnabled()  { return cfg.rendPullAttributionEnabled; }
+    public static boolean        isRendTrackerEnabled()          { return cfg.rendTrackerEnabled; }
+    public static boolean        isBackboneProgressBarEnabled()   { return cfg.backboneProgressBarEnabled; }
+    public static boolean        isBackboneProgressBarOutsideKuudraEnabled() { return cfg.backboneProgressBarOutsideKuudraEnabled; }
+    public static float          getBackboneProgressBarHudX()     { return cfg.backboneProgressBarHudX; }
+    public static float          getBackboneProgressBarHudY()     { return cfg.backboneProgressBarHudY; }
+    public static float          getBackboneProgressBarHudScale() { return cfg.backboneProgressBarHudScale; }
+    public static boolean        isKuudraHighlightEnabled()      { return cfg.kuudraHighlightEnabled; }
+    public static boolean        isKuudraHighlightFilled()       { return cfg.kuudraHighlightFilled; }
+    public static boolean        isEtherwarpSlotBlockerEnabled()  { return cfg.etherwarpSlotBlockerEnabled; }
+    public static boolean        isSupplyWaypointsEnabled()        { return cfg.supplyWaypointsEnabled; }
+    public static boolean        isSupplyBeaconsEnabled()          { return cfg.supplyBeaconsEnabled; }
+    public static boolean        isNoPreAnnounceEnabled()          { return cfg.noPreAnnounceEnabled; }
+    public static boolean        isSupplyLocationAnnounceEnabled() { return cfg.supplyLocationAnnounceEnabled; }
+    public static boolean        isSupplySpawnCountdownEnabled()   { return cfg.supplySpawnCountdownEnabled; }
+    public static boolean        isBuildProgressHudEnabled()       { return cfg.buildProgressHudEnabled; }
+    public static boolean        isAnnounceFreshEnabled()          { return cfg.announceFreshEnabled; }
+    public static boolean        isSupplyHitboxEnabled()           { return cfg.supplyHitboxEnabled; }
+    public static boolean        isSupplyRodRadiusEnabled()        { return cfg.supplyRodRadiusEnabled; }
+    public static boolean        isSupplyPearlHitboxEnabled()      { return cfg.supplyPearlHitboxEnabled; }
+    public static boolean        isPearlRefillEnabled()            { return cfg.pearlRefillEnabled; }
+    public static boolean        isPearlRefillOutsideKuudraEnabled() { return cfg.pearlRefillOutsideKuudraEnabled; }
+    public static boolean        isPearlRefillDungeonsEnabled()    { return cfg.pearlRefillDungeonsEnabled; }
+    public static boolean        isHideSelfieEnabled()             { return cfg.hideSelfieEnabled; }
+    public static boolean        isPreventPlacingPlayerHeadsEnabled()      { return cfg.preventPlacingPlayerHeadsEnabled; }
+    public static boolean        isPreventPlacingPlayerHeadsExceptGarden() { return cfg.preventPlacingPlayerHeadsExceptGarden; }
+    public static boolean        isPreventPlacingWeaponsEnabled()          { return cfg.preventPlacingWeaponsEnabled; }
+    public static boolean        isBlockBossPhaseJumpEnabled()             { return cfg.blockBossPhaseJumpEnabled; }
+    public static boolean        isBlockCloseItemEnabled()                 { return cfg.blockCloseItemEnabled; }
+    public static boolean        isSupplyGiantHitboxEnabled()              { return cfg.supplyGiantHitboxEnabled; }
+    public static boolean        isGiantHitboxEnabled()                    { return cfg.giantHitboxEnabled; }
+    public static boolean        isGiantHitboxFilled()                     { return cfg.giantHitboxFilled; }
+    public static float          getGiantHitboxFillOpacity()               { return cfg.giantHitboxFillOpacity; }
+    public static int            getGiantHitboxColor()                     { return cfg.giantHitboxColor; }
 
     public static int getPickupDurationMs() {
         int tier = KuudraTierDetector.getTier();
@@ -589,37 +349,37 @@ public class PhantomConfig {
     }
 
     // Dungeons
-    public static boolean isAutoGfsToxicEnabled()    { return autoGfsToxic; }
-    public static boolean isAutoGfsTwilightEnabled() { return autoGfsTwilight; }
-    public static int     getToxicAmount()           { return toxicAmount; }
-    public static int     getTwilightAmount()        { return twilightAmount; }
+    public static boolean isAutoGfsToxicEnabled()    { return cfg.autoGfsToxic; }
+    public static boolean isAutoGfsTwilightEnabled() { return cfg.autoGfsTwilight; }
+    public static int     getToxicAmount()           { return cfg.toxicAmount; }
+    public static int     getTwilightAmount()        { return cfg.twilightAmount; }
 
     // Chest tracker
-    public static int getChestTotal()   { return chestTotal; }
-    public static int getChestSuccess() { return chestSuccess; }
-    public static int getChestFail()    { return chestFail; }
+    public static int getChestTotal()   { return cfg.chestTotal; }
+    public static int getChestSuccess() { return cfg.chestSuccess; }
+    public static int getChestFail()    { return cfg.chestFail; }
 
     // Split timer
-    public static boolean isSplitTimerEnabled()  { return splitTimerEnabled; }
-    public static boolean isSupplyTimesEnabled() { return supplyTimesEnabled; }
+    public static boolean isSplitTimerEnabled()  { return cfg.splitTimerEnabled; }
+    public static boolean isSupplyTimesEnabled() { return cfg.supplyTimesEnabled; }
 
     // Item customisation
-    public static boolean isItemCustomizationEnabled() { return itemCustomizationEnabled; }
+    public static boolean isItemCustomizationEnabled() { return cfg.itemCustomizationEnabled; }
 
     public static double[] getSplitPb(int tier) {
         if (tier < 1 || tier > 5) tier = 5;
-        return splitPbs[tier];
+        return cfg.splitPbs[tier];
     }
 
     public static void setSplitPb(int tier, double[] pb) {
         if (tier < 1 || tier > 5) return;
-        splitPbs[tier] = pb.clone();
+        cfg.splitPbs[tier] = pb.clone();
         save();
     }
 
     public static double getTotalRunPb(int tier) {
         if (tier < 1 || tier > 5) tier = 5;
-        return totalRunPbs[tier];
+        return cfg.totalRunPbs[tier];
     }
 
     public static void setTotalRunPb(int tier, double time) {
@@ -627,66 +387,64 @@ public class PhantomConfig {
     }
 
     public static int getHighestTierPlayed() {
-        for (int t = 5; t >= 1; t--) if (totalRunPbs[t] < 9999) return t;
+        for (int t = 5; t >= 1; t--) if (cfg.totalRunPbs[t] < 9999) return t;
         return 5;
     }
 
     public static void recordTotalRunTime(int tier, double seconds) {
         if (tier < 1 || tier > 5) return;
-        totalRunTimeSum[tier] += seconds;
-        totalRunCount[tier]++;
+        cfg.totalRunTimeSum[tier] += seconds;
+        cfg.totalRunCount[tier]++;
         save();
     }
 
     public static double getTotalAverage(int tier) {
-        if (tier < 1 || tier > 5 || totalRunCount[tier] <= 0) return -1;
-        return totalRunTimeSum[tier] / totalRunCount[tier];
+        if (tier < 1 || tier > 5 || cfg.totalRunCount[tier] <= 0) return -1;
+        return cfg.totalRunTimeSum[tier] / cfg.totalRunCount[tier];
     }
 
     public static int getTotalRunCount(int tier) {
         if (tier < 1 || tier > 5) return 0;
-        return totalRunCount[tier];
+        return cfg.totalRunCount[tier];
     }
 
-    // Total timed runs across all tiers — deliberately separate from the profit tracker's own
-    // "total runs" (every committed chest), since not every committed run has a recorded time.
     public static int getTotalTimedRuns() {
         int n = 0;
-        for (int t = 1; t <= 5; t++) n += totalRunCount[t];
+        for (int t = 1; t <= 5; t++) n += cfg.totalRunCount[t];
         return n;
     }
 
     public static double getTotalTimedSeconds() {
         double s = 0;
-        for (int t = 1; t <= 5; t++) s += totalRunTimeSum[t];
+        for (int t = 1; t <= 5; t++) s += cfg.totalRunTimeSum[t];
         return s;
     }
 
     public static int getTotalAverageHighestTier() {
-        for (int t = 5; t >= 1; t--) if (totalRunCount[t] > 0) return t;
+        for (int t = 5; t >= 1; t--) if (cfg.totalRunCount[t] > 0) return t;
         return -1;
     }
 
     public static PbRecord getPbRecord(int tier) {
         if (tier < 1 || tier > 5) tier = 5;
-        return pbRecords[tier];
+        return cfg.pbRecords[tier];
     }
 
     public static void setPbRecord(int tier, PbRecord record) {
         if (tier < 1 || tier > 5) return;
-        pbRecords[tier]   = record;
-        totalRunPbs[tier] = record.totalTime;
+        cfg.pbRecords[tier]   = record;
+        cfg.totalRunPbs[tier] = record.totalTime;
         if (record.splits != null && record.splits.length == 7)
-            splitPbs[tier] = record.splits.clone();
+            cfg.splitPbs[tier] = record.splits.clone();
         save();
     }
 
     public static boolean updateTotalRunPb(int tier, double time) {
         if (tier < 1 || tier > 5) return false;
-        if (time >= totalRunPbs[tier]) return false;
-        totalRunPbs[tier] = time;
-        if (pbRecords[tier] == null) pbRecords[tier] = new PbRecord();
-        pbRecords[tier].totalTime = time;
+        if (time >= cfg.totalRunPbs[tier]) return false;
+        cfg.totalRunPbs[tier] = time;
+        if (cfg.pbRecords[tier] == null) cfg.pbRecords[tier] = new PbRecord();
+        cfg.pbRecords[tier].totalTime = time;
         return true;
     }
 
@@ -704,338 +462,339 @@ public class PhantomConfig {
 
     // General
     public static void setRoleMode(RoleMode m)          { roleMode = m;           save(); }
-    public static void setDpsValue(int v)               { dpsValue = v;           save(); }
-    public static void setDpsRefillAmount(int v)        { dpsRefillAmount = Math.max(4, v); save(); }
-    public static void setAutoGfsDisableHpPercent(int v) { autoGfsDisableHpPercent = Math.max(25, Math.min(100, v)); save(); }
-    public static void setStunValue(int v)              { stunValue = v;          save(); }
-    public static void setEatenTimerEnabled(boolean v)             { eatenTimerEnabled = v;             save(); }
-    public static void setEatenTimerSubtractPingEnabled(boolean v) { eatenTimerSubtractPingEnabled = v;  save(); }
-    public static void setPickoblockEnabled(boolean v)  { pickoblockEnabled = v;  save(); }
-    public static void setHideElleDialogue(boolean v)   { hideElleDialogue = v;   save(); }
-    public static void setAutoGfsEnabled(boolean v)     { autoGfsEnabled = v;     save(); }
-    public static void toggleEtherwarpLavaBlock()       { etherwarpLavaBlock = !etherwarpLavaBlock; save(); }
-    public static void setEtherwarpLavaBlockOnlyInKuudra(boolean v) { etherwarpLavaBlockOnlyInKuudra = v; save(); }
+    public static void setDpsValue(int v)               { cfg.dpsValue = v;           save(); }
+    public static void setDpsRefillAmount(int v)        { cfg.dpsRefillAmount = Math.max(4, v); save(); }
+    public static void setAutoGfsDisableHpPercent(int v) { cfg.autoGfsDisableHpPercent = Math.max(25, Math.min(100, v)); save(); }
+    public static void setStunValue(int v)              { cfg.stunValue = v;          save(); }
+    public static void setEatenTimerEnabled(boolean v)             { cfg.eatenTimerEnabled = v;             save(); }
+    public static void setEatenTimerSubtractPingEnabled(boolean v) { cfg.eatenTimerSubtractPingEnabled = v;  save(); }
+    public static void setPickoblockEnabled(boolean v)  { cfg.pickoblockEnabled = v;  save(); }
+    public static void setHideElleDialogue(boolean v)   { cfg.hideElleDialogue = v;   save(); }
+    public static void setAutoGfsEnabled(boolean v)     { cfg.autoGfsEnabled = v;     save(); }
+    public static void toggleEtherwarpLavaBlock()       { cfg.etherwarpLavaBlock = !cfg.etherwarpLavaBlock; save(); }
+    public static void setEtherwarpLavaBlockOnlyInKuudra(boolean v) { cfg.etherwarpLavaBlockOnlyInKuudra = v; save(); }
 
     // Lava
-    public static void setLavaTweaksEnabled(boolean v) { lavaTweaksEnabled = v;    save(); rebuildChunks(); }
+    public static void setLavaTweaksEnabled(boolean v) { cfg.lavaTweaksEnabled = v;    save(); rebuildChunks(); }
     public static void setLavaMode(LavaMode m)         { lavaMode = m;             save(); rebuildChunks(); }
-    public static void setLavaOpacity(float v)         { lavaOpacity = clamp01(v); save(); rebuildChunks(); }
-    public static void setLavaColor(int c)             { lavaColor = c;            save(); rebuildChunks(); }
-    public static void setLavaAsWater(boolean v)       { lavaAsWater = v;          save(); rebuildChunks(); }
-    public static void setLavaColorOverride(boolean v) { lavaColorOverride = v;    save(); rebuildChunks(); }
+    public static void setLavaOpacity(float v)         { cfg.lavaOpacity = clamp01(v); save(); rebuildChunks(); }
+    public static void setLavaColor(int c)             { cfg.lavaColor = c;            save(); rebuildChunks(); }
+    public static void setLavaAsWater(boolean v)       { cfg.lavaAsWater = v;          save(); rebuildChunks(); }
+    public static void setLavaColorOverride(boolean v) { cfg.lavaColorOverride = v;    save(); rebuildChunks(); }
 
     // Misc
-    public static void setFastDpsWarningEnabled(boolean v)  { fastDpsWarning = v;           save(); }
-    public static void setChestTrackerVisible(boolean v)    { chestTrackerVisible = v;      save(); }
-    public static void setSoloDetectorEnabled(boolean v)    { soloDetectorEnabled = v;      save(); }
-    public static void setCannonAutoCloseEnabled(boolean v) { cannonAutoClose = v;          save(); }
-    public static void setKuudraDirectionEnabled(boolean v) { kuudraDirectionEnabled = v;   save(); }
-    public static void setTuxedoWarningEnabled(boolean v)   { tuxedoWarningEnabled = v;     save(); }
-    public static void setBoneTimingAssistEnabled(boolean v) { boneTimingAssistEnabled = v; save(); }
-    public static void setBoneTimingAssistOffset(float v) { boneTimingAssistOffset = Math.clamp(v, -3.0f, 1.0f); save(); }
-    public static void setBoneTimingHitboxOutlineEnabled(boolean v) { boneTimingHitboxOutlineEnabled = v; save(); }
-    public static void setBoneTimingHitboxOutlineFilled(boolean v)  { boneTimingHitboxOutlineFilled = v;  save(); }
-    public static void setBoneTimingHitboxOutlineColor(int v)       { boneTimingHitboxOutlineColor = v & 0xFFFFFF; save(); }
-    public static void setBoneTimingHitboxOutlineOnlyCurrentDirection(boolean v) { boneTimingHitboxOutlineOnlyCurrentDirection = v; save(); }
-    public static void setBoneTimingHitboxHighlightInRange(boolean v) { boneTimingHitboxHighlightInRange = v; save(); }
-    public static void setShopKeybindsEnabled(boolean v)    { shopKeybindsEnabled = v;      save(); }
-    public static void setMiddleClickShopGuiEnabled(boolean v) { middleClickShopGuiEnabled = v; save(); }
-    public static void setShopMainKey(int v)                { shopMainKey = v;              save(); }
-    public static void setShopCannonKey(int v)              { shopCannonKey = v;            save(); }
-    public static void setExplosionFilterEnabled(boolean v) { explosionFilterEnabled = v;   save(); }
-    public static void setExplosionHideRadius(float v)      { explosionHideRadius = clamp01(v); save(); }
-    public static void setExplosionSizeMultiplier(float v)  { explosionSizeMultiplier = clamp01(v); save(); }
-    public static void setChestAnnouncerEnabled(boolean v)  { chestAnnouncerEnabled = v;   save(); }
+    public static void setFastDpsWarningEnabled(boolean v)  { cfg.fastDpsWarning = v;           save(); }
+    public static void setChestTrackerVisible(boolean v)    { cfg.chestTrackerVisible = v;      save(); }
+    public static void setSoloDetectorEnabled(boolean v)    { cfg.soloDetectorEnabled = v;      save(); }
+    public static void setCannonAutoCloseEnabled(boolean v) { cfg.cannonAutoClose = v;          save(); }
+    public static void setKuudraDirectionEnabled(boolean v) { cfg.kuudraDirectionEnabled = v;   save(); }
+    public static void setTuxedoWarningEnabled(boolean v)   { cfg.tuxedoWarningEnabled = v;     save(); }
+    public static void setBoneTimingAssistEnabled(boolean v) { cfg.boneTimingAssistEnabled = v; save(); }
+    public static void setBoneTimingAssistOffset(float v) { cfg.boneTimingAssistOffset = Math.clamp(v, -3.0f, 1.0f); save(); }
+    public static void setBoneTimingHitboxOutlineEnabled(boolean v) { cfg.boneTimingHitboxOutlineEnabled = v; save(); }
+    public static void setBoneTimingHitboxOutlineFilled(boolean v)  { cfg.boneTimingHitboxOutlineFilled = v;  save(); }
+    public static void setBoneTimingHitboxOutlineColor(int v)       { cfg.boneTimingHitboxOutlineColor = v & 0xFFFFFF; save(); }
+    public static void setBoneTimingHitboxOutlineOnlyCurrentDirection(boolean v) { cfg.boneTimingHitboxOutlineOnlyCurrentDirection = v; save(); }
+    public static void setBoneTimingHitboxHighlightInRange(boolean v) { cfg.boneTimingHitboxHighlightInRange = v; save(); }
+    public static void setShopKeybindsEnabled(boolean v)    { cfg.shopKeybindsEnabled = v;      save(); }
+    public static void setMiddleClickShopGuiEnabled(boolean v) { cfg.middleClickShopGuiEnabled = v; save(); }
+    public static void setShopMainKey(int v)                { cfg.shopMainKey = v;              save(); }
+    public static void setShopCannonKey(int v)              { cfg.shopCannonKey = v;            save(); }
+    public static void setExplosionFilterEnabled(boolean v) { cfg.explosionFilterEnabled = v;   save(); }
+    public static void setExplosionHideRadius(float v)      { cfg.explosionHideRadius = clamp01(v); save(); }
+    public static void setExplosionSizeMultiplier(float v)  { cfg.explosionSizeMultiplier = clamp01(v); save(); }
+    public static void setChestAnnouncerEnabled(boolean v)  { cfg.chestAnnouncerEnabled = v;   save(); }
 
-    public static void setAutoKickEnabled(boolean v)   { if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) { autoKickEnabled = v; save(); } }
-    public static void setProfileViewerEnabled(boolean v) { if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isEnabled()) { profileViewerEnabled = v; save(); } }
-    public static void setAkMinCatacombs(int v)        { akMinCatacombs = v;    save(); }
-    public static void setAkMinForaging(int v)         { akMinForaging = v;     save(); }
-    public static void setAkMinMagicalPower(int v)     { akMinMagicalPower = v; save(); }
-    public static void setAkMinInfernal(int v)         { akMinInfernal = v;     save(); }
-    public static void setAkMinFiery(int v)            { akMinFiery = v;        save(); }
-    public static void setAkMinBurning(int v)          { akMinBurning = v;      save(); }
-    public static void setAkMinHot(int v)              { akMinHot = v;          save(); }
-    public static void setAkMinBasic(int v)            { akMinBasic = v;        save(); }
-    public static void setAkRequireRend(boolean v)     { akRequireRend = v;     save(); }
-    public static void setAkMinGdragLevel(int v)       { akMinGdragLevel = v;   save(); }
-    public static void setPartyCmdsEnabled(boolean v)       { partyCmdsEnabled = v;        save(); }
-    public static void setAutoRequeueEnabled(boolean v)     { autoRequeueEnabled = v;      save(); }
-    public static void setAutoRequeueMessageEnabled(boolean v) { autoRequeueMessageEnabled = v; save(); }
-    public static void setAutoUpdatesEnabled(boolean v)     { autoUpdatesEnabled = v;      save(); }
-    public static void setDeveloperFeaturesEnabled(boolean v) { developerFeaturesEnabled = v; save(); }
-    public static void setTentacleDbLoggingEnabled(boolean v) { tentacleDbLoggingEnabled = v; save(); }
-    public static void setTentacleHighlightEnabled(boolean v) { tentacleHighlightEnabled = v; save(); }
+    public static void setAutoKickEnabled(boolean v)   { if (RemoteFeatureGate.isEnabled()) { cfg.autoKickEnabled = v; save(); } }
+    public static void setProfileViewerEnabled(boolean v) { if (RemoteFeatureGate.isEnabled()) { cfg.profileViewerEnabled = v; save(); } }
+    public static void setAkMinCatacombs(int v)        { cfg.akMinCatacombs = v;    save(); }
+    public static void setAkMinForaging(int v)         { cfg.akMinForaging = v;     save(); }
+    public static void setAkMinMagicalPower(int v)     { cfg.akMinMagicalPower = v; save(); }
+    public static void setAkMinInfernal(int v)         { cfg.akMinInfernal = v;     save(); }
+    public static void setAkMinFiery(int v)            { cfg.akMinFiery = v;        save(); }
+    public static void setAkMinBurning(int v)          { cfg.akMinBurning = v;      save(); }
+    public static void setAkMinHot(int v)              { cfg.akMinHot = v;          save(); }
+    public static void setAkMinBasic(int v)            { cfg.akMinBasic = v;        save(); }
+    public static void setAkRequireRend(boolean v)     { cfg.akRequireRend = v;     save(); }
+    public static void setAkMinGdragLevel(int v)       { cfg.akMinGdragLevel = v;   save(); }
+    public static void setPartyCmdsEnabled(boolean v)       { cfg.partyCmdsEnabled = v;        save(); }
+    public static void setAutoRequeueEnabled(boolean v)     { cfg.autoRequeueEnabled = v;      save(); }
+    public static void setAutoRequeueMessageEnabled(boolean v) { cfg.autoRequeueMessageEnabled = v; save(); }
+    public static void setAutoUpdatesEnabled(boolean v)     { cfg.autoUpdatesEnabled = v;      save(); }
+    public static void setDeveloperFeaturesEnabled(boolean v) { cfg.developerFeaturesEnabled = v; save(); }
+    public static void setTentacleDbLoggingEnabled(boolean v) { cfg.tentacleDbLoggingEnabled = v; save(); }
+    public static void setTentacleHighlightEnabled(boolean v) { cfg.tentacleHighlightEnabled = v; save(); }
     public static void setUiTheme(UiTheme v) { uiTheme = v; save(); }
-    public static void setUiGuiScale(float v) { uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
-    public static void setUiTransparencyEnabled(boolean v) { uiTransparencyEnabled = v; save(); }
-    public static void setAutoSprintEnabled(boolean v)      { autoSprintEnabled = v;       save(); }
-    public static void setSlotBindsEnabled(boolean v)       { slotBindsEnabled = v;        save(); }
+    public static void setUiGuiScale(float v) { cfg.uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
+    public static void setUiTransparencyEnabled(boolean v) { cfg.uiTransparencyEnabled = v; save(); }
+    public static void setAutoSprintEnabled(boolean v)      { cfg.autoSprintEnabled = v;       save(); }
+    public static void setSlotBindsEnabled(boolean v)       { cfg.slotBindsEnabled = v;        save(); }
     public static void clearSlotBinding(int invSlot)        { slotBindings.remove(invSlot); save(); }
     public static void putSlotBinding(int invSlot, int hotbarIndex) { slotBindings.put(invSlot, hotbarIndex); save(); }
 
     // Pearl
-    public static void setPearlWaypointsEnabled(boolean v)  { pearlWaypointsEnabled = v;    save(); }
-    public static void setShowAllWaypoints(boolean v)        { showAllWaypoints = v;         save(); }
-    public static void setPearlFlatEnabled(boolean v)        { pearlFlatEnabled = v;         save(); }
-    public static void setPearlSkyEnabled(boolean v)         { pearlSkyEnabled = v;          save(); }
-    public static void setPearlDoubleEnabled(boolean v)      { pearlDoubleEnabled = v;       save(); }
-    public static void setDoublePearlDelayS(float v)         { doublePearlDelayS = Math.max(0.05f, Math.min(0.55f, v)); save(); }
+    public static void setPearlWaypointsEnabled(boolean v)  { cfg.pearlWaypointsEnabled = v;    save(); }
+    public static void setShowAllWaypoints(boolean v)        { cfg.showAllWaypoints = v;         save(); }
+    public static void setPearlFlatEnabled(boolean v)        { cfg.pearlFlatEnabled = v;         save(); }
+    public static void setPearlSkyEnabled(boolean v)         { cfg.pearlSkyEnabled = v;          save(); }
+    public static void setPearlDoubleEnabled(boolean v)      { cfg.pearlDoubleEnabled = v;       save(); }
+    public static void setDoublePearlDelayS(float v)         { cfg.doublePearlDelayS = Math.max(0.05f, Math.min(0.55f, v)); save(); }
     public static void setWaypointType(WaypointType t)       { waypointType = t;             save(); }
-    public static void setWaypointFillEnabled(boolean v)     { waypointFill = v;             save(); }
-    public static void setPearlTickUpdate(boolean v)         { pearlTickUpdate = v;          save(); }
-    public static void setDropLocationsEnabled(boolean v)    { dropLocationsEnabled = v;     save(); }
-    public static void setWaypointLinesEnabled(boolean v)           { waypointLinesEnabled = v;           save(); }
-    public static void setWaypointLinesSuppliesEnabled(boolean v)   { waypointLinesSuppliesEnabled = v;   save(); }
-    public static void setWaypointLinesFlatPearlsEnabled(boolean v) { waypointLinesFlatPearlsEnabled = v; save(); }
+    public static void setWaypointFillEnabled(boolean v)     { cfg.waypointFill = v;             save(); }
+    public static void setPearlTickUpdate(boolean v)         { cfg.pearlTickUpdate = v;          save(); }
+    public static void setDropLocationsEnabled(boolean v)    { cfg.dropLocationsEnabled = v;     save(); }
+    public static void setWaypointLinesEnabled(boolean v)           { cfg.waypointLinesEnabled = v;           save(); }
+    public static void setWaypointLinesSuppliesEnabled(boolean v)   { cfg.waypointLinesSuppliesEnabled = v;   save(); }
+    public static void setWaypointLinesFlatPearlsEnabled(boolean v) { cfg.waypointLinesFlatPearlsEnabled = v; save(); }
     public static void setSecondSupplyPreference(SecondSupplyPreference p) { secondSupplyPreference = p; save(); }
-    public static void setPearlTimerEnabled(boolean v)       { pearlTimerEnabled = v;        save(); }
-    public static void setPearlTimerHeight(float v)          { pearlTimerHeight = v;         save(); }
-    public static void setPearlTimerSize(float v)            { pearlTimerSize = v;           save(); }
-    public static void setPearlCircleSize(float v)           { pearlCircleSize = v;          save(); }
+    public static void setPearlTimerEnabled(boolean v)       { cfg.pearlTimerEnabled = v;        save(); }
+    public static void setPearlTimerHeight(float v)          { cfg.pearlTimerHeight = v;         save(); }
+    public static void setPearlTimerSize(float v)            { cfg.pearlTimerSize = v;           save(); }
+    public static void setPearlCircleSize(float v)           { cfg.pearlCircleSize = v;          save(); }
     public static void setKuudraTalisman(KuudraTalisman t)   { kuudraTalisman = t;           save(); }
-    public static void setLowPing(int v)                     { lowPing = Math.max(0, v);     save(); }
-    public static void setWaypointFillAlpha(float v)         { waypointFillAlpha = v;        save(); }
-    public static void setBeaconAlpha(float v)               { beaconAlpha = v;              save(); }
-    public static void setWpColNormal(int v)                 { wpColNormal = v & 0xFFFFFF;      save(); }
-    public static void setWpColCorrect(int v)                { wpColCorrect = v & 0xFFFFFF;     save(); }
-    public static void setWpColHovered(int v)                { wpColHovered = v & 0xFFFFFF;     save(); }
-    public static void setWpColReady(int v)                  { wpColReady = v & 0xFFFFFF;       save(); }
-    public static void setBeaconColNormal(int v)             { beaconColNormal = v & 0xFFFFFF;  save(); }
-    public static void setBeaconColCorrect(int v)            { beaconColCorrect = v & 0xFFFFFF; save(); }
-    public static void setBuildBeaconAlpha(float v)          { buildBeaconAlpha = clamp01(v);   save(); }
-    public static void setElleOutlineColor(int v)            { elleOutlineColor = v & 0xFFFFFF; save(); }
-    public static void setElleBeaconColor(int v)             { elleBeaconColor = v & 0xFFFFFF;  save(); }
-    public static void setKuudraApiKey(String v)             { kuudraApiKey = v == null ? "" : v.trim(); save(); }
-    public static void setBlockSlot9Enabled(boolean v)       { blockSlot9Enabled = v;        save(); }
-    public static void setBlockAtomsplitEnabled(boolean v)   { blockAtomsplitEnabled = v;    save(); }
-    public static void setIchorRadiusEnabled(boolean v)      { ichorRadiusEnabled = v;       save(); }
-    public static void setStunPreviewEnabled(boolean v)          { stunPreviewEnabled = v;            save(); }
-    public static void setStunPreviewLeftEnabled(boolean v)      { stunPreviewLeftEnabled = v;         save(); }
-    public static void setStunPreviewRightEnabled(boolean v)     { stunPreviewRightEnabled = v;        save(); }
-    public static void setStunPreviewBackEnabled(boolean v)      { stunPreviewBackEnabled = v;         save(); }
-    public static void setDpsWaypointEnabled(boolean v)     { dpsWaypointEnabled = v;        save(); }
-    public static void setBuildBeaconsEnabled(boolean v)         { buildBeaconsEnabled = v;           save(); }
-    public static void setElleHighlightEnabled(boolean v)        { elleHighlightEnabled = v;          save(); }
-    public static void setElleHighlightBeaconEnabled(boolean v)  { elleHighlightBeaconEnabled = v;    save(); }
-    public static void setRendDamageEnabled(boolean v)           { rendDamageEnabled = v;             save(); }
-    public static void setRendPullAttributionEnabled(boolean v)  { rendPullAttributionEnabled = v;    save(); }
-    public static void setRendTrackerEnabled(boolean v)          { rendTrackerEnabled = v;            save(); }
-    public static void setBackboneProgressBarEnabled(boolean v)   { backboneProgressBarEnabled = v;    save(); }
-    public static void setBackboneProgressBarOutsideKuudraEnabled(boolean v) { backboneProgressBarOutsideKuudraEnabled = v; save(); }
-    public static void setBackboneProgressBarHudX(float v)        { backboneProgressBarHudX     = Math.max(0, Math.min(1, v)); }
-    public static void setBackboneProgressBarHudY(float v)        { backboneProgressBarHudY     = Math.max(0, Math.min(1, v)); }
-    public static void setBackboneProgressBarHudScale(float v)    { backboneProgressBarHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static void setKuudraHighlightEnabled(boolean v)     { kuudraHighlightEnabled = v;        save(); }
-    public static void setKuudraHighlightFilled(boolean v)      { kuudraHighlightFilled = v;         save(); }
-    public static void setEtherwarpSlotBlockerEnabled(boolean v) { etherwarpSlotBlockerEnabled = v; save(); }
-    public static void setSupplyWaypointsEnabled(boolean v)          { supplyWaypointsEnabled = v;              save(); }
-    public static void setSupplyBeaconsEnabled(boolean v)            { supplyBeaconsEnabled = v;                save(); }
-    public static void setNoPreAnnounceEnabled(boolean v)            { noPreAnnounceEnabled = v;                save(); }
-    public static void setSupplyLocationAnnounceEnabled(boolean v)   { supplyLocationAnnounceEnabled = v;       save(); }
-    public static void setSupplyProgressHudEnabled(boolean v)        { supplyProgressHudEnabled = v;            save(); }
-    public static void setBuildProgressHudEnabled(boolean v)         { buildProgressHudEnabled = v;             save(); }
-    public static void setAnnounceFreshEnabled(boolean v)            { announceFreshEnabled = v;                save(); }
-    public static void setSupplyHitboxEnabled(boolean v)             { supplyHitboxEnabled = v;                 save(); }
-    public static void setSupplyRodRadiusEnabled(boolean v)          { supplyRodRadiusEnabled = v;              save(); }
-    public static void setSupplyPearlHitboxEnabled(boolean v)        { supplyPearlHitboxEnabled = v;            save(); }
-    public static void setPearlRefillEnabled(boolean v)              { pearlRefillEnabled = v;                  save(); }
-    public static void setPearlRefillOutsideKuudraEnabled(boolean v) { pearlRefillOutsideKuudraEnabled = v;     save(); }
-    public static void setHideSelfieEnabled(boolean v)               { hideSelfieEnabled = v;                    save(); }
-    public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { preventPlacingPlayerHeadsEnabled = v;      save(); }
-    public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { preventPlacingPlayerHeadsExceptGarden = v; save(); }
-    public static void setPreventPlacingWeaponsEnabled(boolean v)          { preventPlacingWeaponsEnabled = v;          save(); }
-    public static void setBlockBossPhaseJumpEnabled(boolean v)             { blockBossPhaseJumpEnabled = v;             save(); }
-    public static void setBlockCloseItemEnabled(boolean v)                 { blockCloseItemEnabled = v;                 save(); }
-    public static void setSupplyGiantHitboxEnabled(boolean v)              { supplyGiantHitboxEnabled = v;              save(); }
-    public static void setGiantHitboxEnabled(boolean v)                    { giantHitboxEnabled = v;                    save(); }
-    public static void setGiantHitboxFilled(boolean v)                     { giantHitboxFilled = v;                     save(); }
-    public static void setGiantHitboxFillOpacity(float v)                  { giantHitboxFillOpacity = clamp01(v);       save(); }
-    public static void setGiantHitboxColor(int v)                          { giantHitboxColor = v & 0xFFFFFF;           save(); }
+    public static void setLowPing(int v)                     { cfg.lowPing = Math.max(0, v);     save(); }
+    public static void setWaypointFillAlpha(float v)         { cfg.waypointFillAlpha = v;        save(); }
+    public static void setBeaconAlpha(float v)               { cfg.beaconAlpha = v;              save(); }
+    public static void setWpColNormal(int v)                 { cfg.wpColNormal = v & 0xFFFFFF;      save(); }
+    public static void setWpColCorrect(int v)                { cfg.wpColCorrect = v & 0xFFFFFF;     save(); }
+    public static void setWpColHovered(int v)                { cfg.wpColHovered = v & 0xFFFFFF;     save(); }
+    public static void setWpColReady(int v)                  { cfg.wpColReady = v & 0xFFFFFF;       save(); }
+    public static void setBeaconColNormal(int v)             { cfg.beaconColNormal = v & 0xFFFFFF;  save(); }
+    public static void setBeaconColCorrect(int v)            { cfg.beaconColCorrect = v & 0xFFFFFF; save(); }
+    public static void setBuildBeaconAlpha(float v)          { cfg.buildBeaconAlpha = clamp01(v);   save(); }
+    public static void setElleOutlineColor(int v)            { cfg.elleOutlineColor = v & 0xFFFFFF; save(); }
+    public static void setElleBeaconColor(int v)             { cfg.elleBeaconColor = v & 0xFFFFFF;  save(); }
+    public static void setKuudraApiKey(String v)             { cfg.kuudraApiKey = v == null ? "" : v.trim(); save(); }
+    public static void setBlockSlot9Enabled(boolean v)       { cfg.blockSlot9Enabled = v;        save(); }
+    public static void setBlockAtomsplitEnabled(boolean v)   { cfg.blockAtomsplitEnabled = v;    save(); }
+    public static void setIchorRadiusEnabled(boolean v)      { cfg.ichorRadiusEnabled = v;       save(); }
+    public static void setStunPreviewEnabled(boolean v)          { cfg.stunPreviewEnabled = v;            save(); }
+    public static void setStunPreviewLeftEnabled(boolean v)      { cfg.stunPreviewLeftEnabled = v;         save(); }
+    public static void setStunPreviewRightEnabled(boolean v)     { cfg.stunPreviewRightEnabled = v;        save(); }
+    public static void setStunPreviewBackEnabled(boolean v)      { cfg.stunPreviewBackEnabled = v;         save(); }
+    public static void setDpsWaypointEnabled(boolean v)     { cfg.dpsWaypointEnabled = v;        save(); }
+    public static void setBuildBeaconsEnabled(boolean v)         { cfg.buildBeaconsEnabled = v;           save(); }
+    public static void setElleHighlightEnabled(boolean v)        { cfg.elleHighlightEnabled = v;          save(); }
+    public static void setElleHighlightBeaconEnabled(boolean v)  { cfg.elleHighlightBeaconEnabled = v;    save(); }
+    public static void setRendDamageEnabled(boolean v)           { cfg.rendDamageEnabled = v;             save(); }
+    public static void setRendPullAttributionEnabled(boolean v)  { cfg.rendPullAttributionEnabled = v;    save(); }
+    public static void setRendTrackerEnabled(boolean v)          { cfg.rendTrackerEnabled = v;            save(); }
+    public static void setBackboneProgressBarEnabled(boolean v)   { cfg.backboneProgressBarEnabled = v;    save(); }
+    public static void setBackboneProgressBarOutsideKuudraEnabled(boolean v) { cfg.backboneProgressBarOutsideKuudraEnabled = v; save(); }
+    public static void setBackboneProgressBarHudX(float v)        { cfg.backboneProgressBarHudX     = clamp01(v); }
+    public static void setBackboneProgressBarHudY(float v)        { cfg.backboneProgressBarHudY     = clamp01(v); }
+    public static void setBackboneProgressBarHudScale(float v)    { cfg.backboneProgressBarHudScale = clampHudScale(v); }
+    public static void setKuudraHighlightEnabled(boolean v)     { cfg.kuudraHighlightEnabled = v;        save(); }
+    public static void setKuudraHighlightFilled(boolean v)      { cfg.kuudraHighlightFilled = v;         save(); }
+    public static void setEtherwarpSlotBlockerEnabled(boolean v) { cfg.etherwarpSlotBlockerEnabled = v; save(); }
+    public static void setSupplyWaypointsEnabled(boolean v)          { cfg.supplyWaypointsEnabled = v;              save(); }
+    public static void setSupplyBeaconsEnabled(boolean v)            { cfg.supplyBeaconsEnabled = v;                save(); }
+    public static void setNoPreAnnounceEnabled(boolean v)            { cfg.noPreAnnounceEnabled = v;                save(); }
+    public static void setSupplyLocationAnnounceEnabled(boolean v)   { cfg.supplyLocationAnnounceEnabled = v;       save(); }
+    public static void setSupplySpawnCountdownEnabled(boolean v)     { cfg.supplySpawnCountdownEnabled = v;         save(); }
+    public static void setBuildProgressHudEnabled(boolean v)         { cfg.buildProgressHudEnabled = v;             save(); }
+    public static void setAnnounceFreshEnabled(boolean v)            { cfg.announceFreshEnabled = v;                save(); }
+    public static void setSupplyHitboxEnabled(boolean v)             { cfg.supplyHitboxEnabled = v;                 save(); }
+    public static void setSupplyRodRadiusEnabled(boolean v)          { cfg.supplyRodRadiusEnabled = v;              save(); }
+    public static void setSupplyPearlHitboxEnabled(boolean v)        { cfg.supplyPearlHitboxEnabled = v;            save(); }
+    public static void setPearlRefillEnabled(boolean v)              { cfg.pearlRefillEnabled = v;                  save(); }
+    public static void setPearlRefillOutsideKuudraEnabled(boolean v) { cfg.pearlRefillOutsideKuudraEnabled = v;     save(); }
+    public static void setPearlRefillDungeonsEnabled(boolean v)      { cfg.pearlRefillDungeonsEnabled = v;          save(); }
+    public static void setHideSelfieEnabled(boolean v)               { cfg.hideSelfieEnabled = v;                    save(); }
+    public static void setPreventPlacingPlayerHeadsEnabled(boolean v)      { cfg.preventPlacingPlayerHeadsEnabled = v;      save(); }
+    public static void setPreventPlacingPlayerHeadsExceptGarden(boolean v) { cfg.preventPlacingPlayerHeadsExceptGarden = v; save(); }
+    public static void setPreventPlacingWeaponsEnabled(boolean v)          { cfg.preventPlacingWeaponsEnabled = v;          save(); }
+    public static void setBlockBossPhaseJumpEnabled(boolean v)             { cfg.blockBossPhaseJumpEnabled = v;             save(); }
+    public static void setBlockCloseItemEnabled(boolean v)                 { cfg.blockCloseItemEnabled = v;                 save(); }
+    public static void setSupplyGiantHitboxEnabled(boolean v)              { cfg.supplyGiantHitboxEnabled = v;              save(); }
+    public static void setGiantHitboxEnabled(boolean v)                    { cfg.giantHitboxEnabled = v;                    save(); }
+    public static void setGiantHitboxFilled(boolean v)                     { cfg.giantHitboxFilled = v;                     save(); }
+    public static void setGiantHitboxFillOpacity(float v)                  { cfg.giantHitboxFillOpacity = clamp01(v);       save(); }
+    public static void setGiantHitboxColor(int v)                          { cfg.giantHitboxColor = v & 0xFFFFFF;           save(); }
 
     // HUD layout (no auto-save — HudEditorScreen calls save() on close)
-    public static float getMountTimerHudX()     { return mountTimerHudX; }
-    public static float getMountTimerHudY()     { return mountTimerHudY; }
-    public static float getMountTimerHudScale() { return mountTimerHudScale; }
-    public static float getDirectionHudX()     { return directionHudX; }
-    public static float getDirectionHudY()     { return directionHudY; }
-    public static float getDirectionHudScale() { return directionHudScale; }
-    public static float getSplitHudX()         { return splitHudX; }
-    public static float getSplitHudY()         { return splitHudY; }
-    public static float getSplitHudScale()     { return splitHudScale; }
+    public static float getMountTimerHudX()     { return cfg.mountTimerHudX; }
+    public static float getMountTimerHudY()     { return cfg.mountTimerHudY; }
+    public static float getMountTimerHudScale() { return cfg.mountTimerHudScale; }
+    public static float getDirectionHudX()     { return cfg.directionHudX; }
+    public static float getDirectionHudY()     { return cfg.directionHudY; }
+    public static float getDirectionHudScale() { return cfg.directionHudScale; }
+    public static float getSplitHudX()         { return cfg.splitHudX; }
+    public static float getSplitHudY()         { return cfg.splitHudY; }
+    public static float getSplitHudScale()     { return cfg.splitHudScale; }
 
-    public static void setMountTimerHudX(float v)     { mountTimerHudX     = Math.max(0, Math.min(1, v)); }
-    public static void setMountTimerHudY(float v)     { mountTimerHudY     = Math.max(0, Math.min(1, v)); }
-    public static void setMountTimerHudScale(float v) { mountTimerHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static void setDirectionHudX(float v)     { directionHudX     = Math.max(0, Math.min(1, v)); }
-    public static void setDirectionHudY(float v)     { directionHudY     = Math.max(0, Math.min(1, v)); }
-    public static void setDirectionHudScale(float v) { directionHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static void setSplitHudX(float v)         { splitHudX         = Math.max(0, Math.min(1, v)); }
-    public static void setSplitHudY(float v)         { splitHudY         = Math.max(0, Math.min(1, v)); }
-    public static void setSplitHudScale(float v)     { splitHudScale     = Math.max(0.2f, Math.min(3f, v)); }
-    public static float getPearlTitleHudX()          { return pearlTitleHudX; }
-    public static float getPearlTitleHudY()          { return pearlTitleHudY; }
-    public static float getPearlTitleHudScale()      { return pearlTitleHudScale; }
-    public static void setPearlTitleHudX(float v)    { pearlTitleHudX    = Math.max(0, Math.min(1, v)); }
-    public static void setPearlTitleHudY(float v)    { pearlTitleHudY    = Math.max(0, Math.min(1, v)); }
-    public static void setPearlTitleHudScale(float v){ pearlTitleHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static boolean isSmoothCratePickupEnabled()      { return smoothCratePickupEnabled; }
-    public static void setSmoothCratePickupEnabled(boolean v) { smoothCratePickupEnabled = v; save(); }
-    public static float getSupplyProgressHudX()           { return supplyProgressHudX; }
-    public static float getSupplyProgressHudY()           { return supplyProgressHudY; }
-    public static float getSupplyProgressHudScale()       { return supplyProgressHudScale; }
-    public static void setSupplyProgressHudX(float v)     { supplyProgressHudX     = Math.max(0, Math.min(1, v)); }
-    public static void setSupplyProgressHudY(float v)     { supplyProgressHudY     = Math.max(0, Math.min(1, v)); }
-    public static void setSupplyProgressHudScale(float v) { supplyProgressHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static float getBuildProgressHudX()            { return buildProgressHudX; }
-    public static float getBuildProgressHudY()            { return buildProgressHudY; }
-    public static float getBuildProgressHudScale()        { return buildProgressHudScale; }
-    public static void setBuildProgressHudX(float v)      { buildProgressHudX      = Math.max(0, Math.min(1, v)); }
-    public static void setBuildProgressHudY(float v)      { buildProgressHudY      = Math.max(0, Math.min(1, v)); }
-    public static void setBuildProgressHudScale(float v)  { buildProgressHudScale  = Math.max(0.2f, Math.min(3f, v)); }
-    public static float getNotificationHudX()             { return notificationHudX; }
-    public static float getNotificationHudY()             { return notificationHudY; }
-    public static float getNotificationHudScale()         { return notificationHudScale; }
-    public static void setNotificationHudX(float v)       { notificationHudX      = Math.max(0, Math.min(1, v)); }
-    public static void setNotificationHudY(float v)       { notificationHudY      = Math.max(0, Math.min(1, v)); }
-    public static void setNotificationHudScale(float v)   { notificationHudScale  = Math.max(0.2f, Math.min(3f, v)); }
-    public static float getCratePriorityHudX()            { return cratePriorityHudX; }
-    public static float getCratePriorityHudY()            { return cratePriorityHudY; }
-    public static float getCratePriorityHudScale()        { return cratePriorityHudScale; }
-    public static void setCratePriorityHudX(float v)      { cratePriorityHudX     = Math.max(0, Math.min(1, v)); }
-    public static void setCratePriorityHudY(float v)      { cratePriorityHudY     = Math.max(0, Math.min(1, v)); }
-    public static void setCratePriorityHudScale(float v)  { cratePriorityHudScale = Math.max(0.2f, Math.min(3f, v)); }
-    public static boolean isSupplyRecoveryMsgEnabled()      { return supplyRecoveryMsgEnabled; }
-    public static void setSupplyRecoveryMsgEnabled(boolean v){ supplyRecoveryMsgEnabled = v;  save(); }
-    public static boolean isFreshNotifyEnabled()            { return freshNotifyEnabled; }
-    public static void setFreshNotifyEnabled(boolean v)     { freshNotifyEnabled = v;         save(); }
-    public static boolean isBuildStartedNotifyEnabled()     { return buildStartedNotifyEnabled; }
-    public static void setBuildStartedNotifyEnabled(boolean v){ buildStartedNotifyEnabled = v; save(); }
-    public static boolean isFastDpsNotifyEnabled()          { return fastDpsNotifyEnabled; }
-    public static void setFastDpsNotifyEnabled(boolean v)   { fastDpsNotifyEnabled = v;       save(); }
-    public static boolean isSoloNotifyEnabled()             { return soloNotifyEnabled; }
-    public static void setSoloNotifyEnabled(boolean v)      { soloNotifyEnabled = v;           save(); }
-    public static boolean isNoPreNotifyEnabled()            { return noPreNotifyEnabled; }
-    public static void setNoPreNotifyEnabled(boolean v)     { noPreNotifyEnabled = v;          save(); }
-    public static boolean isSupplyGrabbedNotifyEnabled()    { return supplyGrabbedNotifyEnabled; }
-    public static void setSupplyGrabbedNotifyEnabled(boolean v) { supplyGrabbedNotifyEnabled = v; save(); }
-    public static boolean isSupplyDroppedNotifyEnabled()    { return supplyDroppedNotifyEnabled; }
-    public static void setSupplyDroppedNotifyEnabled(boolean v) { supplyDroppedNotifyEnabled = v; save(); }
-    public static boolean isCratePriorityEnabled()          { return cratePriorityEnabled; }
-    public static void setCratePriorityEnabled(boolean v)   { cratePriorityEnabled = v;        save(); }
-    public static boolean isHideArmorStandsEnabled()              { return hideArmorStandsEnabled; }
-    public static void setHideArmorStandsEnabled(boolean v)       { hideArmorStandsEnabled = v; save(); }
-    public static boolean isHideArmorStandsBuild()                { return hideArmorStandsBuild; }
-    public static void setHideArmorStandsBuild(boolean v)         { hideArmorStandsBuild = v; save(); }
-    public static boolean isHideArmorStandsRightCannon()          { return hideArmorStandsRightCannon; }
-    public static void setHideArmorStandsRightCannon(boolean v)   { hideArmorStandsRightCannon = v; save(); }
-    public static boolean isHideArmorStandsLeftCannon()           { return hideArmorStandsLeftCannon; }
-    public static void setHideArmorStandsLeftCannon(boolean v)    { hideArmorStandsLeftCannon = v; save(); }
-    public static boolean isHideArmorStandsShop()                 { return hideArmorStandsShop; }
-    public static void setHideArmorStandsShop(boolean v)          { hideArmorStandsShop = v; save(); }
-    public static boolean isHideArmorStandsOthers()               { return hideArmorStandsOthers; }
-    public static void setHideArmorStandsOthers(boolean v)        { hideArmorStandsOthers = v; save(); }
-    public static boolean isCannonHitboxesEnabled()               { return cannonHitboxesEnabled; }
-    public static void setCannonHitboxesEnabled(boolean v)        { cannonHitboxesEnabled = v; save(); }
-    public static boolean isCannonHitboxesLeftEnabled()           { return cannonHitboxesLeftEnabled; }
-    public static void setCannonHitboxesLeftEnabled(boolean v)    { cannonHitboxesLeftEnabled = v; save(); }
-    public static boolean isCannonHitboxesRightEnabled()          { return cannonHitboxesRightEnabled; }
-    public static void setCannonHitboxesRightEnabled(boolean v)   { cannonHitboxesRightEnabled = v; save(); }
-    public static boolean isKuudraHpHudEnabled()            { return kuudraHpHudEnabled; }
-    public static void setKuudraHpHudEnabled(boolean v)     { kuudraHpHudEnabled = v; save(); }
-    public static boolean isKuudraHpShowRaw()               { return kuudraHpShowRaw; }
-    public static void setKuudraHpShowRaw(boolean v)        { kuudraHpShowRaw = v; save(); }
-    public static boolean isKuudraHpHideBar()               { return kuudraHpHideBar; }
-    public static void setKuudraHpHideBar(boolean v)        { kuudraHpHideBar = v; save(); }
-    public static boolean isHollowWandEnabled()             { return hollowWandEnabled; }
-    public static void setHollowWandEnabled(boolean v)      { hollowWandEnabled = v; save(); }
-    public static boolean isKickedNotificationEnabled()     { return kickedNotificationEnabled; }
-    public static void setKickedNotificationEnabled(boolean v) { kickedNotificationEnabled = v; save(); }
-    public static boolean isHideBossBarEnabled()              { return hideBossBarEnabled; }
-    public static boolean isHideBossBarOnlyInKuudra()         { return hideBossBarOnlyInKuudra; }
-    public static boolean isHideFallingBlocksEnabled()        { return hideFallingBlocksEnabled; }
-    public static void setHideBossBarEnabled(boolean v)       { hideBossBarEnabled = v; save(); }
-    public static void setHideBossBarOnlyInKuudra(boolean v)  { hideBossBarOnlyInKuudra = v; save(); }
-    public static void setHideFallingBlocksEnabled(boolean v) { hideFallingBlocksEnabled = v; save(); }
-    public static boolean isManaDrainAnnouncerEnabled()       { return manaDrainAnnouncerEnabled; }
-    public static void setManaDrainAnnouncerEnabled(boolean v){ manaDrainAnnouncerEnabled = v; save(); }
-    public static boolean isHideEntityFireEnabled()           { return hideEntityFireEnabled; }
-    public static void setHideEntityFireEnabled(boolean v)    { hideEntityFireEnabled = v; save(); }
-    public static boolean isLavaBobberFixEnabled()             { return lavaBobberFixEnabled; }
-    public static void setLavaBobberFixEnabled(boolean v)      { lavaBobberFixEnabled = v; save(); }
-    public static boolean isLegacyRodPhysicsEnabled()          { return legacyRodPhysicsEnabled; }
-    public static void setLegacyRodPhysicsEnabled(boolean v)   { legacyRodPhysicsEnabled = v; save(); }
-    public static boolean isHideDamageTitleEnabled()           { return hideDamageTitleEnabled; }
-    public static void setHideDamageTitleEnabled(boolean v)    { hideDamageTitleEnabled = v; save(); }
-    public static boolean isHideDeadEntitiesEnabled()          { return hideDeadEntitiesEnabled; }
-    public static void setHideDeadEntitiesEnabled(boolean v)   { hideDeadEntitiesEnabled = v; save(); }
-    public static boolean isEtherwarpWaypointsEnabled()        { return etherwarpWaypointsEnabled; }
-    public static void setEtherwarpWaypointsEnabled(boolean v) { etherwarpWaypointsEnabled = v; save(); }
-    public static float getSelfPlayerScale()                  { return selfPlayerScale; }
-    public static void setSelfPlayerScale(float v)            { selfPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
-    public static float getOtherPlayerScale()                 { return otherPlayerScale; }
-    public static void setOtherPlayerScale(float v)           { otherPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
-    public static float getKuudraSizeScale()                  { return kuudraSizeScale; }
-    public static void setKuudraSizeScale(float v)            { kuudraSizeScale = Math.max(1f, Math.min(200f, v)); save(); }
-    public static float getKuudraHpHudX()                   { return kuudraHpHudX; }
-    public static float getKuudraHpHudY()                   { return kuudraHpHudY; }
-    public static float getKuudraHpHudScale()               { return kuudraHpHudScale; }
-    public static void setKuudraHpHudX(float v)             { kuudraHpHudX = Math.max(0, Math.min(1, v)); }
-    public static void setKuudraHpHudY(float v)             { kuudraHpHudY = Math.max(0, Math.min(1, v)); }
-    public static void setKuudraHpHudScale(float v)         { kuudraHpHudScale = Math.max(0.2f, Math.min(3f, v)); }
+    public static void setMountTimerHudX(float v)     { cfg.mountTimerHudX     = clamp01(v); }
+    public static void setMountTimerHudY(float v)     { cfg.mountTimerHudY     = clamp01(v); }
+    public static void setMountTimerHudScale(float v) { cfg.mountTimerHudScale = clampHudScale(v); }
+    public static void setDirectionHudX(float v)     { cfg.directionHudX     = clamp01(v); }
+    public static void setDirectionHudY(float v)     { cfg.directionHudY     = clamp01(v); }
+    public static void setDirectionHudScale(float v) { cfg.directionHudScale = clampHudScale(v); }
+    public static void setSplitHudX(float v)         { cfg.splitHudX         = clamp01(v); }
+    public static void setSplitHudY(float v)         { cfg.splitHudY         = clamp01(v); }
+    public static void setSplitHudScale(float v)     { cfg.splitHudScale     = clampHudScale(v); }
+    public static float getPearlTitleHudX()          { return cfg.pearlTitleHudX; }
+    public static float getPearlTitleHudY()          { return cfg.pearlTitleHudY; }
+    public static float getPearlTitleHudScale()      { return cfg.pearlTitleHudScale; }
+    public static void setPearlTitleHudX(float v)    { cfg.pearlTitleHudX    = clamp01(v); }
+    public static void setPearlTitleHudY(float v)    { cfg.pearlTitleHudY    = clamp01(v); }
+    public static void setPearlTitleHudScale(float v){ cfg.pearlTitleHudScale = clampHudScale(v); }
+    public static boolean isSmoothCratePickupEnabled()      { return cfg.smoothCratePickupEnabled; }
+    public static void setSmoothCratePickupEnabled(boolean v) { cfg.smoothCratePickupEnabled = v; save(); }
+    public static float getSupplyProgressHudX()           { return cfg.supplyProgressHudX; }
+    public static float getSupplyProgressHudY()           { return cfg.supplyProgressHudY; }
+    public static float getSupplyProgressHudScale()       { return cfg.supplyProgressHudScale; }
+    public static void setSupplyProgressHudX(float v)     { cfg.supplyProgressHudX     = clamp01(v); }
+    public static void setSupplyProgressHudY(float v)     { cfg.supplyProgressHudY     = clamp01(v); }
+    public static void setSupplyProgressHudScale(float v) { cfg.supplyProgressHudScale = clampHudScale(v); }
+    public static float getBuildProgressHudX()            { return cfg.buildProgressHudX; }
+    public static float getBuildProgressHudY()            { return cfg.buildProgressHudY; }
+    public static float getBuildProgressHudScale()        { return cfg.buildProgressHudScale; }
+    public static void setBuildProgressHudX(float v)      { cfg.buildProgressHudX      = clamp01(v); }
+    public static void setBuildProgressHudY(float v)      { cfg.buildProgressHudY      = clamp01(v); }
+    public static void setBuildProgressHudScale(float v)  { cfg.buildProgressHudScale  = clampHudScale(v); }
+    public static float getNotificationHudX()             { return cfg.notificationHudX; }
+    public static float getNotificationHudY()             { return cfg.notificationHudY; }
+    public static float getNotificationHudScale()         { return cfg.notificationHudScale; }
+    public static void setNotificationHudX(float v)       { cfg.notificationHudX      = clamp01(v); }
+    public static void setNotificationHudY(float v)       { cfg.notificationHudY      = clamp01(v); }
+    public static void setNotificationHudScale(float v)   { cfg.notificationHudScale  = clampHudScale(v); }
+    public static float getCratePriorityHudX()            { return cfg.cratePriorityHudX; }
+    public static float getCratePriorityHudY()            { return cfg.cratePriorityHudY; }
+    public static float getCratePriorityHudScale()        { return cfg.cratePriorityHudScale; }
+    public static void setCratePriorityHudX(float v)      { cfg.cratePriorityHudX     = clamp01(v); }
+    public static void setCratePriorityHudY(float v)      { cfg.cratePriorityHudY     = clamp01(v); }
+    public static void setCratePriorityHudScale(float v)  { cfg.cratePriorityHudScale = clampHudScale(v); }
+    public static boolean isSupplyRecoveryMsgEnabled()      { return cfg.supplyRecoveryMsgEnabled; }
+    public static void setSupplyRecoveryMsgEnabled(boolean v){ cfg.supplyRecoveryMsgEnabled = v;  save(); }
+    public static boolean isFreshNotifyEnabled()            { return cfg.freshNotifyEnabled; }
+    public static void setFreshNotifyEnabled(boolean v)     { cfg.freshNotifyEnabled = v;         save(); }
+    public static boolean isBuildStartedNotifyEnabled()     { return cfg.buildStartedNotifyEnabled; }
+    public static void setBuildStartedNotifyEnabled(boolean v){ cfg.buildStartedNotifyEnabled = v; save(); }
+    public static boolean isFastDpsNotifyEnabled()          { return cfg.fastDpsNotifyEnabled; }
+    public static void setFastDpsNotifyEnabled(boolean v)   { cfg.fastDpsNotifyEnabled = v;       save(); }
+    public static boolean isSoloNotifyEnabled()             { return cfg.soloNotifyEnabled; }
+    public static void setSoloNotifyEnabled(boolean v)      { cfg.soloNotifyEnabled = v;           save(); }
+    public static boolean isNoPreNotifyEnabled()            { return cfg.noPreNotifyEnabled; }
+    public static void setNoPreNotifyEnabled(boolean v)     { cfg.noPreNotifyEnabled = v;          save(); }
+    public static boolean isSupplyGrabbedNotifyEnabled()    { return cfg.supplyGrabbedNotifyEnabled; }
+    public static void setSupplyGrabbedNotifyEnabled(boolean v) { cfg.supplyGrabbedNotifyEnabled = v; save(); }
+    public static boolean isSupplyDroppedNotifyEnabled()    { return cfg.supplyDroppedNotifyEnabled; }
+    public static void setSupplyDroppedNotifyEnabled(boolean v) { cfg.supplyDroppedNotifyEnabled = v; save(); }
+    public static boolean isCratePriorityEnabled()          { return cfg.cratePriorityEnabled; }
+    public static void setCratePriorityEnabled(boolean v)   { cfg.cratePriorityEnabled = v;        save(); }
+    public static boolean isHideArmorStandsEnabled()              { return cfg.hideArmorStandsEnabled; }
+    public static void setHideArmorStandsEnabled(boolean v)       { cfg.hideArmorStandsEnabled = v; save(); }
+    public static boolean isHideArmorStandsBuild()                { return cfg.hideArmorStandsBuild; }
+    public static void setHideArmorStandsBuild(boolean v)         { cfg.hideArmorStandsBuild = v; save(); }
+    public static boolean isHideArmorStandsRightCannon()          { return cfg.hideArmorStandsRightCannon; }
+    public static void setHideArmorStandsRightCannon(boolean v)   { cfg.hideArmorStandsRightCannon = v; save(); }
+    public static boolean isHideArmorStandsLeftCannon()           { return cfg.hideArmorStandsLeftCannon; }
+    public static void setHideArmorStandsLeftCannon(boolean v)    { cfg.hideArmorStandsLeftCannon = v; save(); }
+    public static boolean isHideArmorStandsShop()                 { return cfg.hideArmorStandsShop; }
+    public static void setHideArmorStandsShop(boolean v)          { cfg.hideArmorStandsShop = v; save(); }
+    public static boolean isHideArmorStandsOthers()               { return cfg.hideArmorStandsOthers; }
+    public static void setHideArmorStandsOthers(boolean v)        { cfg.hideArmorStandsOthers = v; save(); }
+    public static boolean isCannonHitboxesEnabled()               { return cfg.cannonHitboxesEnabled; }
+    public static void setCannonHitboxesEnabled(boolean v)        { cfg.cannonHitboxesEnabled = v; save(); }
+    public static boolean isCannonHitboxesLeftEnabled()           { return cfg.cannonHitboxesLeftEnabled; }
+    public static void setCannonHitboxesLeftEnabled(boolean v)    { cfg.cannonHitboxesLeftEnabled = v; save(); }
+    public static boolean isCannonHitboxesRightEnabled()          { return cfg.cannonHitboxesRightEnabled; }
+    public static void setCannonHitboxesRightEnabled(boolean v)   { cfg.cannonHitboxesRightEnabled = v; save(); }
+    public static boolean isKuudraHpHudEnabled()            { return cfg.kuudraHpHudEnabled; }
+    public static void setKuudraHpHudEnabled(boolean v)     { cfg.kuudraHpHudEnabled = v; save(); }
+    public static boolean isKuudraHpShowRaw()               { return cfg.kuudraHpShowRaw; }
+    public static void setKuudraHpShowRaw(boolean v)        { cfg.kuudraHpShowRaw = v; save(); }
+    public static boolean isKuudraHpHideBar()               { return cfg.kuudraHpHideBar; }
+    public static void setKuudraHpHideBar(boolean v)        { cfg.kuudraHpHideBar = v; save(); }
+    public static boolean isHollowWandEnabled()             { return cfg.hollowWandEnabled; }
+    public static void setHollowWandEnabled(boolean v)      { cfg.hollowWandEnabled = v; save(); }
+    public static boolean isKickedNotificationEnabled()     { return cfg.kickedNotificationEnabled; }
+    public static void setKickedNotificationEnabled(boolean v) { cfg.kickedNotificationEnabled = v; save(); }
+    public static boolean isHideBossBarEnabled()              { return cfg.hideBossBarEnabled; }
+    public static boolean isHideBossBarOnlyInKuudra()         { return cfg.hideBossBarOnlyInKuudra; }
+    public static boolean isHideFallingBlocksEnabled()        { return cfg.hideFallingBlocksEnabled; }
+    public static void setHideBossBarEnabled(boolean v)       { cfg.hideBossBarEnabled = v; save(); }
+    public static void setHideBossBarOnlyInKuudra(boolean v)  { cfg.hideBossBarOnlyInKuudra = v; save(); }
+    public static void setHideFallingBlocksEnabled(boolean v) { cfg.hideFallingBlocksEnabled = v; save(); }
+    public static boolean isManaDrainAnnouncerEnabled()       { return cfg.manaDrainAnnouncerEnabled; }
+    public static void setManaDrainAnnouncerEnabled(boolean v){ cfg.manaDrainAnnouncerEnabled = v; save(); }
+    public static boolean isHideEntityFireEnabled()           { return cfg.hideEntityFireEnabled; }
+    public static void setHideEntityFireEnabled(boolean v)    { cfg.hideEntityFireEnabled = v; save(); }
+    public static boolean isLavaBobberFixEnabled()             { return cfg.lavaBobberFixEnabled; }
+    public static void setLavaBobberFixEnabled(boolean v)      { cfg.lavaBobberFixEnabled = v; save(); }
+    public static boolean isLegacyRodPhysicsEnabled()          { return cfg.legacyRodPhysicsEnabled; }
+    public static void setLegacyRodPhysicsEnabled(boolean v)   { cfg.legacyRodPhysicsEnabled = v; save(); }
+    public static boolean isHideDamageTitleEnabled()           { return cfg.hideDamageTitleEnabled; }
+    public static void setHideDamageTitleEnabled(boolean v)    { cfg.hideDamageTitleEnabled = v; save(); }
+    public static boolean isHideDeadEntitiesEnabled()          { return cfg.hideDeadEntitiesEnabled; }
+    public static void setHideDeadEntitiesEnabled(boolean v)   { cfg.hideDeadEntitiesEnabled = v; save(); }
+    public static boolean isEtherwarpWaypointsEnabled()        { return cfg.etherwarpWaypointsEnabled; }
+    public static void setEtherwarpWaypointsEnabled(boolean v) { cfg.etherwarpWaypointsEnabled = v; save(); }
+    public static float getSelfPlayerScale()                  { return cfg.selfPlayerScale; }
+    public static void setSelfPlayerScale(float v)            { cfg.selfPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
+    public static float getOtherPlayerScale()                 { return cfg.otherPlayerScale; }
+    public static void setOtherPlayerScale(float v)           { cfg.otherPlayerScale = Math.max(1f, Math.min(300f, v)); save(); }
+    public static float getKuudraSizeScale()                  { return cfg.kuudraSizeScale; }
+    public static void setKuudraSizeScale(float v)            { cfg.kuudraSizeScale = Math.max(1f, Math.min(200f, v)); save(); }
+    public static float getKuudraHpHudX()                   { return cfg.kuudraHpHudX; }
+    public static float getKuudraHpHudY()                   { return cfg.kuudraHpHudY; }
+    public static float getKuudraHpHudScale()               { return cfg.kuudraHpHudScale; }
+    public static void setKuudraHpHudX(float v)             { cfg.kuudraHpHudX = clamp01(v); }
+    public static void setKuudraHpHudY(float v)             { cfg.kuudraHpHudY = clamp01(v); }
+    public static void setKuudraHpHudScale(float v)         { cfg.kuudraHpHudScale = clampHudScale(v); }
 
     // Wardrobe keybinds
-    public static boolean isWardrobeEnabled()         { return wardrobeEnabled; }
-    public static void setWardrobeEnabled(boolean v)  { wardrobeEnabled = v; save(); }
-    public static boolean isLoadoutsEnabled()         { return loadoutsEnabled; }
-    public static void setLoadoutsEnabled(boolean v)  { loadoutsEnabled = v; save(); }
-    public static int  getOpenGuiKey()                { return openGuiKey; }
-    public static int  getWardrobeOpenKey()           { return wardrobeOpenKey; }
-    public static void setOpenGuiKey(int v)           { openGuiKey = v; save(); }
-    public static void setWardrobeOpenKey(int v)      { wardrobeOpenKey = v; save(); }
-    public static int  getStatsOpenKey()              { return statsOpenKey; }
-    public static void setStatsOpenKey(int v)         { statsOpenKey = v; save(); }
-    public static int  getPetsOpenKey()               { return petsOpenKey; }
-    public static void setPetsOpenKey(int v)          { petsOpenKey = v; save(); }
-    public static int  getEqWardrobeOpenKey()         { return eqWardrobeOpenKey; }
-    public static void setEqWardrobeOpenKey(int v)    { eqWardrobeOpenKey = v; save(); }
-    public static int  getLoadoutsOpenKey()           { return loadoutsOpenKey; }
-    public static void setLoadoutsOpenKey(int v)      { loadoutsOpenKey = v; save(); }
-    public static int[] getWardrobeSlotKeys()         { return wardrobeSlotKeys.clone(); }
-    public static void setWardrobeSlotKey(int i, int v){ wardrobeSlotKeys[i] = v; save(); }
-    public static int[] getLoadoutSlotKeys()          { return loadoutSlotKeys.clone(); }
-    public static void setLoadoutSlotKey(int i, int v) { loadoutSlotKeys[i] = v; save(); }
-    public static int  getWardrobeNextPageKey()       { return wardrobeNextPageKey; }
-    public static void setWardrobeNextPageKey(int v)  { wardrobeNextPageKey = v; save(); }
-    public static int  getWardrobePrevPageKey()       { return wardrobePrevPageKey; }
-    public static void setWardrobePrevPageKey(int v)  { wardrobePrevPageKey = v; save(); }
-    public static int  getWardrobeUnequipKey()        { return wardrobeUnequipKey; }
-    public static void setWardrobeUnequipKey(int v)   { wardrobeUnequipKey = v; save(); }
-    public static boolean isWardrobeDisableUnequipEnabled()      { return wardrobeDisableUnequipEnabled; }
-    public static void setWardrobeDisableUnequipEnabled(boolean v) { wardrobeDisableUnequipEnabled = v; save(); }
-    public static boolean isWardrobeAutoCloseEnabled()           { return wardrobeAutoCloseEnabled; }
-    public static void setWardrobeAutoCloseEnabled(boolean v)    { wardrobeAutoCloseEnabled = v; save(); }
-    public static int     getWardrobeExtraAutoCloseMs()          { return wardrobeExtraAutoCloseMs; }
-    public static void setWardrobeExtraAutoCloseMs(int v)        { wardrobeExtraAutoCloseMs = Math.max(0, v); save(); }
-    public static int  getLastEquippedWardrobeSlot()          { return lastEquippedWardrobeSlot; }
-    public static void setLastEquippedWardrobeSlot(int v)     { lastEquippedWardrobeSlot = v; save(); }
+    public static boolean isWardrobeEnabled()         { return cfg.wardrobeEnabled; }
+    public static void setWardrobeEnabled(boolean v)  { cfg.wardrobeEnabled = v; save(); }
+    public static boolean isLoadoutsEnabled()         { return cfg.loadoutsEnabled; }
+    public static void setLoadoutsEnabled(boolean v)  { cfg.loadoutsEnabled = v; save(); }
+    public static int  getOpenGuiKey()                { return cfg.openGuiKey; }
+    public static int  getWardrobeOpenKey()           { return cfg.wardrobeOpenKey; }
+    public static void setOpenGuiKey(int v)           { cfg.openGuiKey = v; save(); }
+    public static void setWardrobeOpenKey(int v)      { cfg.wardrobeOpenKey = v; save(); }
+    public static int  getStatsOpenKey()              { return cfg.statsOpenKey; }
+    public static void setStatsOpenKey(int v)         { cfg.statsOpenKey = v; save(); }
+    public static int  getPetsOpenKey()               { return cfg.petsOpenKey; }
+    public static void setPetsOpenKey(int v)          { cfg.petsOpenKey = v; save(); }
+    public static int  getEqWardrobeOpenKey()         { return cfg.eqWardrobeOpenKey; }
+    public static void setEqWardrobeOpenKey(int v)    { cfg.eqWardrobeOpenKey = v; save(); }
+    public static int  getLoadoutsOpenKey()           { return cfg.loadoutsOpenKey; }
+    public static void setLoadoutsOpenKey(int v)      { cfg.loadoutsOpenKey = v; save(); }
+    public static int[] getWardrobeSlotKeys()         { return cfg.wardrobeSlotKeys.clone(); }
+    public static void setWardrobeSlotKey(int i, int v){ cfg.wardrobeSlotKeys[i] = v; save(); }
+    public static int[] getLoadoutSlotKeys()          { return cfg.loadoutSlotKeys.clone(); }
+    public static void setLoadoutSlotKey(int i, int v) { cfg.loadoutSlotKeys[i] = v; save(); }
+    public static int  getWardrobeNextPageKey()       { return cfg.wardrobeNextPageKey; }
+    public static void setWardrobeNextPageKey(int v)  { cfg.wardrobeNextPageKey = v; save(); }
+    public static int  getWardrobePrevPageKey()       { return cfg.wardrobePrevPageKey; }
+    public static void setWardrobePrevPageKey(int v)  { cfg.wardrobePrevPageKey = v; save(); }
+    public static int  getWardrobeUnequipKey()        { return cfg.wardrobeUnequipKey; }
+    public static void setWardrobeUnequipKey(int v)   { cfg.wardrobeUnequipKey = v; save(); }
+    public static boolean isWardrobeDisableUnequipEnabled()      { return cfg.wardrobeDisableUnequipEnabled; }
+    public static void setWardrobeDisableUnequipEnabled(boolean v) { cfg.wardrobeDisableUnequipEnabled = v; save(); }
+    public static boolean isWardrobeAutoCloseEnabled()           { return cfg.wardrobeAutoCloseEnabled; }
+    public static void setWardrobeAutoCloseEnabled(boolean v)    { cfg.wardrobeAutoCloseEnabled = v; save(); }
+    public static int     getWardrobeExtraAutoCloseMs()          { return cfg.wardrobeExtraAutoCloseMs; }
+    public static void setWardrobeExtraAutoCloseMs(int v)        { cfg.wardrobeExtraAutoCloseMs = Math.max(0, v); save(); }
+    public static int  getLastEquippedWardrobeSlot()          { return cfg.lastEquippedWardrobeSlot; }
+    public static void setLastEquippedWardrobeSlot(int v)     { cfg.lastEquippedWardrobeSlot = v; save(); }
 
     // Dungeons
-    public static void setAutoGfsToxic(boolean v)    { autoGfsToxic = v;    save(); }
-    public static void setAutoGfsTwilight(boolean v) { autoGfsTwilight = v; save(); }
-    public static void setToxicAmount(int v)         { toxicAmount = v;     save(); }
-    public static void setTwilightAmount(int v)      { twilightAmount = v;  save(); }
+    public static void setAutoGfsToxic(boolean v)    { cfg.autoGfsToxic = v;    save(); }
+    public static void setAutoGfsTwilight(boolean v) { cfg.autoGfsTwilight = v; save(); }
+    public static void setToxicAmount(int v)         { cfg.toxicAmount = v;     save(); }
+    public static void setTwilightAmount(int v)      { cfg.twilightAmount = v;  save(); }
 
     // Chest tracker
-    public static void setChestCounts(int t, int s, int f) { chestTotal = t; chestSuccess = s; chestFail = f; save(); }
-    public static void resetChestCounts()                   { chestTotal = 0; chestSuccess = 0; chestFail = 0; save(); }
+    public static void setChestCounts(int t, int s, int f) { cfg.chestTotal = t; cfg.chestSuccess = s; cfg.chestFail = f; save(); }
+    public static void resetChestCounts()                   { cfg.chestTotal = 0; cfg.chestSuccess = 0; cfg.chestFail = 0; save(); }
 
     // Split timer
-    public static void setSplitTimerEnabled(boolean v)  { splitTimerEnabled = v;  save(); }
-    public static void setSupplyTimesEnabled(boolean v) { supplyTimesEnabled = v; save(); }
+    public static void setSplitTimerEnabled(boolean v)  { cfg.splitTimerEnabled = v;  save(); }
+    public static void setSupplyTimesEnabled(boolean v) { cfg.supplyTimesEnabled = v; save(); }
 
     // Item customisation
-    public static void setItemCustomizationEnabled(boolean v) { itemCustomizationEnabled = v; save(); }
+    public static void setItemCustomizationEnabled(boolean v) { cfg.itemCustomizationEnabled = v; save(); }
 
     // ── Load / Save ───────────────────────────────────────────────────────────
 
@@ -1045,312 +804,98 @@ public class PhantomConfig {
         try (Reader r = new FileReader(file)) {
             Data d = GSON.fromJson(r, Data.class);
             if (d == null) return;
+            Data cur = cfg;
 
-            roleMode           = safeEnum(RoleMode.class, d.roleMode, RoleMode.AUTO);
-            dpsValue           = d.dpsValue;
-            dpsRefillAmount    = Math.max(4, d.dpsRefillAmount);
-            autoGfsDisableHpPercent = d.autoGfsDisableHpPercent >= 25 ? Math.min(100, d.autoGfsDisableHpPercent) : 40;
-            stunValue          = d.stunValue;
-            eatenTimerEnabled             = d.eatenTimerEnabled;
-            eatenTimerSubtractPingEnabled = d.eatenTimerSubtractPingEnabled;
-            pickoblockEnabled             = d.pickoblockEnabled;
-            etherwarpLavaBlock = d.etherwarpLavaBlock;
-            etherwarpLavaBlockOnlyInKuudra = d.etherwarpLavaBlockOnlyInKuudra;
-            hideElleDialogue   = d.hideElleDialogue;
-            autoGfsEnabled     = d.autoGfsEnabled;
-
-            lavaTweaksEnabled = d.lavaTweaksEnabled;
-            lavaMode          = safeEnum(LavaMode.class, d.lavaMode, LavaMode.DEFAULT);
-            lavaOpacity       = clamp01(d.lavaOpacity);
-            lavaColor         = d.lavaColor;
-            lavaAsWater       = d.lavaAsWater;
-            lavaColorOverride = d.lavaColorOverride;
-
-            fastDpsWarning          = d.fastDpsWarning;
-            chestTrackerVisible     = d.chestTrackerVisible;
-            soloDetectorEnabled     = d.soloDetectorEnabled;
-            cannonAutoClose         = d.cannonAutoClose;
-            shopKeybindsEnabled     = d.shopKeybindsEnabled;
-            middleClickShopGuiEnabled = d.middleClickShopGuiEnabled;
-            shopMainKey             = d.shopMainKey;
-            shopCannonKey           = d.shopCannonKey;
-            explosionFilterEnabled  = d.explosionFilterEnabled;
-            explosionHideRadius     = clamp01(d.explosionHideRadius);
-            explosionSizeMultiplier = clamp01(d.explosionSizeMultiplier);
-            chestAnnouncerEnabled   = d.chestAnnouncerEnabled;
-            autoKickEnabled         = d.autoKickEnabled;
-            profileViewerEnabled    = d.profileViewerEnabled;
-            akMinCatacombs          = d.akMinCatacombs;
-            akMinForaging           = d.akMinForaging;
-            akMinMagicalPower       = d.akMinMagicalPower;
-            akMinInfernal           = d.akMinInfernal;
-            akMinFiery              = d.akMinFiery;
-            akMinBurning            = d.akMinBurning;
-            akMinHot                = d.akMinHot;
-            akMinBasic              = d.akMinBasic;
-            akRequireRend           = d.akRequireRend;
-            akMinGdragLevel         = d.akMinGdragLevel;
-            partyCmdsEnabled        = d.partyCmdsEnabled;
-            autoRequeueEnabled      = d.autoRequeueEnabled;
-            autoRequeueMessageEnabled = d.autoRequeueMessageEnabled;
-            autoUpdatesEnabled      = d.autoUpdatesEnabled;
-            developerFeaturesEnabled = d.developerFeaturesEnabled;
-            tentacleDbLoggingEnabled = d.tentacleDbLoggingEnabled;
-            tentacleHighlightEnabled = d.tentacleHighlightEnabled;
+            roleMode               = safeEnum(RoleMode.class, d.roleMode, RoleMode.AUTO);
+            lavaMode               = safeEnum(LavaMode.class, d.lavaMode, LavaMode.DEFAULT);
+            waypointType           = safeEnum(WaypointType.class, d.waypointType, WaypointType.CIRCLE);
+            secondSupplyPreference = safeEnum(SecondSupplyPreference.class, d.secondSupplyPreference, SecondSupplyPreference.DOUBLE_PEARL);
+            kuudraTalisman         = safeEnum(KuudraTalisman.class, d.kuudraTalisman, KuudraTalisman.NONE);
             uiTheme = d.uiTheme != null
                     ? safeEnum(UiTheme.class, d.uiTheme, UiTheme.DARK)
                     : (d.uiDarkMode ? UiTheme.DARK : UiTheme.LIGHT);
-            uiTransparencyEnabled = d.uiTransparencyEnabled;
-            uiGuiScale = d.uiGuiScale <= 0f ? 1.0f : Math.max(0.7f, Math.min(1.6f, d.uiGuiScale));
-            autoSprintEnabled       = d.autoSprintEnabled;
-            slotBindsEnabled        = d.slotBindsEnabled;
-            slotBindSetKey          = d.slotBindSetKey;
-            slotBindsShowOnHover    = d.slotBindsShowOnHover;
+            if (d.kuudraPetRarity != null) {
+                try { kuudraPetRarity = KuudraPetRarity.valueOf(d.kuudraPetRarity); }
+                catch (IllegalArgumentException ignored) {}
+            }
+
+            d.dpsRefillAmount         = Math.max(4, d.dpsRefillAmount);
+            d.autoGfsDisableHpPercent = d.autoGfsDisableHpPercent >= 25 ? Math.min(100, d.autoGfsDisableHpPercent) : 40;
+            d.lavaOpacity             = clamp01(d.lavaOpacity);
+            d.explosionHideRadius     = clamp01(d.explosionHideRadius);
+            d.explosionSizeMultiplier = clamp01(d.explosionSizeMultiplier);
+            d.uiGuiScale = d.uiGuiScale <= 0f ? 1.0f : Math.max(0.7f, Math.min(1.6f, d.uiGuiScale));
+            d.pvGuiScale     = d.pvGuiScale     <= 0f ? 1.0f : Math.max(0.6f, Math.min(2.5f, d.pvGuiScale));
+            d.pvElementScale = d.pvElementScale <= 0f ? 1.0f : Math.max(0.6f, Math.min(1.6f, d.pvElementScale));
+
             slotBindings.clear();
             if (d.slotBindPairs != null) {
                 for (int[] pair : d.slotBindPairs)
                     if (pair != null && pair.length == 2) slotBindings.put(pair[0], pair[1]);
             }
 
-            pearlWaypointsEnabled = d.pearlWaypointsEnabled;
-            showAllWaypoints      = d.showAllWaypoints;
-            pearlFlatEnabled      = d.pearlFlatEnabled;
-            pearlSkyEnabled       = d.pearlSkyEnabled;
-            pearlDoubleEnabled    = d.pearlDoubleEnabled;
-            doublePearlDelayS     = Math.max(0.05f, Math.min(0.55f, d.doublePearlDelayS));
-            waypointType          = safeEnum(WaypointType.class, d.waypointType, WaypointType.CIRCLE);
-            waypointFill          = d.waypointFill;
-            pearlTickUpdate       = d.pearlTickUpdate;
-            dropLocationsEnabled  = d.dropLocationsEnabled;
-            waypointLinesEnabled           = d.waypointLinesEnabled;
-            waypointLinesSuppliesEnabled   = d.waypointLinesSuppliesEnabled;
-            waypointLinesFlatPearlsEnabled = d.waypointLinesFlatPearlsEnabled;
-            secondSupplyPreference = safeEnum(SecondSupplyPreference.class, d.secondSupplyPreference, SecondSupplyPreference.DOUBLE_PEARL);
-            pearlTimerEnabled     = d.pearlTimerEnabled;
-            pearlTimerHeight      = clamp01(d.pearlTimerHeight);
-            pearlTimerSize        = clamp01(d.pearlTimerSize);
-            pearlCircleSize       = clamp01(d.pearlCircleSize);
-            kuudraTalisman        = safeEnum(KuudraTalisman.class, d.kuudraTalisman, KuudraTalisman.NONE);
-            lowPing               = Math.max(0, d.lowPing);
-            waypointFillAlpha     = clamp01(d.waypointFillAlpha);
-            beaconAlpha           = clamp01(d.beaconAlpha);
-            wpColNormal           = d.wpColNormal      & 0xFFFFFF;
-            wpColCorrect          = d.wpColCorrect     & 0xFFFFFF;
-            wpColHovered          = d.wpColHovered     & 0xFFFFFF;
-            wpColReady            = d.wpColReady       & 0xFFFFFF;
-            beaconColNormal       = d.beaconColNormal  & 0xFFFFFF;
-            beaconColCorrect      = d.beaconColCorrect & 0xFFFFFF;
-            buildBeaconAlpha      = clamp01(d.buildBeaconAlpha);
-            elleOutlineColor      = d.elleOutlineColor & 0xFFFFFF;
-            elleBeaconColor       = d.elleBeaconColor  & 0xFFFFFF;
-            kuudraApiKey               = d.kuudraApiKey != null ? d.kuudraApiKey : "";
-            blockSlot9Enabled          = d.blockSlot9Enabled;
-            blockAtomsplitEnabled      = d.blockAtomsplitEnabled;
-            ichorRadiusEnabled         = d.ichorRadiusEnabled;
-            stunPreviewEnabled         = d.stunPreviewEnabled;
-            // Old configs only ever had one stun-preview pod (what's now "right") — inherit the
-            // old master toggle's value for right specifically so existing users see no change.
-            stunPreviewLeftEnabled     = d.stunPreviewLeftEnabled != null ? d.stunPreviewLeftEnabled : false;
-            stunPreviewRightEnabled    = d.stunPreviewRightEnabled != null ? d.stunPreviewRightEnabled : d.stunPreviewEnabled;
-            stunPreviewBackEnabled     = d.stunPreviewBackEnabled != null ? d.stunPreviewBackEnabled : false;
-            dpsWaypointEnabled    = d.dpsWaypointEnabled;
-            buildBeaconsEnabled        = d.buildBeaconsEnabled;
-            elleHighlightEnabled       = d.elleHighlightEnabled;
-            elleHighlightBeaconEnabled = d.elleHighlightBeaconEnabled;
-            rendDamageEnabled          = d.rendDamageEnabled;
-            rendPullAttributionEnabled = d.rendPullAttributionEnabled;
-            rendTrackerEnabled         = d.rendTrackerEnabled;
-            backboneProgressBarEnabled = d.backboneProgressBarEnabled;
-            backboneProgressBarOutsideKuudraEnabled = d.backboneProgressBarOutsideKuudraEnabled;
-            backboneProgressBarHudX     = d.backboneProgressBarHudX;
-            backboneProgressBarHudY     = d.backboneProgressBarHudY;
-            backboneProgressBarHudScale = d.backboneProgressBarHudScale;
-            kuudraHighlightEnabled     = d.kuudraHighlightEnabled;
-            kuudraHighlightFilled      = d.kuudraHighlightFilled;
-            etherwarpSlotBlockerEnabled = d.etherwarpSlotBlockerEnabled;
-            supplyWaypointsEnabled           = d.supplyWaypointsEnabled;
-            // Migrate legacy flag — if old flag was on, enable the two rendering/announce features
-            supplyBeaconsEnabled          = d.supplyBeaconsEnabled || d.supplyWaypointsEnabled;
-            noPreAnnounceEnabled          = d.noPreAnnounceEnabled;
-            supplyLocationAnnounceEnabled = d.supplyLocationAnnounceEnabled || d.supplyWaypointsEnabled;
-            supplyProgressHudEnabled      = d.supplyProgressHudEnabled;
-            buildProgressHudEnabled       = d.buildProgressHudEnabled;
-            announceFreshEnabled          = d.announceFreshEnabled;
-            supplyHitboxEnabled           = d.supplyHitboxEnabled;
-            supplyRodRadiusEnabled        = d.supplyRodRadiusEnabled;
-            supplyPearlHitboxEnabled      = d.supplyPearlHitboxEnabled;
-            pearlRefillEnabled            = d.pearlRefillEnabled;
-            pearlRefillOutsideKuudraEnabled = d.pearlRefillOutsideKuudraEnabled;
-            hideSelfieEnabled             = d.hideSelfieEnabled;
-            preventPlacingPlayerHeadsEnabled      = d.preventPlacingPlayerHeadsEnabled;
-            preventPlacingPlayerHeadsExceptGarden = d.preventPlacingPlayerHeadsExceptGarden;
-            preventPlacingWeaponsEnabled          = d.preventPlacingWeaponsEnabled;
-            blockBossPhaseJumpEnabled             = d.blockBossPhaseJumpEnabled;
-            blockCloseItemEnabled                 = d.blockCloseItemEnabled;
-            supplyGiantHitboxEnabled              = d.supplyGiantHitboxEnabled;
-            giantHitboxEnabled                    = d.giantHitboxEnabled;
-            giantHitboxFilled                     = d.giantHitboxFilled;
-            giantHitboxFillOpacity                = clamp01(d.giantHitboxFillOpacity);
-            giantHitboxColor                      = d.giantHitboxColor & 0xFFFFFF;
-            kuudraDirectionEnabled = d.kuudraDirectionEnabled;
-            tuxedoWarningEnabled   = d.tuxedoWarningEnabled;
-            boneTimingAssistEnabled = d.boneTimingAssistEnabled;
-            boneTimingAssistOffset = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
-            boneTimingHitboxOutlineEnabled = d.boneTimingHitboxOutlineEnabled;
-            boneTimingHitboxOutlineFilled  = d.boneTimingHitboxOutlineFilled;
-            boneTimingHitboxOutlineColor   = d.boneTimingHitboxOutlineColor & 0xFFFFFF;
-            boneTimingHitboxOutlineOnlyCurrentDirection = d.boneTimingHitboxOutlineOnlyCurrentDirection;
-            boneTimingHitboxHighlightInRange = d.boneTimingHitboxHighlightInRange;
+            d.doublePearlDelayS = Math.max(0.05f, Math.min(0.55f, d.doublePearlDelayS));
+            d.pearlTimerHeight  = clamp01(d.pearlTimerHeight);
+            d.pearlTimerSize    = clamp01(d.pearlTimerSize);
+            d.pearlCircleSize   = clamp01(d.pearlCircleSize);
+            d.lowPing           = Math.max(0, d.lowPing);
+            d.waypointFillAlpha = clamp01(d.waypointFillAlpha);
+            d.beaconAlpha       = clamp01(d.beaconAlpha);
+            d.wpColNormal      &= 0xFFFFFF;
+            d.wpColCorrect     &= 0xFFFFFF;
+            d.wpColHovered     &= 0xFFFFFF;
+            d.wpColReady       &= 0xFFFFFF;
+            d.beaconColNormal  &= 0xFFFFFF;
+            d.beaconColCorrect &= 0xFFFFFF;
+            d.buildBeaconAlpha  = clamp01(d.buildBeaconAlpha);
+            d.elleOutlineColor &= 0xFFFFFF;
+            d.elleBeaconColor  &= 0xFFFFFF;
+            if (d.kuudraApiKey == null) d.kuudraApiKey = "";
+            if (d.stunPreviewLeftEnabled  == null) d.stunPreviewLeftEnabled  = false;
+            if (d.stunPreviewRightEnabled == null) d.stunPreviewRightEnabled = d.stunPreviewEnabled;
+            if (d.stunPreviewBackEnabled  == null) d.stunPreviewBackEnabled  = false;
+            d.supplyBeaconsEnabled          |= d.supplyWaypointsEnabled;
+            d.supplyLocationAnnounceEnabled |= d.supplyWaypointsEnabled;
+            d.giantHitboxFillOpacity        = clamp01(d.giantHitboxFillOpacity);
+            d.giantHitboxColor             &= 0xFFFFFF;
+            d.boneTimingAssistOffset        = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
+            d.boneTimingHitboxOutlineColor &= 0xFFFFFF;
 
-            mountTimerHudX     = d.mountTimerHudX;
-            mountTimerHudY     = d.mountTimerHudY;
-            mountTimerHudScale = d.mountTimerHudScale;
-            directionHudX     = d.directionHudX;
-            directionHudY     = d.directionHudY;
-            directionHudScale = d.directionHudScale;
-            splitHudX         = d.splitHudX;
-            splitHudY         = d.splitHudY;
-            splitHudScale     = d.splitHudScale;
-            pearlTitleHudX    = d.pearlTitleHudX;
-            pearlTitleHudY    = d.pearlTitleHudY;
-            pearlTitleHudScale = d.pearlTitleHudScale;
-            smoothCratePickupEnabled = d.smoothCratePickupEnabled;
-            supplyProgressHudX     = d.supplyProgressHudX;
-            supplyProgressHudY     = d.supplyProgressHudY;
-            supplyProgressHudScale = d.supplyProgressHudScale;
-            buildProgressHudX      = d.buildProgressHudX;
-            buildProgressHudY      = d.buildProgressHudY;
-            buildProgressHudScale  = d.buildProgressHudScale;
-            notificationHudX       = d.notificationHudX;
-            notificationHudY       = d.notificationHudY;
-            notificationHudScale   = d.notificationHudScale;
-            cratePriorityHudX      = d.cratePriorityHudX;
-            cratePriorityHudY      = d.cratePriorityHudY;
-            cratePriorityHudScale  = d.cratePriorityHudScale;
-            supplyRecoveryMsgEnabled = d.supplyRecoveryMsgEnabled;
-            freshNotifyEnabled       = d.freshNotifyEnabled;
-            buildStartedNotifyEnabled= d.buildStartedNotifyEnabled;
-            fastDpsNotifyEnabled     = d.fastDpsNotifyEnabled;
-            soloNotifyEnabled        = d.soloNotifyEnabled;
-            noPreNotifyEnabled       = d.noPreNotifyEnabled;
-            supplyGrabbedNotifyEnabled = d.supplyGrabbedNotifyEnabled;
-            supplyDroppedNotifyEnabled = d.supplyDroppedNotifyEnabled;
-            cratePriorityEnabled     = d.cratePriorityEnabled;
-            hideArmorStandsEnabled     = d.hideArmorStandsEnabled;
-            hideArmorStandsBuild       = d.hideArmorStandsBuild;
-            hideArmorStandsRightCannon = d.hideArmorStandsRightCannon;
-            hideArmorStandsLeftCannon  = d.hideArmorStandsLeftCannon;
-            hideArmorStandsShop        = d.hideArmorStandsShop;
-            hideArmorStandsOthers      = d.hideArmorStandsOthers;
-            cannonHitboxesEnabled      = d.cannonHitboxesEnabled;
-            cannonHitboxesLeftEnabled  = d.cannonHitboxesLeftEnabled;
-            cannonHitboxesRightEnabled = d.cannonHitboxesRightEnabled;
-            kuudraHpHudEnabled       = d.kuudraHpHudEnabled;
-            kuudraHpShowRaw          = d.kuudraHpShowRaw;
-            kuudraHpHideBar          = d.kuudraHpHideBar;
-            hollowWandEnabled            = d.hollowWandEnabled;
-            kickedNotificationEnabled    = d.kickedNotificationEnabled;
-            hideBossBarEnabled         = d.hideBossBarEnabled;
-            hideBossBarOnlyInKuudra    = d.hideBossBarOnlyInKuudra;
-            hideFallingBlocksEnabled  = d.hideFallingBlocksEnabled;
-            manaDrainAnnouncerEnabled  = d.manaDrainAnnouncerEnabled;
-            hideEntityFireEnabled      = d.hideEntityFireEnabled;
-            lavaBobberFixEnabled       = d.lavaBobberFixEnabled;
-            legacyRodPhysicsEnabled    = d.legacyRodPhysicsEnabled;
-            hideDamageTitleEnabled     = d.hideDamageTitleEnabled;
-            hideDeadEntitiesEnabled    = d.hideDeadEntitiesEnabled;
-            etherwarpWaypointsEnabled  = d.etherwarpWaypointsEnabled;
-            selfPlayerScale            = d.selfPlayerScale;
-            otherPlayerScale           = d.otherPlayerScale;
-            kuudraSizeScale            = d.kuudraSizeScale;
-            kuudraHpHudX             = d.kuudraHpHudX;
-            kuudraHpHudY             = d.kuudraHpHudY;
-            kuudraHpHudScale         = d.kuudraHpHudScale;
+            if (d.loadoutsEnabled == null) d.loadoutsEnabled = d.wardrobeEnabled;
+            if (d.wardrobeSlotKeys == null || d.wardrobeSlotKeys.length != 9)
+                d.wardrobeSlotKeys = cur.wardrobeSlotKeys;
+            if (d.loadoutSlotKeys == null || d.loadoutSlotKeys.length != 12)
+                d.loadoutSlotKeys = cur.loadoutSlotKeys;
+            d.wardrobeExtraAutoCloseMs = Math.max(0, d.wardrobeExtraAutoCloseMs);
 
-            wardrobeEnabled     = d.wardrobeEnabled;
-            // Loadouts used to share wardrobeEnabled's value — for configs saved before this was
-            // split, inherit whatever wardrobeEnabled was so existing users see no behaviour change.
-            loadoutsEnabled     = d.loadoutsEnabled != null ? d.loadoutsEnabled : d.wardrobeEnabled;
-            openGuiKey          = d.openGuiKey;
-            wardrobeOpenKey     = d.wardrobeOpenKey;
-            statsOpenKey        = d.statsOpenKey;
-            petsOpenKey         = d.petsOpenKey;
-            eqWardrobeOpenKey   = d.eqWardrobeOpenKey;
-            loadoutsOpenKey     = d.loadoutsOpenKey;
-            if (d.wardrobeSlotKeys != null && d.wardrobeSlotKeys.length == 9)
-                wardrobeSlotKeys = d.wardrobeSlotKeys;
-            if (d.loadoutSlotKeys != null && d.loadoutSlotKeys.length == 12)
-                loadoutSlotKeys = d.loadoutSlotKeys;
-            wardrobeNextPageKey = d.wardrobeNextPageKey;
-            wardrobePrevPageKey = d.wardrobePrevPageKey;
-            wardrobeUnequipKey  = d.wardrobeUnequipKey;
-            wardrobeDisableUnequipEnabled = d.wardrobeDisableUnequipEnabled;
-            wardrobeAutoCloseEnabled      = d.wardrobeAutoCloseEnabled;
-            wardrobeExtraAutoCloseMs      = Math.max(0, d.wardrobeExtraAutoCloseMs);
-            lastEquippedWardrobeSlot      = d.lastEquippedWardrobeSlot;
-
-            autoGfsToxic    = d.autoGfsToxic;
-            autoGfsTwilight = d.autoGfsTwilight;
-            toxicAmount     = d.toxicAmount;
-            twilightAmount  = d.twilightAmount;
-
-            chestTotal   = d.chestTotal;
-            chestSuccess = d.chestSuccess;
-            chestFail    = d.chestFail;
-
-            splitTimerEnabled  = d.splitTimerEnabled;
-            supplyTimesEnabled = d.supplyTimesEnabled;
+            double[][] splitPbs = cur.splitPbs;
             if (d.splitPbs != null && d.splitPbs.length == 6)
                 for (int i = 1; i <= 5; i++)
                     if (d.splitPbs[i] != null && d.splitPbs[i].length == 7)
                         splitPbs[i] = d.splitPbs[i].clone();
-            if (d.totalRunPbs != null && d.totalRunPbs.length == 6)
-                totalRunPbs = d.totalRunPbs.clone();
-            if (d.totalRunTimeSum != null && d.totalRunTimeSum.length == 6)
-                totalRunTimeSum = d.totalRunTimeSum.clone();
-            if (d.totalRunCount != null && d.totalRunCount.length == 6)
-                totalRunCount = d.totalRunCount.clone();
+            d.splitPbs = splitPbs;
+            d.totalRunPbs     = d.totalRunPbs     != null && d.totalRunPbs.length     == 6 ? d.totalRunPbs.clone()     : cur.totalRunPbs;
+            d.totalRunTimeSum = d.totalRunTimeSum != null && d.totalRunTimeSum.length == 6 ? d.totalRunTimeSum.clone() : cur.totalRunTimeSum;
+            d.totalRunCount   = d.totalRunCount   != null && d.totalRunCount.length   == 6 ? d.totalRunCount.clone()   : cur.totalRunCount;
             if (d.pbRecords != null && d.pbRecords.length == 6) {
-                pbRecords = d.pbRecords;
                 for (int t = 1; t <= 5; t++)
-                    if (pbRecords[t] != null) totalRunPbs[t] = pbRecords[t].totalTime;
+                    if (d.pbRecords[t] != null) d.totalRunPbs[t] = d.pbRecords[t].totalTime;
             } else {
+                d.pbRecords = cur.pbRecords;
                 for (int t = 1; t <= 5; t++)
-                    if (totalRunPbs[t] < 9999) {
-                        pbRecords[t] = new PbRecord();
-                        pbRecords[t].totalTime = totalRunPbs[t];
-                        if (splitPbs[t] != null) pbRecords[t].splits = splitPbs[t].clone();
+                    if (d.totalRunPbs[t] < 9999) {
+                        d.pbRecords[t] = new PbRecord();
+                        d.pbRecords[t].totalTime = d.totalRunPbs[t];
+                        if (d.splitPbs[t] != null) d.pbRecords[t].splits = d.splitPbs[t].clone();
                     }
             }
 
-            profitTrackerEnabled  = d.profitTrackerEnabled;
-            profitShowDuringRun   = d.profitShowDuringRun;
-            profitArmorSalvage    = d.profitArmorSalvage;
-            profitFactionMage     = d.profitFactionMage;
-            highlightUnopenedChestsEnabled = d.highlightUnopenedChestsEnabled;
-            profitRerollCalc      = d.profitRerollCalc;
-            blockExpensiveReroll  = d.blockExpensiveReroll;
-            profitBazaarInstaSell = d.profitBazaarInstaSell;
-            profitBazaarInstaBuy  = d.profitBazaarInstaBuy;
-            profitHudX            = d.profitHudX;
-            profitHudY            = d.profitHudY;
-            profitHudScale        = d.profitHudScale;
-            if (d.kuudraPetRarity != null) {
-                try { kuudraPetRarity = KuudraPetRarity.valueOf(d.kuudraPetRarity); }
-                catch (IllegalArgumentException ignored) {}
-            }
-            if (d.kuudraPetLevel > 0) kuudraPetLevel = Math.clamp(d.kuudraPetLevel, 1, 100);
-            essenceOfCrimson      = Math.clamp(d.essenceOfCrimson, 0, 10);
-            echoOfEssence         = Math.clamp(d.echoOfEssence, 0, 10);
-            chestValueGuiEnabled  = d.chestValueGuiEnabled;
-            chestValueHudX        = d.chestValueHudX;
-            chestValueHudY        = d.chestValueHudY;
-            chestValueHudScale    = d.chestValueHudScale;
-            chestTrackerHudX      = d.chestTrackerHudX;
-            chestTrackerHudY      = d.chestTrackerHudY;
-            chestTrackerHudScale  = d.chestTrackerHudScale;
+            d.kuudraPetLevel   = d.kuudraPetLevel > 0 ? Math.clamp(d.kuudraPetLevel, 1, 100) : cur.kuudraPetLevel;
+            d.essenceOfCrimson = Math.clamp(d.essenceOfCrimson, 0, 10);
+            d.echoOfEssence    = Math.clamp(d.echoOfEssence, 0, 10);
 
-            itemCustomizationEnabled = d.itemCustomizationEnabled;
+            cfg = d;
+
             ItemCustomization.loadFrom(d.itemCategorySettings, d.itemCustomCategories);
 
             if (d.notificationSounds != null) {
@@ -1362,286 +907,26 @@ public class PhantomConfig {
     }
 
     public static void save() {
-        Data d = new Data();
+        Data d = cfg.clone();
 
-        d.roleMode           = roleMode.name();
-        d.dpsValue           = dpsValue;
-        d.dpsRefillAmount    = dpsRefillAmount;
-        d.autoGfsDisableHpPercent = autoGfsDisableHpPercent;
-        d.stunValue          = stunValue;
-        d.eatenTimerEnabled             = eatenTimerEnabled;
-        d.eatenTimerSubtractPingEnabled = eatenTimerSubtractPingEnabled;
-        d.pickoblockEnabled             = pickoblockEnabled;
-        d.etherwarpLavaBlock = etherwarpLavaBlock;
-        d.etherwarpLavaBlockOnlyInKuudra = etherwarpLavaBlockOnlyInKuudra;
-        d.hideElleDialogue   = hideElleDialogue;
-        d.autoGfsEnabled     = autoGfsEnabled;
+        d.roleMode               = roleMode.name();
+        d.lavaMode               = lavaMode.name();
+        d.uiTheme                = uiTheme.name();
+        d.uiDarkMode             = uiTheme == UiTheme.DARK;
+        d.waypointType           = waypointType.name();
+        d.secondSupplyPreference = secondSupplyPreference.name();
+        d.kuudraTalisman         = kuudraTalisman.name();
+        d.kuudraPetRarity        = kuudraPetRarity.name();
 
-        d.lavaTweaksEnabled = lavaTweaksEnabled;
-        d.lavaMode          = lavaMode.name();
-        d.lavaOpacity       = lavaOpacity;
-        d.lavaColor         = lavaColor;
-        d.lavaAsWater       = lavaAsWater;
-        d.lavaColorOverride = lavaColorOverride;
-
-        d.fastDpsWarning          = fastDpsWarning;
-        d.chestTrackerVisible     = chestTrackerVisible;
-        d.soloDetectorEnabled     = soloDetectorEnabled;
-        d.cannonAutoClose         = cannonAutoClose;
-        d.shopKeybindsEnabled     = shopKeybindsEnabled;
-        d.middleClickShopGuiEnabled = middleClickShopGuiEnabled;
-        d.shopMainKey             = shopMainKey;
-        d.shopCannonKey           = shopCannonKey;
-        d.explosionFilterEnabled  = explosionFilterEnabled;
-        d.explosionHideRadius     = explosionHideRadius;
-        d.explosionSizeMultiplier = explosionSizeMultiplier;
-        d.chestAnnouncerEnabled   = chestAnnouncerEnabled;
-        d.autoKickEnabled         = autoKickEnabled;
-        d.profileViewerEnabled    = profileViewerEnabled;
-        d.akMinCatacombs          = akMinCatacombs;
-        d.akMinForaging           = akMinForaging;
-        d.akMinMagicalPower       = akMinMagicalPower;
-        d.akMinInfernal           = akMinInfernal;
-        d.akMinFiery              = akMinFiery;
-        d.akMinBurning            = akMinBurning;
-        d.akMinHot                = akMinHot;
-        d.akMinBasic              = akMinBasic;
-        d.akRequireRend           = akRequireRend;
-        d.akMinGdragLevel         = akMinGdragLevel;
-        d.partyCmdsEnabled        = partyCmdsEnabled;
-        d.autoRequeueEnabled      = autoRequeueEnabled;
-        d.autoRequeueMessageEnabled = autoRequeueMessageEnabled;
-        d.autoUpdatesEnabled      = autoUpdatesEnabled;
-        d.developerFeaturesEnabled = developerFeaturesEnabled;
-        d.tentacleDbLoggingEnabled = tentacleDbLoggingEnabled;
-        d.tentacleHighlightEnabled = tentacleHighlightEnabled;
-        d.uiTheme = uiTheme.name();
-        d.uiDarkMode = uiTheme != UiTheme.DARK ? false : true;
-        d.uiTransparencyEnabled = uiTransparencyEnabled;
-        d.uiGuiScale = uiGuiScale;
-        d.autoSprintEnabled       = autoSprintEnabled;
-        d.slotBindsEnabled        = slotBindsEnabled;
-        d.slotBindSetKey          = slotBindSetKey;
-        d.slotBindsShowOnHover    = slotBindsShowOnHover;
-        d.slotBindPairs           = slotBindings.entrySet().stream()
+        d.slotBindPairs = slotBindings.entrySet().stream()
                 .map(e -> new int[]{e.getKey(), e.getValue()})
                 .toArray(int[][]::new);
+        d.wardrobeSlotKeys = cfg.wardrobeSlotKeys.clone();
+        d.loadoutSlotKeys  = cfg.loadoutSlotKeys.clone();
 
-        d.pearlWaypointsEnabled = pearlWaypointsEnabled;
-        d.showAllWaypoints      = showAllWaypoints;
-        d.pearlFlatEnabled      = pearlFlatEnabled;
-        d.pearlSkyEnabled       = pearlSkyEnabled;
-        d.pearlDoubleEnabled    = pearlDoubleEnabled;
-        d.doublePearlDelayS     = doublePearlDelayS;
-        d.waypointType          = waypointType.name();
-        d.waypointFill          = waypointFill;
-        d.pearlTickUpdate       = pearlTickUpdate;
-        d.dropLocationsEnabled  = dropLocationsEnabled;
-        d.waypointLinesEnabled           = waypointLinesEnabled;
-        d.waypointLinesSuppliesEnabled   = waypointLinesSuppliesEnabled;
-        d.waypointLinesFlatPearlsEnabled = waypointLinesFlatPearlsEnabled;
-        d.secondSupplyPreference = secondSupplyPreference.name();
-        d.pearlTimerEnabled     = pearlTimerEnabled;
-        d.pearlTimerHeight      = pearlTimerHeight;
-        d.pearlTimerSize        = pearlTimerSize;
-        d.pearlCircleSize       = pearlCircleSize;
-        d.kuudraTalisman        = kuudraTalisman.name();
-        d.lowPing               = lowPing;
-        d.waypointFillAlpha     = waypointFillAlpha;
-        d.beaconAlpha           = beaconAlpha;
-        d.wpColNormal           = wpColNormal;
-        d.wpColCorrect          = wpColCorrect;
-        d.wpColHovered          = wpColHovered;
-        d.wpColReady            = wpColReady;
-        d.beaconColNormal       = beaconColNormal;
-        d.beaconColCorrect      = beaconColCorrect;
-        d.buildBeaconAlpha      = buildBeaconAlpha;
-        d.elleOutlineColor      = elleOutlineColor;
-        d.elleBeaconColor       = elleBeaconColor;
-        d.kuudraApiKey               = kuudraApiKey;
-        d.blockSlot9Enabled          = blockSlot9Enabled;
-        d.blockAtomsplitEnabled      = blockAtomsplitEnabled;
-        d.ichorRadiusEnabled         = ichorRadiusEnabled;
-        d.stunPreviewEnabled         = stunPreviewEnabled;
-        d.stunPreviewLeftEnabled     = stunPreviewLeftEnabled;
-        d.stunPreviewRightEnabled    = stunPreviewRightEnabled;
-        d.stunPreviewBackEnabled     = stunPreviewBackEnabled;
-        d.dpsWaypointEnabled    = dpsWaypointEnabled;
-        d.buildBeaconsEnabled        = buildBeaconsEnabled;
-        d.elleHighlightEnabled       = elleHighlightEnabled;
-        d.elleHighlightBeaconEnabled = elleHighlightBeaconEnabled;
-        d.rendDamageEnabled          = rendDamageEnabled;
-        d.rendPullAttributionEnabled = rendPullAttributionEnabled;
-        d.rendTrackerEnabled         = rendTrackerEnabled;
-        d.backboneProgressBarEnabled = backboneProgressBarEnabled;
-        d.backboneProgressBarOutsideKuudraEnabled = backboneProgressBarOutsideKuudraEnabled;
-        d.backboneProgressBarHudX     = backboneProgressBarHudX;
-        d.backboneProgressBarHudY     = backboneProgressBarHudY;
-        d.backboneProgressBarHudScale = backboneProgressBarHudScale;
-        d.kuudraHighlightEnabled     = kuudraHighlightEnabled;
-        d.kuudraHighlightFilled      = kuudraHighlightFilled;
-        d.etherwarpSlotBlockerEnabled = etherwarpSlotBlockerEnabled;
-        d.supplyWaypointsEnabled           = supplyWaypointsEnabled;
-        d.supplyBeaconsEnabled          = supplyBeaconsEnabled;
-        d.noPreAnnounceEnabled          = noPreAnnounceEnabled;
-        d.supplyLocationAnnounceEnabled = supplyLocationAnnounceEnabled;
-        d.supplyProgressHudEnabled      = supplyProgressHudEnabled;
-        d.buildProgressHudEnabled       = buildProgressHudEnabled;
-        d.announceFreshEnabled          = announceFreshEnabled;
-        d.supplyHitboxEnabled           = supplyHitboxEnabled;
-        d.supplyRodRadiusEnabled        = supplyRodRadiusEnabled;
-        d.supplyPearlHitboxEnabled      = supplyPearlHitboxEnabled;
-        d.pearlRefillEnabled            = pearlRefillEnabled;
-        d.pearlRefillOutsideKuudraEnabled = pearlRefillOutsideKuudraEnabled;
-        d.hideSelfieEnabled             = hideSelfieEnabled;
-        d.preventPlacingPlayerHeadsEnabled      = preventPlacingPlayerHeadsEnabled;
-        d.preventPlacingPlayerHeadsExceptGarden = preventPlacingPlayerHeadsExceptGarden;
-        d.preventPlacingWeaponsEnabled          = preventPlacingWeaponsEnabled;
-        d.blockBossPhaseJumpEnabled             = blockBossPhaseJumpEnabled;
-        d.blockCloseItemEnabled                 = blockCloseItemEnabled;
-        d.supplyGiantHitboxEnabled              = supplyGiantHitboxEnabled;
-        d.giantHitboxEnabled                    = giantHitboxEnabled;
-        d.giantHitboxFilled                     = giantHitboxFilled;
-        d.giantHitboxFillOpacity                = giantHitboxFillOpacity;
-        d.giantHitboxColor                      = giantHitboxColor;
-        d.kuudraDirectionEnabled  = kuudraDirectionEnabled;
-        d.tuxedoWarningEnabled    = tuxedoWarningEnabled;
-        d.boneTimingAssistEnabled = boneTimingAssistEnabled;
-        d.boneTimingAssistOffset = boneTimingAssistOffset;
-        d.boneTimingHitboxOutlineEnabled = boneTimingHitboxOutlineEnabled;
-        d.boneTimingHitboxOutlineFilled  = boneTimingHitboxOutlineFilled;
-        d.boneTimingHitboxOutlineColor   = boneTimingHitboxOutlineColor;
-        d.boneTimingHitboxOutlineOnlyCurrentDirection = boneTimingHitboxOutlineOnlyCurrentDirection;
-        d.boneTimingHitboxHighlightInRange = boneTimingHitboxHighlightInRange;
-
-        d.mountTimerHudX     = mountTimerHudX;
-        d.mountTimerHudY     = mountTimerHudY;
-        d.mountTimerHudScale = mountTimerHudScale;
-        d.directionHudX     = directionHudX;
-        d.directionHudY     = directionHudY;
-        d.directionHudScale = directionHudScale;
-        d.splitHudX         = splitHudX;
-        d.splitHudY         = splitHudY;
-        d.splitHudScale     = splitHudScale;
-        d.pearlTitleHudX    = pearlTitleHudX;
-        d.pearlTitleHudY    = pearlTitleHudY;
-        d.pearlTitleHudScale = pearlTitleHudScale;
-        d.smoothCratePickupEnabled = smoothCratePickupEnabled;
-        d.supplyProgressHudX     = supplyProgressHudX;
-        d.supplyProgressHudY     = supplyProgressHudY;
-        d.supplyProgressHudScale = supplyProgressHudScale;
-        d.buildProgressHudX      = buildProgressHudX;
-        d.buildProgressHudY      = buildProgressHudY;
-        d.buildProgressHudScale  = buildProgressHudScale;
-        d.notificationHudX       = notificationHudX;
-        d.notificationHudY       = notificationHudY;
-        d.notificationHudScale   = notificationHudScale;
-        d.cratePriorityHudX      = cratePriorityHudX;
-        d.cratePriorityHudY      = cratePriorityHudY;
-        d.cratePriorityHudScale  = cratePriorityHudScale;
-        d.supplyRecoveryMsgEnabled = supplyRecoveryMsgEnabled;
-        d.freshNotifyEnabled       = freshNotifyEnabled;
-        d.buildStartedNotifyEnabled= buildStartedNotifyEnabled;
-        d.fastDpsNotifyEnabled     = fastDpsNotifyEnabled;
-        d.soloNotifyEnabled        = soloNotifyEnabled;
-        d.noPreNotifyEnabled       = noPreNotifyEnabled;
-        d.supplyGrabbedNotifyEnabled = supplyGrabbedNotifyEnabled;
-        d.supplyDroppedNotifyEnabled = supplyDroppedNotifyEnabled;
-        d.cratePriorityEnabled     = cratePriorityEnabled;
-        d.hideArmorStandsEnabled     = hideArmorStandsEnabled;
-        d.hideArmorStandsBuild       = hideArmorStandsBuild;
-        d.hideArmorStandsRightCannon = hideArmorStandsRightCannon;
-        d.hideArmorStandsLeftCannon  = hideArmorStandsLeftCannon;
-        d.hideArmorStandsShop        = hideArmorStandsShop;
-        d.hideArmorStandsOthers      = hideArmorStandsOthers;
-        d.cannonHitboxesEnabled      = cannonHitboxesEnabled;
-        d.cannonHitboxesLeftEnabled  = cannonHitboxesLeftEnabled;
-        d.cannonHitboxesRightEnabled = cannonHitboxesRightEnabled;
-        d.kuudraHpHudEnabled       = kuudraHpHudEnabled;
-        d.kuudraHpShowRaw          = kuudraHpShowRaw;
-        d.kuudraHpHideBar          = kuudraHpHideBar;
-        d.hollowWandEnabled             = hollowWandEnabled;
-        d.kickedNotificationEnabled     = kickedNotificationEnabled;
-        d.hideBossBarEnabled         = hideBossBarEnabled;
-        d.hideBossBarOnlyInKuudra    = hideBossBarOnlyInKuudra;
-        d.hideFallingBlocksEnabled  = hideFallingBlocksEnabled;
-        d.manaDrainAnnouncerEnabled  = manaDrainAnnouncerEnabled;
-        d.hideEntityFireEnabled      = hideEntityFireEnabled;
-        d.lavaBobberFixEnabled       = lavaBobberFixEnabled;
-        d.legacyRodPhysicsEnabled    = legacyRodPhysicsEnabled;
-        d.hideDamageTitleEnabled     = hideDamageTitleEnabled;
-        d.hideDeadEntitiesEnabled    = hideDeadEntitiesEnabled;
-        d.etherwarpWaypointsEnabled  = etherwarpWaypointsEnabled;
-        d.selfPlayerScale            = selfPlayerScale;
-        d.otherPlayerScale           = otherPlayerScale;
-        d.kuudraSizeScale            = kuudraSizeScale;
-        d.kuudraHpHudX             = kuudraHpHudX;
-        d.kuudraHpHudY             = kuudraHpHudY;
-        d.kuudraHpHudScale         = kuudraHpHudScale;
-
-        d.wardrobeEnabled     = wardrobeEnabled;
-        d.loadoutsEnabled     = loadoutsEnabled;
-        d.openGuiKey          = openGuiKey;
-        d.wardrobeOpenKey     = wardrobeOpenKey;
-        d.statsOpenKey        = statsOpenKey;
-        d.petsOpenKey         = petsOpenKey;
-        d.eqWardrobeOpenKey   = eqWardrobeOpenKey;
-        d.loadoutsOpenKey     = loadoutsOpenKey;
-        d.wardrobeSlotKeys    = wardrobeSlotKeys.clone();
-        d.loadoutSlotKeys     = loadoutSlotKeys.clone();
-        d.wardrobeNextPageKey = wardrobeNextPageKey;
-        d.wardrobePrevPageKey = wardrobePrevPageKey;
-        d.wardrobeUnequipKey  = wardrobeUnequipKey;
-        d.wardrobeDisableUnequipEnabled = wardrobeDisableUnequipEnabled;
-        d.wardrobeAutoCloseEnabled      = wardrobeAutoCloseEnabled;
-        d.wardrobeExtraAutoCloseMs      = wardrobeExtraAutoCloseMs;
-        d.lastEquippedWardrobeSlot      = lastEquippedWardrobeSlot;
-
-        d.autoGfsToxic    = autoGfsToxic;
-        d.autoGfsTwilight = autoGfsTwilight;
-        d.toxicAmount     = toxicAmount;
-        d.twilightAmount  = twilightAmount;
-
-        d.chestTotal   = chestTotal;
-        d.chestSuccess = chestSuccess;
-        d.chestFail    = chestFail;
-
-        d.splitTimerEnabled      = splitTimerEnabled;
-        d.supplyTimesEnabled     = supplyTimesEnabled;
-        d.splitPbs               = splitPbs;
-        d.totalRunPbs            = totalRunPbs;
-        d.totalRunTimeSum        = totalRunTimeSum;
-        d.totalRunCount          = totalRunCount;
-        d.pbRecords              = pbRecords;
-
-        d.profitTrackerEnabled  = profitTrackerEnabled;
-        d.profitShowDuringRun   = profitShowDuringRun;
-        d.profitArmorSalvage    = profitArmorSalvage;
-        d.profitFactionMage     = profitFactionMage;
-        d.highlightUnopenedChestsEnabled = highlightUnopenedChestsEnabled;
-        d.profitRerollCalc      = profitRerollCalc;
-        d.blockExpensiveReroll  = blockExpensiveReroll;
-        d.profitBazaarInstaSell = profitBazaarInstaSell;
-        d.profitBazaarInstaBuy  = profitBazaarInstaBuy;
-        d.profitHudX            = profitHudX;
-        d.profitHudY            = profitHudY;
-        d.profitHudScale        = profitHudScale;
-        d.kuudraPetRarity       = kuudraPetRarity.name();
-        d.kuudraPetLevel        = kuudraPetLevel;
-        d.essenceOfCrimson      = essenceOfCrimson;
-        d.echoOfEssence         = echoOfEssence;
-        d.chestValueGuiEnabled  = chestValueGuiEnabled;
-        d.chestValueHudX        = chestValueHudX;
-        d.chestValueHudY        = chestValueHudY;
-        d.chestValueHudScale    = chestValueHudScale;
-        d.chestTrackerHudX      = chestTrackerHudX;
-        d.chestTrackerHudY      = chestTrackerHudY;
-        d.chestTrackerHudScale  = chestTrackerHudScale;
-
-        d.itemCustomizationEnabled = itemCustomizationEnabled;
-        d.itemCategorySettings     = ItemCustomization.serialiseBuiltin();
-        d.itemCustomCategories     = ItemCustomization.serialiseCustom();
-        d.notificationSounds       = new java.util.LinkedHashMap<>(notificationSounds);
+        d.itemCategorySettings = ItemCustomization.serialiseBuiltin();
+        d.itemCustomCategories = ItemCustomization.serialiseCustom();
+        d.notificationSounds   = new LinkedHashMap<>(notificationSounds);
 
         pendingWrite = d;
         lastSaveRequestMs = System.currentTimeMillis();
@@ -1694,6 +979,8 @@ public class PhantomConfig {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static float clamp01(float v) { return Math.max(0f, Math.min(1f, v)); }
+
+    private static float clampHudScale(float v) { return Math.max(0.2f, Math.min(3f, v)); }
 
     private static <T extends Enum<T>> T safeEnum(Class<T> type, String val, T fallback) {
         try { return Enum.valueOf(type, val); } catch (Exception e) { return fallback; }
@@ -1756,8 +1043,8 @@ public class PhantomConfig {
         }
     }
 
-    private static final java.util.LinkedHashMap<String, NotificationSound> notificationSounds
-            = new java.util.LinkedHashMap<>();
+    private static final LinkedHashMap<String, NotificationSound> notificationSounds
+            = new LinkedHashMap<>();
 
     private static NotificationSound defaultSound(String key) {
         if (SOUND_PEARL_NOW.equals(key))
@@ -1805,7 +1092,7 @@ public class PhantomConfig {
 
     // ── JSON model ────────────────────────────────────────────────────────────
 
-    private static class Data {
+    private static class Data implements Cloneable {
         String  roleMode           = "AUTO";
         int     dpsValue           = 32;
         int     dpsRefillAmount    = 10;
@@ -1861,6 +1148,18 @@ public class PhantomConfig {
         String  uiTheme = null;
         boolean uiTransparencyEnabled = true;
         float   uiGuiScale = 1.0f;
+        boolean pvEnabled      = false;
+        /** The "new profile viewer" popup has been answered. */
+        boolean pvPromptAnswered = false;
+        /** Our profile viewer has been opened at least once. */
+        boolean pvOpened       = false;
+        float   pvGuiScale     = 1.0f;
+        String  pvContent      = "MEDIUM";
+        float   pvElementScale = 1.0f;
+        String  pvTheme        = "MATCH";
+        boolean pvArabicNumerals = false;
+        boolean pvOverflowSkills = false;
+        boolean pvTabIcons = true;
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
         int     slotBindSetKey          = -1;
@@ -1898,7 +1197,7 @@ public class PhantomConfig {
         float   buildBeaconAlpha      = 0.63f;
         int     elleOutlineColor      = 0xFF0000;
         int     elleBeaconColor       = 0x00FFFF;
-        String  kuudraApiKey               = "";
+        String  kuudraApiKey               = ""; // legacy: kept in the file, no longer used or shown
         boolean blockSlot9Enabled          = false;
         boolean blockAtomsplitEnabled      = false;
         boolean ichorRadiusEnabled         = false;
@@ -1925,7 +1224,7 @@ public class PhantomConfig {
         boolean supplyBeaconsEnabled         = false;
         boolean noPreAnnounceEnabled         = false;
         boolean supplyLocationAnnounceEnabled = false;
-        boolean supplyProgressHudEnabled     = false;
+        boolean supplySpawnCountdownEnabled  = true;
         boolean buildProgressHudEnabled      = false;
         boolean announceFreshEnabled         = false;
         boolean supplyHitboxEnabled          = false;
@@ -1933,6 +1232,7 @@ public class PhantomConfig {
         boolean supplyPearlHitboxEnabled     = false;
         boolean pearlRefillEnabled           = false;
         boolean pearlRefillOutsideKuudraEnabled = false;
+        boolean pearlRefillDungeonsEnabled   = false;
         boolean hideSelfieEnabled            = false;
         boolean preventPlacingPlayerHeadsEnabled      = false;
         boolean preventPlacingPlayerHeadsExceptGarden = true;
@@ -2082,7 +1382,12 @@ public class PhantomConfig {
 
         boolean                                          itemCustomizationEnabled = true;
         Map<String, ItemTransformSettings>               itemCategorySettings     = null;
-        java.util.List<ItemCustomization.CustomCategory> itemCustomCategories     = null;
-        java.util.LinkedHashMap<String, NotificationSound> notificationSounds     = null;
+        List<ItemCustomization.CustomCategory> itemCustomCategories     = null;
+        LinkedHashMap<String, NotificationSound> notificationSounds     = null;
+
+        @Override protected Data clone() {
+            try { return (Data) super.clone(); }
+            catch (CloneNotSupportedException e) { throw new AssertionError(e); }
+        }
     }
 }

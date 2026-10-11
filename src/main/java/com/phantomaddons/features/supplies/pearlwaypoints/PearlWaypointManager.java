@@ -65,11 +65,11 @@ public final class PearlWaypointManager {
     public static void tickUpdate() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
-        if (KuudraPhaseTracker.getPhase() != Phase.SUPPLIES) {
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) {
             snapshot = Collections.emptyList();
             return;
         }
-        SupplyTracker.tick();
+        if (KuudraPhaseTracker.getPhase() == Phase.SUPPLIES) SupplyTracker.tick();
         Vec3 spawn     = pearlSpawnPos(mc);
         lastPearlSpawn = spawn;
         rebuildSnapshot(spawn, mc.player.getEyePosition());
@@ -78,7 +78,7 @@ public final class PearlWaypointManager {
     public static void frameUpdate() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
-        if (KuudraPhaseTracker.getPhase() != Phase.SUPPLIES) return;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return;
         Vec3 spawn = pearlSpawnPos(mc);
         if (lastPearlSpawn != null
                 && lastPearlSpawn.distanceToSqr(spawn) < RECOMPUTE_THRESHOLD) {
@@ -98,6 +98,10 @@ public final class PearlWaypointManager {
     }
 
     private static void rebuildSnapshot(Vec3 spawn, Vec3 eye) {
+        if (KuudraPhaseTracker.isBallistaSupplyPhase()) {
+            rebuildBallistaSnapshot(spawn, eye);
+            return;
+        }
         PickupLocation myPickup   = PickupLocation.closest(eye);
         PearlLocation  myTarget   = resolveMyTarget(myPickup);
         boolean        hasMyTarget = myTarget != null && !SupplyTracker.isCompleted(myTarget);
@@ -108,7 +112,7 @@ public final class PearlWaypointManager {
             if (SupplyTracker.isCompleted(loc)) continue;
             boolean isMyTarget = (loc == myTarget);
             if (isMyTarget || PhantomConfig.isShowAllWaypoints() || !hasMyTarget)
-                addLocationEntries(loc, spawn, isMyTarget, false, next);
+                addLocationEntries(loc, loc.landingPos, loc.targetPos, spawn, isMyTarget, next);
         }
 
         if (PhantomConfig.isPearlDoubleEnabled()) {
@@ -118,38 +122,44 @@ public final class PearlWaypointManager {
         snapshot = Collections.unmodifiableList(next);
     }
 
-    private static void addLocationEntries(PearlLocation loc, Vec3 spawn,
-                                           boolean isMyTarget, boolean isDouble,
-                                           List<PearlWaypointState> out) {
+    private static void rebuildBallistaSnapshot(Vec3 spawn, Vec3 eye) {
+        Vec3 landing = BallistaTarget.closestLanding(eye);
+        List<PearlWaypointState> next = new ArrayList<>();
+        addLocationEntries(null, landing, landing.add(0, 0.2, 0), spawn, true, next);
+        snapshot = Collections.unmodifiableList(next);
+    }
+
+    private static void addLocationEntries(PearlLocation loc, Vec3 landing, Vec3 aim, Vec3 spawn,
+                                           boolean isMyTarget, List<PearlWaypointState> out) {
         TrajectorySolver.SolveResult flatResult = null;
         int sizeBefore = out.size();
 
         if (PhantomConfig.isPearlFlatEnabled()) {
-            flatResult = TrajectorySolver.solveFlat(spawn, loc.targetPos);
+            flatResult = TrajectorySolver.solveFlat(spawn, aim);
             if (flatResult == null && PhantomConfig.isPearlSkyEnabled()) {
                 TrajectorySolver.SolveResult fallback =
-                        TrajectorySolver.solveSky(spawn, loc.targetPos);
-                if (fallback != null) out.add(buildState(loc, spawn, fallback, false, isMyTarget));
+                        TrajectorySolver.solveSky(spawn, aim);
+                if (fallback != null) out.add(buildState(loc, landing, aim, spawn, fallback, false, isMyTarget));
             } else if (flatResult != null) {
-                out.add(buildState(loc, spawn, flatResult, false, isMyTarget));
+                out.add(buildState(loc, landing, aim, spawn, flatResult, false, isMyTarget));
             }
         }
 
         if (PhantomConfig.isPearlSkyEnabled()) {
             TrajectorySolver.SolveResult skyResult =
-                    TrajectorySolver.solveSky(spawn, loc.targetPos);
+                    TrajectorySolver.solveSky(spawn, aim);
             if (skyResult != null && skyResult.isSky()
                     && !(flatResult == null && PhantomConfig.isPearlFlatEnabled())) {
-                out.add(buildState(loc, spawn, skyResult, false, isMyTarget));
+                out.add(buildState(loc, landing, aim, spawn, skyResult, false, isMyTarget));
             }
         }
 
         if (out.size() == sizeBefore) {
-            Vec3 fallDir = directionalFallbackAim(spawn, loc.targetPos);
+            Vec3 fallDir = directionalFallbackAim(spawn, aim);
             if (fallDir != null) {
-                long flightMs = TrajectorySolver.estimateFlightMs(spawn, fallDir, loc.targetPos);
+                long flightMs = TrajectorySolver.estimateFlightMs(spawn, fallDir, aim);
                 long throwIn  = computeThrowIn(flightMs > 0 ? flightMs : 0);
-                out.add(new PearlWaypointState(loc, fallDir, new Vec3[4],
+                out.add(new PearlWaypointState(loc, landing, aim, fallDir, new Vec3[4],
                         false, false, isMyTarget, flightMs, throwIn));
             }
         }
@@ -164,10 +174,10 @@ public final class PearlWaypointManager {
         return new Vec3(cos45 * dx / horiz, cos45, cos45 * dz / horiz);
     }
 
-    private static PearlWaypointState buildState(PearlLocation loc, Vec3 spawn,
+    private static PearlWaypointState buildState(PearlLocation loc, Vec3 landing, Vec3 aim, Vec3 spawn,
                                                  TrajectorySolver.SolveResult result,
                                                  boolean isDouble, boolean isMyTarget) {
-        Vec3   centre  = loc.targetPos;
+        Vec3   centre  = aim;
         Vec3[] corners = {
                 centre.add(-CORNER_OFFSET, 0, -CORNER_OFFSET),
                 centre.add( CORNER_OFFSET, 0, -CORNER_OFFSET),
@@ -185,7 +195,7 @@ public final class PearlWaypointManager {
                 ? result.flightMs() + Math.round(PhantomConfig.getDoublePearlDelayS() * 1000L)
                 : result.flightMs();
         long throwIn = computeThrowIn(flight);
-        return new PearlWaypointState(loc, result.aimDir(), cornerAimDirs,
+        return new PearlWaypointState(loc, landing, aim, result.aimDir(), cornerAimDirs,
                 result.isSky(), isDouble, isMyTarget, flight, throwIn);
     }
 
@@ -247,7 +257,7 @@ public final class PearlWaypointManager {
             long flightMs = TrajectorySolver.estimateFlightMs(spawn, fallDir, target);
             long flight   = (flightMs > 0 ? flightMs : 0) + delayMs;
             long throwIn  = computeThrowIn(flight);
-            out.add(new PearlWaypointState(displayLoc, fallDir, new Vec3[4],
+            out.add(new PearlWaypointState(displayLoc, displayLoc.landingPos, displayLoc.targetPos, fallDir, new Vec3[4],
                     false, true, isHighlighted, flight, throwIn));
             return;
         }
@@ -268,7 +278,7 @@ public final class PearlWaypointManager {
 
         long flight  = r.flightMs() + delayMs;
         long throwIn = computeThrowIn(flight);
-        out.add(new PearlWaypointState(displayLoc, r.aimDir(), cornerAimDirs,
+        out.add(new PearlWaypointState(displayLoc, displayLoc.landingPos, displayLoc.targetPos, r.aimDir(), cornerAimDirs,
                 isSky, true, isHighlighted, flight, throwIn));
     }
 
@@ -279,7 +289,7 @@ public final class PearlWaypointManager {
         for (PearlWaypointState s : cur) {
             long throwIn = computeThrowIn(s.optimalFlightMs());
             updated.add(new PearlWaypointState(
-                    s.target(), s.centerAimDir(), s.cornerAimDirs(),
+                    s.target(), s.landingPos(), s.aimPos(), s.centerAimDir(), s.cornerAimDirs(),
                     s.isSky(), s.isDouble(), s.isMyTarget(),
                     s.optimalFlightMs(), throwIn));
         }

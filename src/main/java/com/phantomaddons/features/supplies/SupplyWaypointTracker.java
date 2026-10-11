@@ -65,6 +65,12 @@ public final class SupplyWaypointTracker {
         detectedClusters.clear();
     }
 
+    public static void onBallistaSuppliesStart() {
+        onSuppliesStart();
+        pingFired         = true;
+        pingAnnounceFired = true;
+    }
+
     public static void reset() {
         ticksSinceStart        = -1;
         pingFired              = false;
@@ -199,7 +205,7 @@ public final class SupplyWaypointTracker {
 
     private static final double X_XCANNON_Z_BOUNDARY = -136.0;
 
-    private static int closestSpotIndex(Vec3 pos) {
+    public static int closestSpotIndex(Vec3 pos) {
         int best = 0;
         double bestDist = Double.MAX_VALUE;
         for (int i = 0; i < SPOT_POS.length; i++) {

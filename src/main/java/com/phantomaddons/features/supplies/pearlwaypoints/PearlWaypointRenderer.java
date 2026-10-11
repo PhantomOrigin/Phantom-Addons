@@ -5,7 +5,6 @@ import com.phantomaddons.PhantomConfig.WaypointType;
 import com.phantomaddons.features.supplies.SupplyTracker;
 import com.phantomaddons.features.supplies.TrajectorySolver;
 import com.phantomaddons.phase.KuudraPhaseTracker;
-import com.phantomaddons.phase.KuudraPhaseTracker.Phase;
 import com.mojang.blaze3d.vertex.PoseStack;
 //? if <26.2 {
 /*import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -45,7 +44,7 @@ public final class PearlWaypointRenderer {
 
     public static void renderWorld(PoseStack matrices, Camera camera, float tickDelta) {
         if (!PhantomConfig.isPearlWaypointsEnabled()) return;
-        if (KuudraPhaseTracker.getPhase() != Phase.SUPPLIES) return;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return;
 
         PearlWaypointManager.frameUpdate();
 
@@ -72,11 +71,16 @@ public final class PearlWaypointRenderer {
         }
 
         if (PhantomConfig.isDropLocationsEnabled()) {
-            for (PearlLocation loc : PearlLocation.values()) {
-                if (SupplyTracker.isCompleted(loc)) continue;
-                boolean isTarget   = (loc == myTargetLoc);
-                float   beamHeight = 320f - (float) loc.landingPos.y;
-                drawBeaconBeam(matrices, imm, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
+            if (KuudraPhaseTracker.isBallistaSupplyPhase()) {
+                Vec3 centre = BallistaTarget.CENTER;
+                drawBeaconBeam(matrices, imm, camPos, centre, beaconA, true, 320f - (float) centre.y);
+            } else {
+                for (PearlLocation loc : PearlLocation.values()) {
+                    if (SupplyTracker.isCompleted(loc)) continue;
+                    boolean isTarget   = (loc == myTargetLoc);
+                    float   beamHeight = 320f - (float) loc.landingPos.y;
+                    drawBeaconBeam(matrices, imm, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
+                }
             }
         }
 
@@ -88,7 +92,7 @@ public final class PearlWaypointRenderer {
             Vec3 aim = state.centerAimDir();
             if (aim == null) continue;
 
-            Vec3 landing = state.target().landingPos;
+            Vec3 landing = state.landingPos();
             if (sq(mc.player.getX() - landing.x) + sq(mc.player.getZ() - landing.z) < 25.0) continue;
 
             Vec3    wp      = spawn.add(aim.scale(50.0));
@@ -96,7 +100,7 @@ public final class PearlWaypointRenderer {
             long    throwIn = state.throwInMs();
             if (aimed) {
                 Vec3 look = mc.player.getLookAngle();
-                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.target().targetPos);
+                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.aimPos());
                 if (curFl > 0L) throwIn = PearlWaypointManager.computeThrowForFlight(curFl);
             }
 
@@ -130,7 +134,7 @@ public final class PearlWaypointRenderer {
             Vec3 aim2 = state2.centerAimDir();
             if (aim2 == null) continue;
 
-            Vec3 landing2 = state2.target().landingPos;
+            Vec3 landing2 = state2.landingPos();
             if (sq(mc.player.getX() - landing2.x) + sq(mc.player.getZ() - landing2.z) < 25.0) continue;
 
             Vec3    wp2      = spawn.add(aim2.scale(50.0));
@@ -138,7 +142,7 @@ public final class PearlWaypointRenderer {
             long    throwIn2 = state2.throwInMs();
             if (aimed2) {
                 Vec3 look2 = mc.player.getLookAngle();
-                long fl2 = TrajectorySolver.estimateFlightMs(spawn, look2, state2.target().targetPos);
+                long fl2 = TrajectorySolver.estimateFlightMs(spawn, look2, state2.aimPos());
                 if (fl2 > 0L) throwIn2 = PearlWaypointManager.computeThrowForFlight(fl2);
             }
 
@@ -165,11 +169,16 @@ public final class PearlWaypointRenderer {
         }
 
         if (PhantomConfig.isDropLocationsEnabled()) {
-            for (PearlLocation loc : PearlLocation.values()) {
-                if (SupplyTracker.isCompleted(loc)) continue;
-                boolean isTarget   = (loc == myTargetLoc);
-                float   beamHeight = 320f - (float) loc.landingPos.y;
-                drawBeaconBeam(matrices, collector, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
+            if (KuudraPhaseTracker.isBallistaSupplyPhase()) {
+                Vec3 centre = BallistaTarget.CENTER;
+                drawBeaconBeam(matrices, collector, camPos, centre, beaconA, true, 320f - (float) centre.y);
+            } else {
+                for (PearlLocation loc : PearlLocation.values()) {
+                    if (SupplyTracker.isCompleted(loc)) continue;
+                    boolean isTarget   = (loc == myTargetLoc);
+                    float   beamHeight = 320f - (float) loc.landingPos.y;
+                    drawBeaconBeam(matrices, collector, camPos, loc.landingPos, beaconA, isTarget, beamHeight);
+                }
             }
         }
 
@@ -181,7 +190,7 @@ public final class PearlWaypointRenderer {
             Vec3 aim = state.centerAimDir();
             if (aim == null) continue;
 
-            Vec3 landing = state.target().landingPos;
+            Vec3 landing = state.landingPos();
             if (sq(mc.player.getX() - landing.x) + sq(mc.player.getZ() - landing.z) < 25.0) continue;
 
             Vec3    wp      = spawn.add(aim.scale(50.0));
@@ -189,7 +198,7 @@ public final class PearlWaypointRenderer {
             long    throwIn = state.throwInMs();
             if (aimed) {
                 Vec3 look = mc.player.getLookAngle();
-                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.target().targetPos);
+                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.aimPos());
                 if (curFl > 0L) throwIn = PearlWaypointManager.computeThrowForFlight(curFl);
             }
 
@@ -416,7 +425,7 @@ public final class PearlWaypointRenderer {
 
     public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
         if (!PhantomConfig.isPearlWaypointsEnabled()) return;
-        if (KuudraPhaseTracker.getPhase() != Phase.SUPPLIES) return;
+        if (!KuudraPhaseTracker.isSupplyCollectionPhase()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
@@ -432,7 +441,7 @@ public final class PearlWaypointRenderer {
             Vec3 aim = state.centerAimDir();
             if (aim == null) continue;
 
-            Vec3 landing = state.target().landingPos;
+            Vec3 landing = state.landingPos();
             if (sq(mc.player.getX() - landing.x) + sq(mc.player.getZ() - landing.z) < 25.0) continue;
 
             Vec3    wp    = spawn.add(aim.scale(50.0));
@@ -440,7 +449,7 @@ public final class PearlWaypointRenderer {
             long    throwIn = state.throwInMs();
             if (aimed) {
                 Vec3 look = mc.player.getLookAngle();
-                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.target().targetPos);
+                long curFl = TrajectorySolver.estimateFlightMs(spawn, look, state.aimPos());
                 if (curFl > 0L) throwIn = PearlWaypointManager.computeThrowForFlight(curFl);
             }
 

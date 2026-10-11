@@ -17,7 +17,7 @@ public class ArmorStandRendererMixin {
     private <E extends Entity> void phantomaddons$hideArmorStand(
             E entity, Frustum frustum, double camX, double camY, double camZ,
             CallbackInfoReturnable<Boolean> cir) {
-        if (!(entity instanceof ArmorStand stand)) return;
+        if (!(entity instanceof ArmorStand stand) || !HideArmorStands.isActive()) return;
         if (HideArmorStands.shouldHide(stand.getX(), stand.getZ(),
                 stand.getCustomName() != null)) {
             cir.setReturnValue(false);

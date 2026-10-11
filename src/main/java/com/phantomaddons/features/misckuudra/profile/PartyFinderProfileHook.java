@@ -42,7 +42,10 @@ public final class PartyFinderProfileHook {
         if (members.isEmpty()) return;
 
         wasTriggered = true;
-        mc.execute(() -> mc.gui.setScreen(new KuudraProfileScreen(members)));
+        if (com.phantomaddons.PhantomConfig.isPvEnabled())
+            mc.execute(() -> mc.gui.setScreen(com.phantomaddons.features.pv.PvScreen.party(members)));
+        else
+            mc.execute(() -> mc.gui.setScreen(new KuudraProfileScreen(members)));
     }
 
     private static boolean isShiftDown(Minecraft mc) {

@@ -3,7 +3,7 @@ package com.phantomaddons.features.misckuudra;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.HudEditorScreen;
-import com.phantomaddons.PhantomScreen;
+import com.phantomaddons.gui.PhantomScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;

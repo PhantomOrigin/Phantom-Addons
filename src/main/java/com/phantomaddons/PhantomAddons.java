@@ -1,6 +1,7 @@
 package com.phantomaddons;
 
 import com.phantomaddons.utils.TextUtil;
+import com.phantomaddons.gui.PhantomScreen;
 import com.phantomaddons.features.build.AnnounceFresh;
 import com.phantomaddons.features.stundps.AutoGFS;
 import com.phantomaddons.features.misckuudra.AutoRequeue;
@@ -78,6 +79,7 @@ public class PhantomAddons implements ClientModInitializer {
         PhantomConfig.load();
         com.phantomaddons.features.customisation.VisualWords.load();
         com.phantomaddons.features.misckuudra.ShitterList.load();
+        com.phantomaddons.features.customisation.DonatorNames.init();
         DataFeatures.ensureMigrated();
         PickoblockManager.init();
         MountTimerHud.register();
@@ -111,10 +113,13 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraSplitTimer.register();
         SplitHud.register();
         PhantomCommands.register();
+        com.phantomaddons.features.pv.PvCommand.register();
+        com.phantomaddons.features.pv.ChatCards.register();
         AutoGFS.register();
         UpdateChecker.register();
         UpdateChecker.checkOnStartup();
         com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.checkOnStartup();
+        com.phantomaddons.utils.PhantomAuth.init();
         SlotBlocker.register();
         com.phantomaddons.features.boss.AtomsplitBlocker.register();
         com.phantomaddons.features.boss.IchorRadiusTracker.register();
@@ -244,7 +249,8 @@ public class PhantomAddons implements ClientModInitializer {
             if (isNpreElleLine(clean)) return true;
 
             if (PhantomConfig.isHideElleDialogueEnabled()
-                    && clean.toLowerCase().contains("[npc] elle:")) return false;
+                    && clean.toLowerCase().contains("[npc] elle:")
+                    && TextUtil.countColons(clean) == 1) return false;
 
             if (PhantomConfig.isSupplyRecoveryMsgEnabled()) {
                 java.util.regex.Matcher m = SUPPLY_RECOVERY_PATTERN.matcher(clean);
@@ -290,7 +296,8 @@ public class PhantomAddons implements ClientModInitializer {
             String msg = TextUtil.stripColor(message.getString());
             if (isNpreElleLine(msg)) return true;
             return !(PhantomConfig.isHideElleDialogueEnabled()
-                    && msg.toLowerCase().contains("[npc] elle:"));
+                    && msg.toLowerCase().contains("[npc] elle:")
+                    && TextUtil.countColons(msg) == 1);
         });
     }
 
@@ -485,7 +492,7 @@ public class PhantomAddons implements ClientModInitializer {
             }
 
             if (PhantomConfig.isPearlWaypointsEnabled()
-                    && KuudraPhaseTracker.getPhase() == KuudraPhaseTracker.Phase.SUPPLIES) {
+                    && KuudraPhaseTracker.isSupplyCollectionPhase()) {
                 PearlTitleListener.tick();
             }
 
@@ -504,6 +511,7 @@ public class PhantomAddons implements ClientModInitializer {
             com.phantomaddons.features.supplies.PartyChatQueue.tick(client);
             com.phantomaddons.features.misckuudra.profile.AutoKickManager.tick(client);
             com.phantomaddons.features.misckuudra.ShitterList.tick(client);
+            com.phantomaddons.features.pv.ChatCards.tick();
             com.phantomaddons.features.supplies.giant.SupplyGiantHitbox.tick(client);
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
             GiantYLogger.tick(client);

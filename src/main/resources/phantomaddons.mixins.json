@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "UseItemMixin",
+    "ClientCommandInternalsMixin",
     "TitleMixin",
     "FontDrawMixin",
     "ClientWorldExplosionMixin",
@@ -24,7 +25,11 @@
     "EntityScaleMixin",
     "KuudraScaleMixin",
     "EntityFireMixin",
-    "ScreenHudMixin"
+    "ScreenHudMixin",
+    "ChatCardMixin",
+    "ChatComponentMixin",
+    "ChatComponentAccessor",
+    "ChatScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

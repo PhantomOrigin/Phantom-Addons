@@ -14,6 +14,20 @@ public final class TextUtil {
         return COLOR_CODES.matcher(s).replaceAll("");
     }
 
+    public static int countColons(String s) {
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) if (s.charAt(i) == ':') n++;
+        return n;
+    }
+
+    public static boolean isElleLine(String clean) {
+        return clean.contains("Elle:") && countColons(clean) == 1;
+    }
+
+    public static boolean hasNoColon(String clean) {
+        return clean.indexOf(':') < 0;
+    }
+
     public static boolean containsIgnoreCase(CharSequence haystack, String needle) {
         int needleLen = needle.length();
         if (needleLen == 0) return true;

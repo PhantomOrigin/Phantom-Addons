@@ -72,6 +72,7 @@ public final class PhantomCommands {
             "§e/phantom shitter add|remove|list §7<name> — manage the shitter list",
             "§e/phantom setpb §7[tier] [data] — open the PB editor / set a PB manually",
             "§e/phantom phase §7<0-10>|reset — §c[dev]§7 dev tool to view features for a specific phase",
+            "§e/phantom pv resetprompt §7— §c[dev]§7 show the new profile viewer popup again",
             "§e/t1 §7- §e/t5 §7— join that Kuudra tier's instance directly",
             "§e/kuudra §7[name] — open the Kuudra profile viewer",
     };
@@ -108,6 +109,18 @@ public final class PhantomCommands {
                                 )
                                 .then(ClientCommands.literal("help")
                                         .executes(ctx -> { showHelp(); return 1; })
+                                )
+                                .then(ClientCommands.literal("pv")
+                                        .then(ClientCommands.literal("resetprompt")
+                                                .executes(ctx -> {
+                                                    if (!requireDeveloperFeatures(ctx)) return 0;
+                                                    PhantomConfig.setPvPromptAnswered(false);
+                                                    ctx.getSource().sendFeedback(Component.literal(
+                                                            PREFIX + "§e[DEV] Profile viewer prompt reset — it shows on the next /pv"
+                                                                    + " unless the viewer is enabled and has been opened before."));
+                                                    return 1;
+                                                })
+                                        )
                                 )
                                 .then(ClientCommands.literal("pb")
                                         .executes(ctx -> { showAllPbs(); return 1; })
@@ -393,6 +406,13 @@ public final class PhantomCommands {
     private static void openProfile(String name) {
         if (!PhantomConfig.isProfileViewerEnabled()) return;
         Minecraft mc = Minecraft.getInstance();
+        if (PhantomConfig.isPvEnabled()) {
+            java.util.UUID uuid = mc.player != null && name.equalsIgnoreCase(mc.player.getGameProfile().name())
+                    ? mc.player.getUUID() : null;
+            mc.execute(() -> mc.gui.setScreen(new com.phantomaddons.features.pv.PvScreen(name, uuid,
+                    com.phantomaddons.features.pv.PvScreen.PAGE_KUUDRA)));
+            return;
+        }
         mc.execute(() -> mc.gui.setScreen(new KuudraProfileScreen(List.of(name))));
     }
 

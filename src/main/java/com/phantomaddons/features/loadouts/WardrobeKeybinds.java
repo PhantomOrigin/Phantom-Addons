@@ -2,7 +2,7 @@ package com.phantomaddons.features.loadouts;
 
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
-import com.phantomaddons.PhantomScreen;
+import com.phantomaddons.gui.PhantomScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;

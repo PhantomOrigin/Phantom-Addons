@@ -1,6 +1,7 @@
 package com.phantomaddons.mixin;
 
 import com.phantomaddons.features.misckuudra.ShitterList;
+import com.phantomaddons.features.customisation.DonatorNames;
 import com.phantomaddons.features.customisation.VisualWords;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.gui.Font;
@@ -19,8 +20,9 @@ public class FontDrawMixin {
     @ModifyVariable(
             method = "prepareText(Lnet/minecraft/util/FormattedCharSequence;FFIZZI)Lnet/minecraft/client/gui/Font$PreparedText;",
             at = @At("HEAD"), argsOnly = true)
-    private FormattedCharSequence phantomaddons$visualWords(FormattedCharSequence seq) {
-        return VisualWords.apply(seq);
+    private FormattedCharSequence phantomaddons$visualWords(FormattedCharSequence seq,
+                                                            @Local(argsOnly = true, ordinal = 1) float y) {
+        return VisualWords.apply(seq, y);
     }
 
     @ModifyVariable(
@@ -30,19 +32,29 @@ public class FontDrawMixin {
         return ShitterList.apply(seq);
     }
 
+    @ModifyVariable(
+            method = "prepareText(Lnet/minecraft/util/FormattedCharSequence;FFIZZI)Lnet/minecraft/client/gui/Font$PreparedText;",
+            at = @At("HEAD"), argsOnly = true)
+    private FormattedCharSequence phantomaddons$donatorNames(FormattedCharSequence seq,
+                                                             @Local(argsOnly = true, ordinal = 1) float y) {
+        return DonatorNames.apply(seq, y);
+    }
+
     //? if <26.2 {
     /*@ModifyVariable(
             method = "drawInBatch(Lnet/minecraft/network/chat/Component;FFIZLorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/gui/Font$DisplayMode;II)V",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private float phantomaddons$recenterComponent(float x, @Local(argsOnly = true) Component text) {
-        return x + VisualWords.centerShift((Font) (Object) this, text.getVisualOrderText());
+        return x + VisualWords.centerShift((Font) (Object) this, text.getVisualOrderText())
+                + DonatorNames.centerShift((Font) (Object) this, text.getVisualOrderText());
     }
 
     @ModifyVariable(
             method = "drawInBatch(Lnet/minecraft/util/FormattedCharSequence;FFIZLorg/joml/Matrix4fc;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/gui/Font$DisplayMode;II)V",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private float phantomaddons$recenterFcs(float x, @Local(argsOnly = true) FormattedCharSequence text) {
-        return x + VisualWords.centerShift((Font) (Object) this, text);
+        return x + VisualWords.centerShift((Font) (Object) this, text)
+                + DonatorNames.centerShift((Font) (Object) this, text);
     }
     *///?} else {
 
@@ -50,7 +62,8 @@ public class FontDrawMixin {
             method = "prepareText(Lnet/minecraft/util/FormattedCharSequence;FFIZZI)Lnet/minecraft/client/gui/Font$PreparedText;",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private float phantomaddons$recenter(float x, @Local(argsOnly = true) FormattedCharSequence text) {
-        return x + VisualWords.centerShift((Font) (Object) this, text);
+        return x + VisualWords.centerShift((Font) (Object) this, text)
+                + DonatorNames.centerShift((Font) (Object) this, text);
     }
     //?}
 }

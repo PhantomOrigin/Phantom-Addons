@@ -11,6 +11,7 @@ public final class AutoRequeue {
 
     private static final String ELLE_FISHING =
             "[npc] elle: okay adventurers, i will go and fish up kuudra!";
+    private static final java.util.regex.Pattern FORMATTING_CODES = java.util.regex.Pattern.compile("[§&][0-9a-fk-orA-FK-OR]");
     private static final String REQUEUE_CONFIRM = "you have been re-queued!";
     private static final String REQUEUE_CLICK   = "click here to re-queue into kuudra's hollow!";
     private static final long BACKUP_REQUEUE_DELAY_MS = 1_500L;
@@ -108,7 +109,7 @@ public final class AutoRequeue {
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (!PhantomConfig.isAutoRequeueEnabled()) return;
-            String raw   = message.getString().replaceAll("[§&][0-9a-fk-orA-FK-OR]", "").trim();
+            String raw   = FORMATTING_CODES.matcher(message.getString()).replaceAll("").trim();
             String lower = raw.toLowerCase().trim();
 
             if (lower.equals(ELLE_FISHING)) {

@@ -14,9 +14,6 @@ import java.util.stream.Collectors;
 
 public final class RemoteFeatureGate {
 
-    private static final String STATUS_URL =
-            "https://kuudra-profile-worker-v2.phantomaddons.workers.dev/status";
-
     private static final boolean enabled = true;
     private static volatile boolean checked = true;
 
@@ -31,17 +28,17 @@ public final class RemoteFeatureGate {
     public static void checkOnStartup() {
         CompletableFuture.runAsync(() -> {
             try {
-                HttpURLConnection conn = (HttpURLConnection) URI.create(STATUS_URL).toURL().openConnection();
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("User-Agent", "PhantomAddons-RemoteFeatureGate");
-                conn.setConnectTimeout(8_000);
-                conn.setReadTimeout(10_000);
-
-                String body;
-                try (BufferedReader br = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-                    body = br.lines().collect(Collectors.joining());
-                }
+                String body = com.phantomaddons.utils.PhantomApi.withFallback(base -> {
+                    HttpURLConnection conn = (HttpURLConnection) URI.create(base + "/status").toURL().openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("User-Agent", "PhantomAddons-RemoteFeatureGate");
+                    conn.setConnectTimeout(8_000);
+                    conn.setReadTimeout(10_000);
+                    try (BufferedReader br = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        return br.lines().collect(Collectors.joining());
+                    }
+                });
 
                 JsonObject root = JsonParser.parseString(body).getAsJsonObject();
                 manaDrainTrackingEnabled = !root.has("manaDrainTrackingEnabled")
