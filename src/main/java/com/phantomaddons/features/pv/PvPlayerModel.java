@@ -28,6 +28,8 @@ final class PvPlayerModel {
     private RemotePlayer entity;
     private ItemStack[] pendingArmor;
 
+    private boolean renderBroken;
+
     float yaw = 0f;
     float pitch = 0f;
 
@@ -160,9 +162,13 @@ final class PvPlayerModel {
                 return s != null ? s : DefaultPlayerSkin.get(uuid);
             }
         };
+
+        entity.setId(FAKE_ENTITY_ID);
         applyArmor();
         return entity;
     }
+
+    private static final int FAKE_ENTITY_ID = -0x50565;
 
     private void applyArmor() {
         if (pendingArmor == null) return;
@@ -170,6 +176,16 @@ final class PvPlayerModel {
     }
 
     void render(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, float partialTick) {
+        if (renderBroken) return;
+        try {
+            renderModel(ctx, x0, y0, x1, y1, partialTick);
+        } catch (RuntimeException | LinkageError ex) {
+            renderBroken = true;
+            com.phantomaddons.PhantomAddons.LOGGER.warn("[PV] the player model couldn't be drawn, so it's being left out", ex);
+        }
+    }
+
+    private void renderModel(GuiGraphicsExtractor ctx, int x0, int y0, int x1, int y1, float partialTick) {
         RemotePlayer e = entity();
         if (e == null) return;
 

@@ -1,7 +1,7 @@
 # Phantom-Addons
 A minecraft QOL mod for Hypixel Skyblock. Primarily features Kuudra features.
 
-Latest Version: 1.6.25  
+Latest Version: 1.7.1  
 Supported Minecraft Versions: 26.1.x, 26.2  
 
 Discord Invite: https://discord.gg/6MquvmrXNP  
@@ -21,6 +21,12 @@ Discord Invite: https://discord.gg/6MquvmrXNP
 - No Auto Close Features
   
 Note: build.gradle.kts excludes UpdateInstaller.java entirely from the standard and no auto versions. The auto close and auto gfs features are just toggled off in the standard version, not removed entirely.
+
+### Profile Viewer
+- Complete profile information
+- Networth Calculator
+- Per Class dungeon gear breakdowns
+- Automatic kuudra gear detection
 
 ### Supplies Features
 - Supply Beacons
