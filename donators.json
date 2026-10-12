@@ -15,6 +15,14 @@
       "length": 25,
       "direction": "right",
       "speed": 4
+    },
+    {
+      "name": "_ICURUS_",
+      "replace": "&l{name}",
+      "colors": ["#ff00ff", "#00e5ff"],
+      "length": 40,
+      "direction": "right",
+      "speed": 4
     }
   ]
 }
