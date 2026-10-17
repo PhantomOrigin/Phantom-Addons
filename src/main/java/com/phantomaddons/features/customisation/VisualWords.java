@@ -134,7 +134,7 @@ public final class VisualWords {
         if (original == null || !active()) return 0f;
         FormattedCharSequence replaced = apply(original);
         if (replaced == original) return 0f; // unchanged
-        return (font.width(original) - font.width(replaced)) / 2f;
+        return (font.width(original) - font.width(DonatorNames.steady(replaced))) / 2f;
     }
 
     private static final ThreadLocal<StringBuilder> SCRATCH = ThreadLocal.withInitial(StringBuilder::new);

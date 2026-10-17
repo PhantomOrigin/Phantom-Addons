@@ -165,6 +165,10 @@ final class PvDungeonGear {
         setups.put("archer", archer);
 
         List<Group> berserk = base(necronSet, hasTerminator, meleeOrBow, soulEater, duplex, ragnarock, mainPets);
+        if (hasTerminator) {
+            ItemStack fatalTempo = first(all, s -> PvGear.id(s).contains("TERMINATOR") && ench(s).contains("ultimate_fatal_tempo"));
+            berserk.add(Math.min(3, berserk.size()), Group.items("Fatal Tempo Terminator", fatalTempo));
+        }
         berserk.add(armor(v, THERMO));
         setups.put("berserk", berserk);
 

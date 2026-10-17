@@ -37,12 +37,10 @@ public final class PvScreen extends Screen {
 
     private static final String[] TABS = { "Main", "Gear", "Slayers", "Dungeons", "Kuudra", "Collections", "Mining",
             "Farming", "Foraging", "Fishing", "Hunting", "Rift", "Museum", "Misc" };
-    /** SkyBlock items each tab uses as its icon in icon mode (null = just the plain item below); same order as TABS. */
     private static final String[] TAB_ICON_IDS = {
             "SKYBLOCK_MENU", null, "AATROX_BATPHONE", null, "KUUDRA;4", "ENCHANTED_DIAMOND",
             "TITANIUM_PICKAXE", "THEORETICAL_HOE_WARTS_3", "TREECAPITATOR_AXE", "MAGMA_ROD", "STINGER_BOW", "RIFT_PRISM",
             null, "ABIPHONE_XII_MEGA" };
-    /** Plain items shown until the SkyBlock icons have loaded, or if one can't be found (same order as TABS). */
     private static final net.minecraft.world.item.Item[] TAB_ICONS = {
             Items.PLAYER_HEAD, Items.ENDER_CHEST, Items.DIAMOND_SWORD, Items.WITHER_SKELETON_SKULL,
             Items.MAGMA_CREAM, Items.BOOK, Items.DIAMOND_PICKAXE, Items.WHEAT, Items.IRON_AXE,
@@ -421,12 +419,63 @@ public final class PvScreen extends Screen {
         pose.popMatrix();
         pose.popMatrix();
 
-        if (PvNumerals.enabled()) {
-            if (hoverStack != null) ctx.setTooltipForNextFrame(font,
-                    PvNumerals.convert(Screen.getTooltipFromItem(minecraft, hoverStack)), hoverStack.getTooltipImage(), tipX, tipY);
-            else if (hoverLines != null) ctx.setTooltipForNextFrame(font, PvNumerals.convert(hoverLines), Optional.empty(), tipX, tipY);
-        } else if (hoverStack != null) ctx.setTooltipForNextFrame(font, hoverStack, tipX, tipY);
-        else if (hoverLines != null) ctx.setTooltipForNextFrame(font, hoverLines, Optional.empty(), tipX, tipY);
+        submitTooltip(ctx, tipX, tipY);
+    }
+
+    /** The hovered item's or entry's tooltip, drawn after everything else. */
+    private void submitTooltip(GuiGraphicsExtractor ctx, int tipX, int tipY) {
+        List<Component> lines;
+        if (hoverStack != null) {
+            lines = itemTooltip(hoverStack);
+        } else if (hoverLines != null) {
+            lines = PvNumerals.enabled() ? PvNumerals.convert(hoverLines) : hoverLines;
+        } else {
+            tooltipMaxScroll = 0;
+            return;
+        }
+
+        // A tooltip taller than the screen can be scrolled with the mouse wheel; a new one starts at the top.
+        String key = lines.isEmpty() ? "" : lines.get(0).getString();
+        if (!key.equals(tooltipKey)) {
+            tooltipKey = key;
+            tooltipScroll = 0;
+        }
+        List<net.minecraft.util.FormattedCharSequence> drawn = new ArrayList<>(lines.size());
+        for (Component line : lines) drawn.add(line.getVisualOrderText());
+        ctx.setTooltipForNextFrame(font, drawn, Optional.empty(), tooltipPositioner, tipX, tipY, false, null);
+    }
+
+    /** Where the hovered tooltip sits, scroll position and how far it can scroll. */
+    private float tooltipScroll;
+    private int tooltipMaxScroll;
+    private String tooltipKey = "";
+
+    /** Like the normal positioning, except a tooltip too tall for the screen is moved up and down by the scroll. */
+    private final net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner tooltipPositioner =
+            (screenW, screenH, mouseX, mouseY, w, h) -> {
+                int x = mouseX + 12, y = mouseY - 12;
+                if (x + w > screenW) x = Math.max(x - 24 - w, 4);
+                int needed = h + 8;
+                if (needed <= screenH) {
+                    tooltipMaxScroll = 0;
+                    if (y + h + 3 > screenH) y = screenH - h - 3;
+                    return new org.joml.Vector2i(x, y);
+                }
+                tooltipMaxScroll = needed - screenH;
+                tooltipScroll = Mth.clamp(tooltipScroll, 0, tooltipMaxScroll);
+                return new org.joml.Vector2i(x, 4 - Math.round(tooltipScroll));
+            };
+
+    /**
+     * The lines of an item's tooltip, without trailing blank lines and without any extra tooltip image. Other mods
+     * add lines and images to every item tooltip, which can leave a large empty gap under the text here.
+     */
+    private List<Component> itemTooltip(ItemStack stack) {
+        List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(minecraft, stack));
+        while (lines.size() > 1 && lines.get(lines.size() - 1).getString().replaceAll("§.", "").isBlank()) {
+            lines.remove(lines.size() - 1);
+        }
+        return PvNumerals.enabled() ? PvNumerals.convert(lines) : lines;
     }
 
     // ── Party mode rendering ──────────────────────────────────────────────────
@@ -960,14 +1009,7 @@ public final class PvScreen extends Screen {
             int nameW = font.width(com.phantomaddons.features.customisation.DonatorNames.apply(
                     Component.literal(who).getVisualOrderText(), 0f));
             text(ctx, who, w - 14 - nameW, 8, C_ACCENT, 1f);
-            if (mx > -5000) {
-                if (PvNumerals.enabled()) {
-                    if (hoverStack != null) ctx.setTooltipForNextFrame(font,
-                            PvNumerals.convert(Screen.getTooltipFromItem(minecraft, hoverStack)), hoverStack.getTooltipImage(), tipX, tipY);
-                    else if (hoverLines != null) ctx.setTooltipForNextFrame(font, PvNumerals.convert(hoverLines), Optional.empty(), tipX, tipY);
-                } else if (hoverStack != null) ctx.setTooltipForNextFrame(font, hoverStack, tipX, tipY);
-                else if (hoverLines != null) ctx.setTooltipForNextFrame(font, hoverLines, Optional.empty(), tipX, tipY);
-            }
+            if (mx > -5000) submitTooltip(ctx, tipX, tipY);
         } finally {
             card = false;
             Theme.apply(PhantomConfig.getUiTheme());
@@ -2111,6 +2153,10 @@ public final class PvScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hScroll, double vScroll) {
+        if (tooltipMaxScroll > 0 && (hoverStack != null || hoverLines != null)) {
+            tooltipScroll = Mth.clamp(tooltipScroll - (float) (vScroll * 24), 0, tooltipMaxScroll);
+            return true;
+        }
         mx /= uiScale;
         my /= uiScale;
         if (overlay >= 0) { overlayScroll = Mth.clamp(overlayScroll - (int) (vScroll * 20), 0, overlayMaxScroll); return true; }
@@ -2193,7 +2239,7 @@ public final class PvScreen extends Screen {
         if (hovered(mx, my, x, y, s, s)) {
             ctx.nextStratum();
             roundedFill(ctx, x, y, x + s, y + s, overlay(0x28), 3);
-            if (!stack.isEmpty()) hoverStack = stack;
+            if (!stack.isEmpty()) hoverStack = stack.copy();   // a copy, so a mod that edits a hovered item can't change the cached one
         }
     }
 
@@ -2209,7 +2255,7 @@ public final class PvScreen extends Screen {
         if (hovered(mx, my, x, y, s, s)) {
             ctx.nextStratum();
             roundedFill(ctx, x, y, x + s, y + s, overlay(0x28), 3);
-            if (!stack.isEmpty()) hoverStack = stack;
+            if (!stack.isEmpty()) hoverStack = stack.copy();   // a copy, so a mod that edits a hovered item can't change the cached one
         }
     }
 

@@ -110,6 +110,9 @@ public final class PhantomCommands {
                                 .then(ClientCommands.literal("help")
                                         .executes(ctx -> { showHelp(); return 1; })
                                 )
+                                .then(ClientCommands.literal("changelog")
+                                        .executes(ctx -> { com.phantomaddons.gui.ChangelogManager.openNow(); return 1; })
+                                )
                                 .then(ClientCommands.literal("pv")
                                         .then(ClientCommands.literal("resetprompt")
                                                 .executes(ctx -> {

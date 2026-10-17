@@ -49,6 +49,14 @@ public final class ProfileViewerTab {
                 () -> PhantomConfig.setPvTabIcons(!PhantomConfig.isPvTabIcons()))
                 .withTooltip("Text shows each tab's name along the top, scrolling when there are too many. Icons shows one small icon per tab, all on one screen, with the name when you hover it."));
 
+        m.add(new Toggle("Party Finder Shift Preview",
+                PhantomConfig::isPvPartyFinderPreview, PhantomConfig::setPvPartyFinderPreview)
+                .withTooltip("Hold Shift over a Kuudra party in the Party Finder to preview its members' profiles. This looks each member up on our server, and signs you in to it the first time you use it. Off by default."));
+
+        m.add(new Toggle("Click Names To Open Profile",
+                PhantomConfig::isPvClickNames, PhantomConfig::setPvClickNames)
+                .withTooltip("Clicking a player's name in chat opens their profile viewer instead of starting a message to them. Holding Shift still inserts the name into the chat box."));
+
         m.add(new Toggle("Replace Roman Numerals",
                 PhantomConfig::isPvArabicNumerals, PhantomConfig::setPvArabicNumerals)
                 .withTooltip("Shows numbers instead of Roman numerals in the profile viewer, e.g. Sharpness 7 instead of Sharpness VII."));

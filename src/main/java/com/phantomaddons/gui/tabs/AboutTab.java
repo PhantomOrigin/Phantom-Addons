@@ -89,19 +89,39 @@ public final class AboutTab {
                 PhantomConfig::getUiGuiScale,
                 v -> { PhantomConfig.setUiGuiScale(v); m.screen().onGuiScaleChanged(); })
                 .withTooltip("Resizes the mod's own GUI panel — everything inside stays the same size, this just fits more (or less) on screen at once"));
+        m.add(new Toggle("Show Changelog on Update",
+                PhantomConfig::isChangelogEnabled, PhantomConfig::setChangelogEnabled)
+                .withTooltip("Opens a window with what's new the first time you join SkyBlock after the mod updates"));
+        m.add(new Button("Changelog", "View", com.phantomaddons.gui.ChangelogManager::openNow));
+
+        m.add(new Toggle("Share Pearl Cancel Data",
+                PhantomConfig::isShareSupplyData,
+                v -> {
+                    PhantomConfig.setShareSupplyData(v);
+                    com.phantomaddons.data.SupplyShare.onToggle(v);
+                    var player = Minecraft.getInstance().player;
+                    if (player != null) {
+                        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(v
+                                ? "§aPearl cancel data sharing is on. §7During Kuudra's Supplies phase the mod will send anonymous tentacle and pearl cancel measurements. Turn it off any time in /pa > About."
+                                : "§ePearl cancel data sharing is off. §7Anything not yet sent has been discarded."));
+                    }
+                })
+                .withTooltip("Sends anonymous information about tentacles and cancel attempts to the PhantomAddons server for an upcoming feature"));
         m.add(new DisableAllButton(() -> m.screen().disableAllFeatures())
                 .withTooltip("Turns off every feature toggle in the mod (not About-tab settings). Click, wait for the 3 second countdown, then click again to confirm."));
         m.add(new Toggle("Developer Features",
                 PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled));
 
         if (PhantomConfig.isDeveloperFeaturesEnabled() && DataFeatures.isPresent()) {
-            m.add(new Toggle("Tentacle DB Logging",
-                    PhantomConfig::isTentacleDbLoggingEnabled, PhantomConfig::setTentacleDbLoggingEnabled)
-                    .withTooltip("Data-gathering tool for the upcoming Pearl Cancel Helper feature. While enabled, during the Supplies phase it tracks nearby tentacles (position, speed, chain size), when they grab you, and your position/orientation when pearl-cancelling — all written to a local SQLite database (phantomaddons_kuudra_data.sqlite in the config folder) for offline analysis. Purely observational, it doesn't change any gameplay behavior. Warning: this can log a large amount of data over many runs and grow the database file to hundreds of MB or more — leave off unless you're intentionally collecting data."));
+            if (DataFeatures.hasHighlight()) {
+                m.add(new Toggle("Highlight Tentacles",
+                        PhantomConfig::isTentacleHighlightEnabled, PhantomConfig::setTentacleHighlightEnabled)
+                        .withTooltip("Debug visual for the tentacle data-gathering tool — outlines the invisible cube at the top of each tracked tentacle: yellow while rising, green once it has stopped, red during a grab attempt. Purely visual, no gameplay effect."));
 
-            m.add(new Toggle("Highlight Tentacles",
-                    PhantomConfig::isTentacleHighlightEnabled, PhantomConfig::setTentacleHighlightEnabled)
-                    .withTooltip("Debug visual for the tentacle data-gathering tool — outlines each tracked tentacle segment in a distinct color so you can see the grouping/tracking working in real time. Colors are keyed to the tentacle's spawn spot, so the same physical tentacle gets the same color every run. Requires Tentacle DB Logging to also be enabled, since it highlights whatever that's currently tracking. Purely visual, no gameplay effect."));
+                m.add(new Toggle("Tentacle Spot Beacons",
+                        PhantomConfig::isTentacleSpotBeaconsEnabled, PhantomConfig::setTentacleSpotBeaconsEnabled)
+                        .withTooltip("Debug visual: draws a beacon beam from the bottom to the top of the world at every x/z position where a tentacle's invisible cube has come to rest. While it is on, new spots are saved as you play (phantomaddons_tentacle_spots.jsonl in the config folder) and drawn along with the ones saved by earlier developer builds. Purely visual, no gameplay effect."));
+            }
         }
     }
 }

@@ -29,6 +29,7 @@ public final class PartyFinderProfileHook {
     }
 
     public static void checkShiftHover(AbstractContainerScreen<?> screen, Slot hoveredSlot, Minecraft mc) {
+        if (!com.phantomaddons.PhantomConfig.isPvPartyFinderPreview()) { wasTriggered = false; return; }
         String title = strip(screen.getTitle().getString());
         if (!title.equalsIgnoreCase("Party Finder") || hoveredSlot == null || !hoveredSlot.hasItem()) {
             wasTriggered = false;

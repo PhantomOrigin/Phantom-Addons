@@ -80,8 +80,8 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.customisation.VisualWords.load();
         com.phantomaddons.features.misckuudra.ShitterList.load();
         com.phantomaddons.features.customisation.DonatorNames.init();
-        DataFeatures.ensureMigrated();
         PickoblockManager.init();
+        com.phantomaddons.gui.ChangelogManager.register();
         MountTimerHud.register();
 
         KuudraPhaseTracker.init();
@@ -115,11 +115,10 @@ public class PhantomAddons implements ClientModInitializer {
         PhantomCommands.register();
         com.phantomaddons.features.pv.PvCommand.register();
         com.phantomaddons.features.pv.ChatCards.register();
+        com.phantomaddons.features.pv.ChatNameLinks.register();
         AutoGFS.register();
         UpdateChecker.register();
         UpdateChecker.checkOnStartup();
-        com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.checkOnStartup();
-        com.phantomaddons.utils.PhantomAuth.init();
         SlotBlocker.register();
         com.phantomaddons.features.boss.AtomsplitBlocker.register();
         com.phantomaddons.features.boss.IchorRadiusTracker.register();
@@ -181,7 +180,6 @@ public class PhantomAddons implements ClientModInitializer {
             if (!overlay) handleSupplyNotifications(clean);
             if (!overlay) com.phantomaddons.features.boss.mana.ManaDrainAnnouncer.onChat(clean);
             if (overlay) com.phantomaddons.features.boss.mana.ManaTracker.onChat(clean);
-            if (clean.contains("Used Extreme Focus!")) com.phantomaddons.features.boss.rend.RendTracker.onManaDrain();
             com.phantomaddons.features.misckuudra.HollowWandAnnouncer.onChat(clean);
             if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
                     && PhantomConfig.isKickedNotificationEnabled()) {
@@ -314,9 +312,7 @@ public class PhantomAddons implements ClientModInitializer {
 
             for (String alias : new String[]{"pa", "phantom"}) {
                 dispatcher.register(ClientCommands.literal(alias)
-                        .executes(ctx -> { openGuiNextTick = true; return 1; })
-                        .then(ClientCommands.literal("cancels")
-                                .executes(ctx -> { reportCancelStats(ctx.getSource()); return 1; })));
+                        .executes(ctx -> { openGuiNextTick = true; return 1; }));
             }
 
             dispatcher.register(ClientCommands.literal("phaselog")
@@ -389,20 +385,6 @@ public class PhantomAddons implements ClientModInitializer {
                         return 1;
                     }));
         });
-    }
-
-    private static void reportCancelStats(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource source) {
-        int[] stats = DataFeatures.getCancelStats();
-        if (stats == null) {
-            source.sendFeedback(Component.literal("§7[Phantom] Not available in this build."));
-            return;
-        }
-
-        int cancelled = stats[0], failed = stats[1];
-        int total = cancelled + failed;
-        String pct = total > 0 ? String.format(" (%.1f%%)", 100.0 * cancelled / total) : "";
-        source.sendFeedback(Component.literal("§7[Phantom] Pearl cancels — §asuccessful: " + cancelled
-                + " §7| §cfailed: " + failed + " §7| §7total: " + total + pct));
     }
 
     private void registerConnectionEvents() {

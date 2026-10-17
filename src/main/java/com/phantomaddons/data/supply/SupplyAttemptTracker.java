@@ -1,63 +1,33 @@
 package com.phantomaddons.data.supply;
 
 import com.phantomaddons.data.GameplayDataLogger;
-import com.phantomaddons.data.GameplayDatabase;
-import com.phantomaddons.data.RunRecorder;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Player;
+import com.phantomaddons.data.tentacle.TentacleCubeTracker;
 
 public final class SupplyAttemptTracker {
 
-    private static Long activeAttemptId = null;
-
     private SupplyAttemptTracker() {}
 
-    public static Long getActiveAttemptId() { return activeAttemptId; }
-
     public static void reset() {
-        if (activeAttemptId == null) return;
-        long attemptId = activeAttemptId;
-        GameplayDatabase.update(
-                "UPDATE supply_attempts SET end_tick = ?, ended_at = ?, outcome = 'abandoned' WHERE attempt_id = ?",
-                GameplayDataLogger.currentTick(), GameplayDatabase.now(), attemptId);
-        GrabTracker.onAttemptEnded(attemptId, "abandoned");
-        activeAttemptId = null;
+        TentacleCubeTracker.onPickupEnd(-1);
     }
 
     public static void onPickupStart(int startPercent) {
-        Long runId = RunRecorder.getActiveRunId();
-        if (!GameplayDataLogger.isEnabled() || runId == null) return;
-        if (activeAttemptId != null) onPickupEnd(-1); // stale attempt never got an end callback; close it out
+        if (!GameplayDataLogger.isEnabled()) return;
+        TentacleCubeTracker.onPickupStart(startPercent);
+    }
 
-        Minecraft client = Minecraft.getInstance();
-        Player player = client.player;
-        if (player == null) return;
-
-        long tick = GameplayDataLogger.currentTick();
-        activeAttemptId = GameplayDatabase.insert(
-                "INSERT INTO supply_attempts (run_id, start_tick, started_at, start_x, start_y, start_z) VALUES (?, ?, ?, ?, ?, ?)",
-                runId, tick, GameplayDatabase.now(),
-                player.getX(), player.getY(), player.getZ());
-        if (activeAttemptId != null && activeAttemptId != -1) {
-            GrabTracker.attachPendingAttempt(activeAttemptId, tick);
-        }
+    public static void onPickupPercent(int percent) {
+        if (!GameplayDataLogger.isEnabled()) return;
+        TentacleCubeTracker.onPickupPercent(percent);
     }
 
     public static void onSupplyDropped() {
-        if (activeAttemptId == null) return;
-        onPickupEnd(-1);
+        if (!GameplayDataLogger.isEnabled()) return;
+        TentacleCubeTracker.onSupplyDropped();
     }
 
     public static void onPickupEnd(int finalPercent) {
-        if (activeAttemptId == null) return;
-        long attemptId = activeAttemptId;
-        String outcome = finalPercent >= 100 ? "success" : "failure";
-
-        GameplayDatabase.update(
-                "UPDATE supply_attempts SET end_tick = ?, ended_at = ?, outcome = ?, final_percent = ? WHERE attempt_id = ?",
-                GameplayDataLogger.currentTick(), GameplayDatabase.now(), outcome, finalPercent, attemptId);
-
-        GrabTracker.onAttemptEnded(attemptId, outcome);
-        activeAttemptId = null;
+        if (!GameplayDataLogger.isEnabled()) return;
+        TentacleCubeTracker.onPickupEnd(finalPercent);
     }
 }

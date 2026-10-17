@@ -22,11 +22,6 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
     compileOnly(fileTree(rootProject.file("libs")) { include("*.jar") })
-
-    if (devBuild) {
-        implementation("org.xerial:sqlite-jdbc:3.53.4.0")
-        include("org.xerial:sqlite-jdbc:3.53.4.0")
-    }
 }
 
 loom {
@@ -59,7 +54,7 @@ if (editionKey != "full") {
 if (!devBuild) {
     sourceSets.main {
         java {
-            exclude("com/phantomaddons/data/**")
+            exclude("com/phantomaddons/data/tentacle/TentacleHighlightRenderer.java")
         }
     }
 }
@@ -92,6 +87,7 @@ val editionLabel = edition.label
 val minecraftCompat = property("mod.mc_compat") as String
 
 tasks.processResources {
+    from(rootProject.file("changelog.json")) { into("assets/phantomaddons") }
     inputs.property("version", modVersion)
     inputs.property("edition", editionLabel)
     inputs.property("legacyRendering", isLegacyRendering)
@@ -153,10 +149,6 @@ if (project.name == "26.2.x") tasks.register("buildAllEditions") {
             }
         }
 
-        // Nested gradlew invocations are separate processes and don't inherit this run's properties
-        // automatically — dev must be forwarded explicitly, same as edition, or every nested build
-        // would silently fall back to the default (dev=false) regardless of how buildAllEditions itself
-        // was invoked.
         listOf("full", "noauto", "standard").forEach { ed ->
             runGradle("clean")
             runGradle("build", "-Pedition=$ed", "-Pdev=$devBuild")

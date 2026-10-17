@@ -61,7 +61,7 @@ public final class WaypointLines {
         SupplyCluster only = null;
         for (SupplyCluster cluster : SupplyWaypointTracker.detectedClusters) {
             if (cluster.center.distanceTo(playerPos) > SUPPLY_RANGE) continue;
-            if (only != null) return null; // more than one candidate — ambiguous
+            if (only != null) return null;
             only = cluster;
         }
         return only != null ? only.center : null;
@@ -69,11 +69,13 @@ public final class WaypointLines {
 
     private static Vec3 getPearlTarget(Vec3 playerPos, Vec3 spawn) {
         PickupLocation loc = PickupLocation.closest(playerPos);
-        boolean flatUsable = loc.pearlTarget != null; // e.g. Square has no flat pearl
+        boolean flatUsable = loc.pearlTarget != null;
 
         boolean atPreLocation = !SECOND_SUPPLY_LOCATIONS.contains(loc);
 
-        boolean doubleAllowed = atPreLocation && PhantomConfig.isPearlDoubleEnabled();
+        EtherwarpWaypointManager.updatePriority();
+        boolean doubleAllowed = atPreLocation && PhantomConfig.isPearlDoubleEnabled()
+                && doublePearlReaches(loc, EtherwarpWaypointManager.getStickyPriorityZone());
         boolean etherAllowed  = atPreLocation && PhantomConfig.isEtherwarpWaypointsEnabled();
         PhantomConfig.SecondSupplyPreference pref = PhantomConfig.getSecondSupplyPreference();
 
@@ -106,7 +108,7 @@ public final class WaypointLines {
                 if (flatState != null && flatState.centerAimDir() != null) {
                     return aimWaypoint(spawn, flatState.centerAimDir());
                 }
-                return loc.pearlTarget.landingPos.add(0, 3.0, 0); // fallback if a trajectory couldn't be solved this frame
+                return loc.pearlTarget.landingPos.add(0, 3.0, 0);
             }
             slot++;
         }
@@ -115,6 +117,15 @@ public final class WaypointLines {
             if (etherTarget != null) return etherTarget;
         }
         return null;
+    }
+
+    private static boolean doublePearlReaches(PickupLocation pre, String secondSupplyZone) {
+        if (secondSupplyZone == null) return true;
+        return switch (pre) {
+            case EQUALS -> secondSupplyZone.equals("Shop");
+            case SLASH  -> secondSupplyZone.equals("Square");
+            default     -> false;
+        };
     }
 
     private static Vec3 getBallistaPearlTarget(Vec3 spawn) {

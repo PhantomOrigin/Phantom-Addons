@@ -215,8 +215,18 @@ public class PhantomConfig {
     public static boolean isAutoRequeueMessageEnabled() { return cfg.autoRequeueMessageEnabled; }
     public static boolean isAutoUpdatesEnabled()      { return cfg.autoUpdatesEnabled; }
     public static boolean isDeveloperFeaturesEnabled() { return cfg.developerFeaturesEnabled; }
-    public static boolean isTentacleDbLoggingEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleDbLoggingEnabled; }
+    /** Whether the player has agreed to share pearl cancel data. Off until they turn it on. */
+    public static boolean isShareSupplyData() { return cfg.shareSupplyData; }
+    /** Whether the changelog window opens after an update. On by default. */
+    public static boolean isChangelogEnabled() { return cfg.changelogEnabled; }
+    /** The version whose changelog was last shown, or empty if none has been. */
+    public static String getLastChangelogVersion() { return cfg.lastChangelogVersion == null ? "" : cfg.lastChangelogVersion; }
+    /** True if there was no settings file when the game started, which means a fresh install. */
+    public static boolean isFirstRun() { return firstRun; }
+    /** The newest update version the player chose to skip, or empty. */
+    public static String getSkippedUpdateVersion() { return cfg.skippedUpdateVersion == null ? "" : cfg.skippedUpdateVersion; }
     public static boolean isTentacleHighlightEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleHighlightEnabled; }
+    public static boolean isTentacleSpotBeaconsEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleSpotBeaconsEnabled; }
     public static UiTheme  getUiTheme() { return uiTheme; }
     public static float    getUiGuiScale() { return cfg.uiGuiScale; }
     public enum PvTheme { MATCH, DARK, LIGHT }
@@ -247,6 +257,10 @@ public class PhantomConfig {
     public static void setPvTheme(PvTheme v)        { cfg.pvTheme = v.name(); save(); }
     public static boolean isPvArabicNumerals()      { return cfg.pvArabicNumerals; }
     public static void setPvArabicNumerals(boolean v) { cfg.pvArabicNumerals = v; save(); }
+    public static boolean isPvClickNames()        { return cfg.pvClickNames; }
+    public static void setPvClickNames(boolean v) { cfg.pvClickNames = v; save(); }
+    public static boolean isPvPartyFinderPreview()        { return cfg.pvPartyFinderPreview; }
+    public static void setPvPartyFinderPreview(boolean v) { cfg.pvPartyFinderPreview = v; save(); }
     public static boolean isPvTabIcons()          { return cfg.pvTabIcons; }
     public static void setPvTabIcons(boolean v)   { cfg.pvTabIcons = v; save(); }
     public static boolean isPvOverflowSkills()      { return cfg.pvOverflowSkills; }
@@ -522,8 +536,12 @@ public class PhantomConfig {
     public static void setAutoRequeueMessageEnabled(boolean v) { cfg.autoRequeueMessageEnabled = v; save(); }
     public static void setAutoUpdatesEnabled(boolean v)     { cfg.autoUpdatesEnabled = v;      save(); }
     public static void setDeveloperFeaturesEnabled(boolean v) { cfg.developerFeaturesEnabled = v; save(); }
-    public static void setTentacleDbLoggingEnabled(boolean v) { cfg.tentacleDbLoggingEnabled = v; save(); }
+    public static void setShareSupplyData(boolean v) { cfg.shareSupplyData = v; save(); }
+    public static void setChangelogEnabled(boolean v) { cfg.changelogEnabled = v; save(); }
+    public static void setSkippedUpdateVersion(String v) { cfg.skippedUpdateVersion = v == null ? "" : v; save(); }
+    public static void setLastChangelogVersion(String v) { cfg.lastChangelogVersion = v == null ? "" : v; save(); }
     public static void setTentacleHighlightEnabled(boolean v) { cfg.tentacleHighlightEnabled = v; save(); }
+    public static void setTentacleSpotBeaconsEnabled(boolean v) { cfg.tentacleSpotBeaconsEnabled = v; save(); }
     public static void setUiTheme(UiTheme v) { uiTheme = v; save(); }
     public static void setUiGuiScale(float v) { cfg.uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
     public static void setUiTransparencyEnabled(boolean v) { cfg.uiTransparencyEnabled = v; save(); }
@@ -798,9 +816,11 @@ public class PhantomConfig {
 
     // ── Load / Save ───────────────────────────────────────────────────────────
 
+    private static boolean firstRun;
+
     public static void load() {
         File file = CONFIG_PATH.toFile();
-        if (!file.exists()) return;
+        if (!file.exists()) { firstRun = true; return; }
         try (Reader r = new FileReader(file)) {
             Data d = GSON.fromJson(r, Data.class);
             if (d == null) return;
@@ -1142,8 +1162,12 @@ public class PhantomConfig {
         boolean autoRequeueMessageEnabled = true;
         boolean autoUpdatesEnabled      = true;
         boolean developerFeaturesEnabled = false;
-        boolean tentacleDbLoggingEnabled = false;
+        boolean shareSupplyData = false;
+        boolean changelogEnabled = true;
+        String lastChangelogVersion = "";
+        String skippedUpdateVersion = "";
         boolean tentacleHighlightEnabled = false;
+        boolean tentacleSpotBeaconsEnabled = false;
         boolean uiDarkMode = true;
         String  uiTheme = null;
         boolean uiTransparencyEnabled = true;
@@ -1160,6 +1184,8 @@ public class PhantomConfig {
         boolean pvArabicNumerals = false;
         boolean pvOverflowSkills = false;
         boolean pvTabIcons = true;
+        boolean pvPartyFinderPreview = false;
+        boolean pvClickNames = false;
         boolean autoSprintEnabled       = false;
         boolean slotBindsEnabled        = false;
         int     slotBindSetKey          = -1;

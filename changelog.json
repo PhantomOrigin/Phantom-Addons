@@ -1,0 +1,34 @@
+[
+  {
+    "version": "1.7.2",
+    "title": "Profile viewer upgrades, a better eaten timer and optional data sharing",
+    "sections": [
+      {
+        "name": "New",
+        "items": [
+          "Share Pearl Cancel Data (About tab) is an optional, off-by-default way to send anonymous tentacle and pearl cancel measurements, to help build a pearl cancel helper. Nothing is sent unless you turn it on.",
+          "Profile viewer: click a player's name in chat to open their profile (Profile Viewer tab). It replaces the click from Skyblocker and SkyBlockPV and says \"Click to open profile viewer\" when you hover.",
+          "Profile viewer: the Misc tab now shows the selected faction and Dojo information.",
+          "Profile viewer: overflow Catacombs and class levels, overflow Catacombs XP in the skill totals, and a tab icons mode (the default).",
+          "Profile viewer: Fatal Tempo Terminator now shows on the Berserk gear page.",
+          "Profile viewer: the Party Finder Shift Preview has its own toggle and is off by default.",
+          "Profile viewer: Tooltip scrolling added",
+          "Pearl Refill has a toggle for dungeons."
+        ]
+      },
+      {
+        "name": "Changed",
+        "items": [
+          "The eaten timer now shows \"No Agro!\" when agro is slow based on the blindness effect.",
+          "The Kuudra profit tracker no longer takes focus in GUIs other than your inventory, Croesus and Vesuvius."
+        ]
+      },
+      {
+        "name": "Fixed",
+        "items": [
+          "Foraging level now shows up to 57 in profile viewer"
+        ]
+      }
+    ]
+  }
+]

@@ -1,6 +1,8 @@
 package com.phantomaddons.data.tentacle;
 
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.data.SupplyDataStore;
+import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
@@ -30,7 +32,9 @@ public final class TentacleHighlightRenderer {
     private TentacleHighlightRenderer() {}
 
     public static void render(PoseStack matrices, Camera camera, float tickDelta) {
-        if (!PhantomConfig.isTentacleHighlightEnabled()) return;
+        boolean highlight = PhantomConfig.isTentacleHighlightEnabled();
+        boolean spots = PhantomConfig.isTentacleSpotBeaconsEnabled();
+        if (!highlight && !spots) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
@@ -46,12 +50,24 @@ public final class TentacleHighlightRenderer {
         if (collector == null) return;
         //?}
 
-        for (Entity entity : mc.level.entitiesForRendering()) {
-            if (!(entity instanceof AbstractCubeMob mob)) continue;
-            Long zoneId = TentacleTracker.getZoneIdForEntity(mob.getUUID());
-            if (zoneId == null) continue;
+        if (spots) {
+            float top = mc.level.getMaxY() + 1;
+            for (double[] col : SupplyDataStore.restColumns()) {
+                //? if <26.2 {
+                /*drawSpotBeam(matrices, imm, cam, col[0], col[1], top);
+                drewAny = true;
+                *///?} else {
+                drawSpotBeam(matrices, collector, cam, col[0], col[1], top);
+                //?}
+            }
+        }
 
-            int[] rgb = colorForZone(zoneId);
+        for (Entity entity : highlight ? mc.level.entitiesForRendering() : java.util.List.<Entity>of()) {
+            if (!(entity instanceof AbstractCubeMob mob)) continue;
+            int state = TentacleCubeTracker.stateOf(mob.getUUID());
+            if (state < 0) continue;
+
+            int[] rgb = colorForState(state);
             AABB bb = mob.getBoundingBox().inflate(0.05);
             double x1 = bb.minX - cam.x, y1 = bb.minY - cam.y, z1 = bb.minZ - cam.z;
             double x2 = bb.maxX - cam.x, y2 = bb.maxY - cam.y, z2 = bb.maxZ - cam.z;
@@ -76,10 +92,65 @@ public final class TentacleHighlightRenderer {
         *///?}
     }
 
-    private static int[] colorForZone(long zoneId) {
-        float hue = ((zoneId * 0x9E3779B1L) & 0xFFFFFFFFL) / 4294967296.0f;
-        int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
-        return new int[]{(rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF};
+    // ── Known rest spots ──────────────────────────────────────────────────────
+
+    private static final int SPOT_R = 90, SPOT_G = 220, SPOT_B = 255, SPOT_A = 170;
+    private static final float SPOT_HALF_WIDTH = 0.075f;
+
+    //? if <26.2 {
+    /*private static void drawSpotBeam(PoseStack matrices, MultiBufferSource provider, Vec3 cam, double x, double z, float top) {
+        matrices.pushPose();
+        matrices.translate(x - cam.x, -cam.y, z - cam.z);
+        Matrix4f mat = matrices.last().pose();
+        spotQuads(provider.getBuffer(spotType()), mat, top);
+        matrices.popPose();
+    }
+    *///?} else {
+    private static void drawSpotBeam(PoseStack matrices, SubmitNodeCollector collector, Vec3 cam, double x, double z, float top) {
+        matrices.pushPose();
+        matrices.translate(x - cam.x, -cam.y, z - cam.z);
+        Matrix4f mat = new Matrix4f(matrices.last().pose());
+        collector.submitCustomGeometry(matrices, spotType(), (pose, vc) -> spotQuads(vc, mat, top));
+        matrices.popPose();
+    }
+    //?}
+
+    private static net.minecraft.client.renderer.rendertype.RenderType spotType() {
+        return RenderTypes.beaconBeam(
+                Identifier.withDefaultNamespace("textures/entity/beacon/beacon_beam.png"), true);
+    }
+
+    private static void spotQuads(VertexConsumer vc, Matrix4f mat, float top) {
+        float hw = SPOT_HALF_WIDTH;
+        int r = SPOT_R, g = SPOT_G, b = SPOT_B, a = SPOT_A;
+        // East
+        vc.addVertex(mat,  hw, 0, -hw).setColor(r,g,b,a).setUv(0,0).setLight(15728880).setNormal( 1,0,0);
+        vc.addVertex(mat,  hw, top, -hw).setColor(r,g,b,a).setUv(0,1).setLight(15728880).setNormal( 1,0,0);
+        vc.addVertex(mat,  hw, top,  hw).setColor(r,g,b,a).setUv(1,1).setLight(15728880).setNormal( 1,0,0);
+        vc.addVertex(mat,  hw, 0,  hw).setColor(r,g,b,a).setUv(1,0).setLight(15728880).setNormal( 1,0,0);
+        // West
+        vc.addVertex(mat, -hw, 0,  hw).setColor(r,g,b,a).setUv(0,0).setLight(15728880).setNormal(-1,0,0);
+        vc.addVertex(mat, -hw, top,  hw).setColor(r,g,b,a).setUv(0,1).setLight(15728880).setNormal(-1,0,0);
+        vc.addVertex(mat, -hw, top, -hw).setColor(r,g,b,a).setUv(1,1).setLight(15728880).setNormal(-1,0,0);
+        vc.addVertex(mat, -hw, 0, -hw).setColor(r,g,b,a).setUv(1,0).setLight(15728880).setNormal(-1,0,0);
+        // South
+        vc.addVertex(mat,  hw, 0,  hw).setColor(r,g,b,a).setUv(0,0).setLight(15728880).setNormal(0,0, 1);
+        vc.addVertex(mat,  hw, top,  hw).setColor(r,g,b,a).setUv(0,1).setLight(15728880).setNormal(0,0, 1);
+        vc.addVertex(mat, -hw, top,  hw).setColor(r,g,b,a).setUv(1,1).setLight(15728880).setNormal(0,0, 1);
+        vc.addVertex(mat, -hw, 0,  hw).setColor(r,g,b,a).setUv(1,0).setLight(15728880).setNormal(0,0, 1);
+        // North
+        vc.addVertex(mat, -hw, 0, -hw).setColor(r,g,b,a).setUv(0,0).setLight(15728880).setNormal(0,0,-1);
+        vc.addVertex(mat, -hw, top, -hw).setColor(r,g,b,a).setUv(0,1).setLight(15728880).setNormal(0,0,-1);
+        vc.addVertex(mat,  hw, top, -hw).setColor(r,g,b,a).setUv(1,1).setLight(15728880).setNormal(0,0,-1);
+        vc.addVertex(mat,  hw, 0, -hw).setColor(r,g,b,a).setUv(1,0).setLight(15728880).setNormal(0,0,-1);
+    }
+
+    private static int[] colorForState(int state) {
+        return switch (state) {
+            case 1 -> new int[]{ 80, 255, 80 };
+            case 2 -> new int[]{ 255, 70, 70 };
+            default -> new int[]{ 255, 220, 60 };
+        };
     }
 
     private static void addOutline(VertexConsumer vc, Matrix4f m,

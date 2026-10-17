@@ -82,6 +82,11 @@ public final class PickoblockManager {
             return;
         }
 
+        if (!Phase2BuildTracker.pickobulusTimeAllowed()) {
+            allowedThisTick = false;
+            return;
+        }
+
         if (predictedPickobulusGraceTicks > 0) {
             allowedThisTick = true;
             return;

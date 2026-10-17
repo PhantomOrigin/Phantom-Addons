@@ -17,7 +17,6 @@ public final class RendTracker {
     private static long backboneHitMs          = -1;
     private static ItemStack helmetAtBackbone  = null;
     private static ItemStack heldAtBackbone    = null;
-    private static long manaDrainMs            = -1;
 
     private static long      pendingPullMs   = -1;
     private static ItemStack pendingPullItem = null;
@@ -49,7 +48,6 @@ public final class RendTracker {
         backboneHitMs          = -1;
         helmetAtBackbone       = null;
         heldAtBackbone         = null;
-        manaDrainMs            = -1;
         pendingPullMs          = -1;
         pendingPullItem        = null;
     }
@@ -74,13 +72,6 @@ public final class RendTracker {
             printOutput(pendingPullItem, pendingPullMs);
             clearCycle();
         }
-    }
-
-    public static void onManaDrain() {
-        if (!com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) return;
-        if (!isKillPhase()) return;
-        if (backboneHitMs < 0) return;
-        if (manaDrainMs < 0) manaDrainMs = System.currentTimeMillis();
     }
 
     public static void onLeftClick(ItemStack item) {
@@ -138,15 +129,6 @@ public final class RendTracker {
         mc.player.sendSystemMessage(Component.literal(String.format("§fBackbone Hit at §a%.2fs", backboneTime)));
         mc.player.sendSystemMessage(buildItemLine("§fWearing: ", helmetAtBackbone));
         mc.player.sendSystemMessage(buildItemLine("§fHolding: ", heldAtBackbone));
-
-        if (com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate.isManaDrainTrackingEnabled()) {
-            if (manaDrainMs > 0) {
-                double drainTime = Math.max(0L, manaDrainMs - killPhaseStartMs - pingAdjustMs) / 1000.0;
-                mc.player.sendSystemMessage(Component.literal(String.format("§fMana Drain at §b%.2fs", drainTime)));
-            } else {
-                mc.player.sendSystemMessage(Component.literal("§cNo Mana Drain!"));
-            }
-        }
 
         MutableComponent pullLine = Component.literal(String.format("§fPulled At §a%.2fs §fwith ", pullTime));
         pullLine.append(pullItem != null && !pullItem.isEmpty()

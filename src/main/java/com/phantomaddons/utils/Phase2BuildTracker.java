@@ -2,7 +2,9 @@ package com.phantomaddons.utils;
 
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.features.stundps.MountTimerHud;
+import com.phantomaddons.PhantomConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.decoration.ArmorStand;
 
 
@@ -16,12 +18,41 @@ public final class Phase2BuildTracker {
 
     public static int mountTimer = 0;
 
+    public static final int BLINDNESS_TICKS = 9;
+    private static boolean waitingForAgro = false;
+
+    public static int pingTicks() {
+        if (!PhantomConfig.isEatenTimerSubtractPingEnabled()) return 0;
+        return Math.max(0, PhantomConfig.getLowPing() / 50 - 1);
+    }
+
+    public static int fullPingTicks() {
+        return Math.max(0, PhantomConfig.getLowPing() / 50);
+    }
+
+    public static boolean pickobulusTimeAllowed() {
+        return mountTimer <= 0 || mountTimer - fullPingTicks() <= 1;
+    }
+
+    private static final double EATEN_X = -161, EATEN_Z = -186, EATEN_MAX_Y = 55, EATEN_RADIUS = 20;
+
+    private static boolean atEatenPosition(Minecraft client) {
+        var p = client.player.position();
+        double dx = p.x - EATEN_X, dz = p.z - EATEN_Z;
+        return p.y < EATEN_MAX_Y && dx * dx + dz * dz <= EATEN_RADIUS * EATEN_RADIUS;
+    }
+
+    private static int blindnessMark() {
+        return BLINDNESS_TICKS;
+    }
+
     public static void start() {
         phase2Active        = true;
         mountTimer          = -1;
         mountTimerActive    = false;
         wasRidingArmorStand = false;
         postTimerTicks      = 0;
+        waitingForAgro      = false;
         PhantomAddons.LOGGER.info("[PhantomAddons] Phase 2 build tracking started");
     }
 
@@ -31,6 +62,7 @@ public final class Phase2BuildTracker {
         mountGraceTicks     = 0;
         wasRidingArmorStand = false;
         postTimerTicks      = 0;
+        waitingForAgro      = false;
         PhantomAddons.LOGGER.info("[PhantomAddons] Phase 2 build reset");
     }
 
@@ -51,16 +83,28 @@ public final class Phase2BuildTracker {
                 mountTimer       = 0;
                 mountGraceTicks  = 0;
                 mountTimerActive = false;
+                waitingForAgro   = false;
             }
         }
 
         wasRidingArmorStand = ridingArmorStand;
 
-        // Countdown
+        if (mountTimer > 0 && atEatenPosition(client)) {
+            mountTimer       = 0;
+            mountGraceTicks  = 0;
+            mountTimerActive = false;
+            waitingForAgro   = false;
+        }
+
         if (mountTimer > 0) {
-            mountTimer--;
-            if (mountTimer == 0) {
-                postTimerTicks = 60;
+            boolean blind = client.player.hasEffect(MobEffects.BLINDNESS);
+            if (mountTimer == blindnessMark() && !blind) waitingForAgro = true;
+            if (waitingForAgro && blind) waitingForAgro = false;
+            if (!waitingForAgro) {
+                mountTimer--;
+                if (mountTimer == 0) {
+                    postTimerTicks = 60;
+                }
             }
         }
 
@@ -71,4 +115,5 @@ public final class Phase2BuildTracker {
 
     public static boolean isActive()     { return phase2Active; }
     public static int     getMountTimer() { return mountTimer;   }
+    public static boolean isWaitingForAgro() { return waitingForAgro; }
 }

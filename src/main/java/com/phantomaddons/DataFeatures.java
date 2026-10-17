@@ -10,9 +10,9 @@ import java.lang.reflect.Method;
 public final class DataFeatures {
 
     private static final boolean PRESENT;
+    private static final boolean HIGHLIGHT;
 
-    private static Method gameplayDatabaseEnsureMigrated;
-    private static Method gameplayDatabaseGetCancelStats;
+    private static Method supplyAttemptTrackerOnPickupPercent;
     private static Method gameplayDataLoggerOnDisconnect;
     private static Method gameplayDataLoggerTick;
     private static Method supplyAttemptTrackerOnPickupStart;
@@ -27,10 +27,6 @@ public final class DataFeatures {
     static {
         boolean present;
         try {
-            Class<?> gameplayDatabase = Class.forName("com.phantomaddons.data.GameplayDatabase");
-            gameplayDatabaseEnsureMigrated = gameplayDatabase.getMethod("ensureMigrated");
-            gameplayDatabaseGetCancelStats = gameplayDatabase.getMethod("getCancelStats");
-
             Class<?> gameplayDataLogger = Class.forName("com.phantomaddons.data.GameplayDataLogger");
             gameplayDataLoggerOnDisconnect = gameplayDataLogger.getMethod("onDisconnect");
             gameplayDataLoggerTick = gameplayDataLogger.getMethod("tick", Minecraft.class);
@@ -38,13 +34,11 @@ public final class DataFeatures {
             Class<?> supplyAttemptTracker = Class.forName("com.phantomaddons.data.supply.SupplyAttemptTracker");
             supplyAttemptTrackerOnPickupStart = supplyAttemptTracker.getMethod("onPickupStart", int.class);
             supplyAttemptTrackerOnPickupEnd = supplyAttemptTracker.getMethod("onPickupEnd", int.class);
+            supplyAttemptTrackerOnPickupPercent = supplyAttemptTracker.getMethod("onPickupPercent", int.class);
             supplyAttemptTrackerOnSupplyDropped = supplyAttemptTracker.getMethod("onSupplyDropped");
 
             pearlCancelLoggerOnPearlThrow = Class.forName("com.phantomaddons.data.supply.PearlCancelLogger")
                     .getMethod("onPearlThrow", Player.class);
-
-            tentacleHighlightRendererRender = Class.forName("com.phantomaddons.data.tentacle.TentacleHighlightRenderer")
-                    .getMethod("render", PoseStack.class, Camera.class, float.class);
 
             Class<?> runRecorder = Class.forName("com.phantomaddons.data.RunRecorder");
             runRecorderOnRunStart = runRecorder.getMethod("onRunStart");
@@ -56,17 +50,29 @@ public final class DataFeatures {
             present = false;
         }
         PRESENT = present;
+
+        boolean highlight;
+        try {
+            tentacleHighlightRendererRender = Class.forName("com.phantomaddons.data.tentacle.TentacleHighlightRenderer")
+                    .getMethod("render", PoseStack.class, Camera.class, float.class);
+            highlight = true;
+        } catch (ReflectiveOperationException e) {
+            highlight = false;
+        }
+        HIGHLIGHT = highlight;
     }
 
     private DataFeatures() {}
 
     public static boolean isPresent() { return PRESENT; }
 
-    public static void ensureMigrated()              { invoke(gameplayDatabaseEnsureMigrated); }
+    public static boolean hasHighlight() { return HIGHLIGHT; }
+
     public static void onDisconnect()                { invoke(gameplayDataLoggerOnDisconnect); }
     public static void tick(Minecraft client)         { invoke(gameplayDataLoggerTick, client); }
     public static void onSupplyPickupStart(int pct)   { invoke(supplyAttemptTrackerOnPickupStart, pct); }
     public static void onSupplyPickupEnd(int pct)     { invoke(supplyAttemptTrackerOnPickupEnd, pct); }
+    public static void onSupplyPickupPercent(int pct) { invoke(supplyAttemptTrackerOnPickupPercent, pct); }
     public static void onSupplyDropped()              { invoke(supplyAttemptTrackerOnSupplyDropped); }
     public static void onPearlThrow(Player player)    { invoke(pearlCancelLoggerOnPearlThrow, player); }
     public static void onRunStart()                   { invoke(runRecorderOnRunStart); }
@@ -74,16 +80,8 @@ public final class DataFeatures {
     public static void onRunAbandoned()                { invoke(runRecorderOnRunAbandoned); }
 
     public static void renderTentacleHighlights(PoseStack matrices, Camera camera, float tickDelta) {
+        if (!HIGHLIGHT) return;
         invoke(tentacleHighlightRendererRender, matrices, camera, tickDelta);
-    }
-
-    public static int[] getCancelStats() {
-        if (!PRESENT) return null;
-        try {
-            return (int[]) gameplayDatabaseGetCancelStats.invoke(null);
-        } catch (ReflectiveOperationException e) {
-            return null;
-        }
     }
 
     private static void invoke(Method m, Object... args) {

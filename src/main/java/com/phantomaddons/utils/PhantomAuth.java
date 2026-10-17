@@ -11,14 +11,11 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 
 public final class PhantomAuth {
 
     private static final Object LOCK = new Object();
-    private static final int[] STARTUP_RETRY_SECONDS = { 8, 20 };
 
     private static volatile String token;
     private static volatile long expiresAt;
@@ -63,23 +60,6 @@ public final class PhantomAuth {
     }
 
     // ── Sign in ──────────────────────────────────────────────────────────────
-
-    public static void init() {
-        CompletableFuture.runAsync(() -> startupLogin(0));
-    }
-
-    private static void startupLogin(int attempt) {
-        boolean ok = false;
-        try {
-            ok = ensureLogin();
-        } catch (RuntimeException e) {
-            PhantomAddons.LOGGER.warn("[PhantomAddons] Minecraft sign-in failed: {}", e.toString());
-        }
-        if (!ok && !disabled && attempt < STARTUP_RETRY_SECONDS.length) {
-            CompletableFuture.runAsync(() -> startupLogin(attempt + 1),
-                    CompletableFuture.delayedExecutor(STARTUP_RETRY_SECONDS[attempt], TimeUnit.SECONDS));
-        }
-    }
 
     public static boolean ensureLogin() {
         synchronized (LOCK) {

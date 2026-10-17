@@ -305,9 +305,7 @@ public final class PartyCommands {
         boolean autoKickOn = PhantomConfig.isAutoKickEnabled() && isPartyLeader();
         if (!profileViewerOn && !autoKickOn) return;
 
-        KuudraProfileFetcher.fetchAsync(name, data -> {
-            if (autoKickOn) AutoKickManager.evaluate(name, data);
-        });
+        if (autoKickOn) KuudraProfileFetcher.fetchAsync(name, data -> AutoKickManager.evaluate(name, data));
         if (profileViewerOn) announceProfileLink(name);
     }
 

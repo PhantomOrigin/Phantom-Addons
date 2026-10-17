@@ -57,6 +57,7 @@ public final class PearlTitleListener {
         }
 
         lastPercent = percent;
+        com.phantomaddons.DataFeatures.onSupplyPickupPercent(percent);
         SmoothCratePickup.onPercentUpdate(percent, segments);
 
         if (percent >= 100) {

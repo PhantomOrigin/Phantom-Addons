@@ -25,11 +25,11 @@ public final class MountTimerHud {
             Minecraft client = Minecraft.getInstance();
             if (client.player == null) return;
 
-            int pingTicks    = PhantomConfig.isEatenTimerSubtractPingEnabled() ? PhantomConfig.getLowPing() / 50 : 0;
-            int displayTimer = Math.max(0, timer - pingTicks);
+            int displayTimer = Math.max(0, timer - Phase2BuildTracker.pingTicks());
 
-            String text = String.valueOf(displayTimer);
-            int color   = displayTimer <= 20 ? COLOR_WARN : COLOR_NORM;
+            boolean noAgro = Phase2BuildTracker.isWaitingForAgro();
+            String text = noAgro ? "No Agro!" : String.valueOf(displayTimer);
+            int color   = noAgro || displayTimer <= 20 ? COLOR_WARN : COLOR_NORM;
 
             int screenW = client.getWindow().getGuiScaledWidth();
             int screenH = client.getWindow().getGuiScaledHeight();

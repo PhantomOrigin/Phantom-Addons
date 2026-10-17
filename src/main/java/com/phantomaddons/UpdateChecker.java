@@ -21,6 +21,8 @@ public final class UpdateChecker {
     private static final String GITHUB_URL =
             "https://github.com/PhantomOrigin/Phantom-Addons/releases/latest";
 
+    private static final String MODRINTH_URL = "https://modrinth.com/mod/phantom-addons";
+
     private static final String ARCHIVE_BASE_NAME = "PhantomAddons";
     //? if <26.2 {
     /*private static final String MC_VERSION_TAG = "26.1.x";
@@ -51,7 +53,9 @@ public final class UpdateChecker {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             if (notifiedThisSession) return;
             if (state != State.UPDATE_AVAILABLE && state != State.DOWNLOADED) return;
+            if (isSkipped()) return;
             notifiedThisSession = true;
+            com.phantomaddons.gui.ChangelogManager.onUpdateAvailable();
 
             client.execute(() -> {
                 if (client.player == null) return;
@@ -62,10 +66,20 @@ public final class UpdateChecker {
                 } else {
                     client.player.sendSystemMessage(Component.literal(
                             "§f[PhantomAddons]§r §eNew version §a" + latestVersion
-                                    + " §eavailable at §b" + GITHUB_URL));
+                                    + " §eavailable at §b" + editionPageUrl()));
                 }
             });
         });
+    }
+
+    /**
+     * Whether the player chose to skip the available update. Skipping a version stays quiet until a newer one comes
+     * out. An update that has already been downloaded is never skipped, since it installs on the next restart.
+     */
+    public static boolean isSkipped() {
+        String skipped = PhantomConfig.getSkippedUpdateVersion();
+        return state == State.UPDATE_AVAILABLE && latestVersion != null && !skipped.isEmpty()
+                && !isNewerVersion(latestVersion, skipped);
     }
 
     public static void checkOnStartup() {
@@ -103,9 +117,17 @@ public final class UpdateChecker {
     }
 
     public static void downloadManually() {
+        download(false);
+    }
+
+    public static void downloadFromChangelog() {
+        download(true);
+    }
+
+    private static void download(boolean ignoreAutoUpdateSetting) {
         if (state == State.DOWNLOADING || state == State.DOWNLOADED) return;
         if (!Edition.CURRENT.autoDownloadCapable) {
-            openReleasePage();
+            openEditionPage();
             return;
         }
         state = State.CHECKING;
@@ -125,7 +147,7 @@ public final class UpdateChecker {
                     return;
                 }
 
-                if (!PhantomConfig.isAutoUpdatesEnabled() || !allEditionAssetsPresent()) {
+                if ((!ignoreAutoUpdateSetting && !PhantomConfig.isAutoUpdatesEnabled()) || !allEditionAssetsPresent()) {
                     state = State.UPDATE_AVAILABLE;
                     notifyChat("§eCan't auto-download right now — opening the release page instead.");
                     openReleasePage();
@@ -177,7 +199,17 @@ public final class UpdateChecker {
         };
     }
 
-    private static void openReleasePage() {
+    public static String editionPageUrl() {
+        return Edition.CURRENT == Edition.STANDARD ? MODRINTH_URL : GITHUB_URL;
+    }
+
+    public static void openEditionPage() {
+        try {
+            net.minecraft.util.Util.getPlatform().openUri(editionPageUrl());
+        } catch (Exception ignored) {}
+    }
+
+    public static void openReleasePage() {
         try {
             net.minecraft.util.Util.getPlatform().openUri(GITHUB_URL);
         } catch (Exception ignored) {}

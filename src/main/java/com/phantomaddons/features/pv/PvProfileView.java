@@ -395,7 +395,7 @@ public final class PvProfileView {
                 JsonElement sac = PvJson.path(m, "pets_data", "pet_care", "pet_types_sacrificed");
                 yield 50 + (sac != null && sac.isJsonArray() ? Math.min(10, sac.getAsJsonArray().size()) : 0);
             }
-            case "Foraging" -> 50 + (int) PvJson.num(m, 0, "player_data", "experience", "SKILL_FORAGING_extra_level_cap");
+            case "Foraging" -> Math.min(maxLevel("Foraging"), 54 + (int) PvJson.num(m, 0, "player_data", "experience", "SKILL_FORAGING_extra_level_cap"));
             case "Fishing", "Alchemy", "Carpentry", "Hunting" -> 50;
             default -> 60;
         };

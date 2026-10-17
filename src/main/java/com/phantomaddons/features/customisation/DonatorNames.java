@@ -85,7 +85,11 @@ public final class DonatorNames {
         if (original == null || styles.isEmpty()) return 0f;
         FormattedCharSequence applied = apply(original, 0f);
         if (applied == original) return 0f;
-        return (font.width(original) - font.width(applied)) / 2f;
+        return (font.width(original) - font.width(steady(applied))) / 2f;
+    }
+
+    static FormattedCharSequence steady(FormattedCharSequence text) {
+        return sink -> text.accept((pos, style, cp) -> sink.accept(pos, style.withObfuscated(false), cp));
     }
 
     private static final ThreadLocal<StringBuilder> TOKEN = ThreadLocal.withInitial(StringBuilder::new);
