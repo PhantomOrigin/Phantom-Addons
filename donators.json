@@ -23,6 +23,14 @@
       "length": 40,
       "direction": "right",
       "speed": 4
+    },
+    {
+      "name": "Phobo_S_",
+      "replace": "&l{name}",
+      "colors": ["#4a1814", "#424242", "#7d0900"],
+      "length": 50,
+      "direction": "right",
+      "speed": 9
     }
   ]
 }
