@@ -31,6 +31,30 @@
       "length": 50,
       "direction": "right",
       "speed": 9
+    },
+    {
+      "name": "HoeEnthusiast",
+      "replace": "&l{name}",
+      "colors": ["#a8e6ff", "#ffffff", "#5bc0eb"],
+      "length": 25,
+      "direction": "right",
+      "speed": 4
+    },
+    {
+      "name": "Gam3play",
+      "replace": "&l{name}",
+      "colors": ["#a8e6ff", "#ffffff", "#5bc0eb"],
+      "length": 25,
+      "direction": "right",
+      "speed": 4
+    },
+    {
+      "name": "Clashbad",
+      "replace": "&l{name}",
+      "colors": ["#a8e6ff", "#ffffff", "#5bc0eb"],
+      "length": 25,
+      "direction": "right",
+      "speed": 4
     }
   ]
 }
