@@ -122,6 +122,7 @@ public final class DpsWaypoint {
 
         Vec3 camPos = camera.position();
         Matrix4f m  = matrices.last().pose();
+
         //? if <26.2 {
         /*MultiBufferSource.BufferSource imm = mc.renderBuffers().bufferSource();
 
@@ -129,8 +130,6 @@ public final class DpsWaypoint {
         drawTopFace(imm, m, activeWaypoint, camPos);
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        // Everything this feature draws is always-on-top (visible through walls) — see
-        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
         //?}
     }
 

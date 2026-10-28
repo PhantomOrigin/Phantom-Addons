@@ -86,7 +86,7 @@ final class PvStoragePage {
         return gy - y0 + rows * (sz + g) + valueH + arrowsH;
     }
 
-    private static int pageButtons(PvScreen s, GuiGraphicsExtractor ctx, int key, int count, int page,
+    static int pageButtons(PvScreen s, GuiGraphicsExtractor ctx, int key, int count, int page,
                                    IntFunction<ItemStack> icon, IntFunction<String> number, IntFunction<String> name,
                                    int x, int y, int w, int mx, int my) {
         int avail = w - 2 * PvPages.PAD;

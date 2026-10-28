@@ -16,7 +16,11 @@ public class ArmorStandRendererMixin {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private <E extends Entity> void phantomaddons$hideArmorStand(
             E entity, Frustum frustum, double camX, double camY, double camZ,
+            //? if <26.3 {
             CallbackInfoReturnable<Boolean> cir) {
+            //?} else {
+            /*float partialTick, CallbackInfoReturnable<Boolean> cir) {
+            *///?}
         if (!(entity instanceof ArmorStand stand) || !HideArmorStands.isActive()) return;
         if (HideArmorStands.shouldHide(stand.getX(), stand.getZ(),
                 stand.getCustomName() != null)) {

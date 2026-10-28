@@ -24,7 +24,7 @@
   <a href="https://ko-fi.com/L4L8234BMK"><img alt="ko-fi" src="https://ko-fi.com/img/githubbutton_sm.svg"></a>
 </div>
 
-<p align="center">Supported Minecraft versions: <b>26.1.x</b> and <b>26.2</b></p>
+<p align="center">Supported Minecraft versions: <b>26.1.x</b>, <b>26.2</b> and <b>26.3</b></p>
 
 ---
 
@@ -98,7 +98,6 @@
 - Solo Announcer
 - Solo Notification
 - Kuudra Health Display
-- Mana Drain Announcer
 - Rend / Backbone Tracker
 - Backbone Progress Bar
 - Bonemerang Timing Assist

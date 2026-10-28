@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -27,9 +28,9 @@ public class IntInput extends Feature {
         int fw = fieldW, fx = x + w - fw - 8, fy = y + 3, fh = ROW_H - 6;
         boolean hov = fieldHovered(fx, fy, fw, fh, mx, my);
         int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
-        roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
+        insetFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
         int textX = fx + (fw - s.font().width(display)) / 2;
-        drawText(ctx, s.font(), Component.literal(display), textX, fy + (fh - s.font().lineHeight) / 2, C_TEXT);
+        drawText(ctx, s.font(), Component.literal(display), textX, fy + (fh - s.font().lineHeight) / 2 + 1, C_TEXT);
         if (focused) {
             cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
             int caretX = textX + s.font().width(display.substring(0, cursorPos));
@@ -52,11 +53,11 @@ public class IntInput extends Feature {
     }
     @Override void onKey(int key) {
         if (!focused) return;
-        if (key == 256 || key == 257 || key == 335) { commit(); focused = false; } // Esc/Enter save
-        else if (key == 259 && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
-        else if (key == 261 && draft != null) { draft = deleteAfter(draft, cursorPos); }
-        else if (key == 263) cursorPos = Math.max(0, cursorPos - 1);       // Left
-        else if (key == 262) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1); // Right
+        if (key == InputConstants.KEY_ESCAPE || key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER) { commit(); focused = false; } // Esc/Enter save
+        else if (key == InputConstants.KEY_BACKSPACE && draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); }
+        else if (key == InputConstants.KEY_DELETE && draft != null) { draft = deleteAfter(draft, cursorPos); }
+        else if (key == InputConstants.KEY_LEFT) cursorPos = Math.max(0, cursorPos - 1);       // Left
+        else if (key == InputConstants.KEY_RIGHT) cursorPos = Math.min(draft == null ? 0 : draft.length(), cursorPos + 1); // Right
     }
     @Override void onChar(char c) {
         if (focused && Character.isDigit(c)) {

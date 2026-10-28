@@ -68,6 +68,8 @@ if (editionKey == "standard") {
 }
 
 val isLegacyRendering = sc.current.parsed < "26.2"
+// 26.3 reworked first-person rendering, so the held item mixins come in two versions.
+val usesNewFirstPerson = sc.current.parsed >= "26.3"
 
 sourceSets.main {
     java {
@@ -78,6 +80,15 @@ sourceSets.main {
             exclude("com/phantomaddons/utils/ImmediateDraw.java")
         } else {
             exclude("com/phantomaddons/mixin/WorldRendererMixin.java")
+        }
+        if (usesNewFirstPerson) {
+            exclude("com/phantomaddons/mixin/HeldItemRendererMixin.java")
+            exclude("com/phantomaddons/mixin/ItemRendererScaleMixin.java")
+        } else {
+            exclude("com/phantomaddons/mixin/FirstPersonHandsMixin.java")
+            exclude("com/phantomaddons/mixin/FirstPersonHandsStateMixin.java")
+            exclude("com/phantomaddons/mixin/SubmitNodeCollectionMixin.java")
+            exclude("com/phantomaddons/utils/RecordedVertices.java")
         }
     }
 }
@@ -101,6 +112,18 @@ tasks.processResources {
     if (isLegacyRendering) {
         filesMatching("phantomaddons.mixins.json") {
             filter { line -> line.replace("\"FontDrawMixin\",", "\"FontDrawMixin\",\n        \"WorldRendererMixin\",") }
+        }
+    }
+    if (usesNewFirstPerson) {
+        filesMatching("phantomaddons.mixins.json") {
+            filter { line ->
+                when {
+                    line.contains("\"HeldItemRendererMixin\"") ->
+                        "    \"FirstPersonHandsMixin\",\n    \"FirstPersonHandsStateMixin\",\n    \"SubmitNodeCollectionMixin\","
+                    line.contains("\"ItemRendererScaleMixin\"") -> ""
+                    else -> line
+                }
+            }
         }
     }
 }
@@ -128,7 +151,7 @@ val collectedDir = rootProject.layout.buildDirectory.dir("libs/all-editions")
 
 if (project.name == "26.2.x") tasks.register("buildAllEditions") {
     group = "build"
-    description = "Builds the full, noauto, and standard edition jars (both MC versions) in one command."
+    description = "Builds the full, noauto, and standard edition jars (every MC version) in one command."
     doLast {
         val isWindows = System.getProperty("os.name").lowercase().contains("windows")
         val outDir = File(collectedDir.get().asFile, modVersion)

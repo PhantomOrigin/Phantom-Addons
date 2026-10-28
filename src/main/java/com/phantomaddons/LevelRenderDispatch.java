@@ -10,6 +10,7 @@ import com.phantomaddons.features.supplies.SupplyBeaconRenderer;
 import com.phantomaddons.features.supplies.giant.GiantHitboxOutline;
 import com.phantomaddons.features.supplies.giant.SupplyGiantHitbox;
 import com.phantomaddons.features.supplies.SupplyRenderHelper;
+import com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarningRenderer;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlWaypointRenderer;
 import com.phantomaddons.features.supplies.waypointlines.WaypointLinesRenderer;
 import com.phantomaddons.features.stundps.StunPreviewRenderer;
@@ -53,6 +54,7 @@ public final class LevelRenderDispatch {
             AnnounceFresh.renderTimers(matrices, camera, tickDelta);
             SupplyGiantHitbox.render(matrices, camera, tickDelta);
             GiantHitboxOutline.render(matrices, camera, tickDelta);
+            TentacleGrabWarningRenderer.render(matrices, camera, tickDelta);
             WaypointLinesRenderer.render(matrices, camera, tickDelta);
             BoneTimingHitboxOutline.render(matrices, camera, tickDelta);
             IchorRadiusRenderer.render(matrices, camera, tickDelta);
@@ -61,8 +63,27 @@ public final class LevelRenderDispatch {
             DpsWaypoint.render(matrices, camera, tickDelta);
             PredictedBobber.tick();
 
+            //? if >=26.3 {
+            /*// From 26.3 the always-on-top drawing is handed to the collector too, so it has to happen here.
+            PearlWaypointRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            KuudraHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            StunPreviewRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            BoneTimingHitboxOutline.renderAlwaysOnTop(matrices, camera, tickDelta);
+            EtherwarpWaypointRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            WaypointLinesRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            DpsWaypoint.renderAlwaysOnTop(matrices, camera, tickDelta);
+            BuildBeaconRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            ElleHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            SupplyGiantHitbox.renderAlwaysOnTop(matrices, camera, tickDelta);
+            GiantHitboxOutline.renderAlwaysOnTop(matrices, camera, tickDelta);
+            TentacleGrabWarningRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
+            ImmediateDraw.flush();
+            *///?}
+
             WorldRenderCollector.set(null);
         });
+
+        //? if <26.3 {
 
         LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(ctx -> {
             Minecraft mc = Minecraft.getInstance();
@@ -86,8 +107,10 @@ public final class LevelRenderDispatch {
             ElleHighlightRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
             SupplyGiantHitbox.renderAlwaysOnTop(matrices, camera, tickDelta);
             GiantHitboxOutline.renderAlwaysOnTop(matrices, camera, tickDelta);
+            TentacleGrabWarningRenderer.renderAlwaysOnTop(matrices, camera, tickDelta);
 
             ImmediateDraw.flush();
         });
+        //?}
     }
 }

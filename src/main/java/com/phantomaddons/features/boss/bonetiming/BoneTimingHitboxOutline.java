@@ -96,7 +96,14 @@ public final class BoneTimingHitboxOutline {
         for (AABB box : boxes) {
             double x1 = box.minX - cx, y1 = box.minY - cy, z1 = box.minZ - cz;
             double x2 = box.maxX - cx, y2 = box.maxY - cy, z2 = box.maxZ - cz;
-            int col = defaultCol;
+            int col;
+            if (box == aimedBox) {
+                col = BoneTimingAssist.isAimedWallBlocking() ? 0xFF3333
+                    : BoneTimingAssist.isAimedInThrowRange()  ? 0x32CD32
+                    : defaultCol;
+            } else {
+                col = defaultCol;
+            }
             int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
 
             matrices.pushPose();

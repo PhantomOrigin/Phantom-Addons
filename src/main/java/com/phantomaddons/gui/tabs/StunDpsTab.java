@@ -2,6 +2,7 @@ package com.phantomaddons.gui.tabs;
 
 import com.phantomaddons.Edition;
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.gui.PingWarning;
 import com.phantomaddons.gui.Cycle;
 import com.phantomaddons.gui.Group;
 import com.phantomaddons.gui.IntInput;
@@ -34,11 +35,13 @@ public final class StunDpsTab {
 
         m.add(new Toggle("Pickobulus Blocker",
                 PhantomConfig::isPickoblockEnabled, PhantomConfig::setPickoblockEnabled)
-                .withTooltip("Prevents early use of pickobulus in most situations"));
+                .withTooltip("Prevents early use of pickobulus in most situations")
+                .withWarning(PingWarning.when(PhantomConfig::isPickoblockEnabled), PingWarning.FEATURE_TEXT));
 
         Group eaten = m.group("Eaten Timer", PhantomConfig::isEatenTimerEnabled, PhantomConfig::setEatenTimerEnabled);
         eaten.add(new Toggle("Subtract Ping",
                 PhantomConfig::isEatenTimerSubtractPingEnabled, PhantomConfig::setEatenTimerSubtractPingEnabled));
+        eaten.withWarning(PingWarning.when(PingWarning::eatenTimerUsesPing), PingWarning.FEATURE_TEXT);
         m.add(eaten);
 
         if (Edition.CURRENT.fullFeatureSet) {

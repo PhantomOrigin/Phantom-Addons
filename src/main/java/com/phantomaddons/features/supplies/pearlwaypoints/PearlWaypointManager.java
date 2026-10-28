@@ -36,6 +36,11 @@ public final class PearlWaypointManager {
     public static List<PearlWaypointState> getSnapshot()      { return snapshot; }
     public static boolean                  isTrackingPickup() { return trackingPickup; }
 
+    public static long getPickupElapsedMs() {
+        long start = pickupStartMs;
+        return trackingPickup && start >= 0L ? System.currentTimeMillis() - start : -1L;
+    }
+
     public static void onPickupStart(int percent) {
         if (!trackingPickup) {
             trackingPickup = true;

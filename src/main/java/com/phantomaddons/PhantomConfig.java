@@ -1,5 +1,6 @@
 package com.phantomaddons;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.features.customisation.items.ItemCustomization;
@@ -50,6 +51,13 @@ public class PhantomConfig {
 
     private static boolean profitTrackerForced = false; // not saved — session-only
     private static final LinkedHashMap<Integer,Integer> slotBindings = new LinkedHashMap<>();
+
+    /** The game's key numbering: 1 is GLFW (up to 26.2), 2 is SDL (26.3 on). */
+    //? if <26.3 {
+    private static final int KEY_SCHEME = 1;
+    //?} else {
+    /*private static final int KEY_SCHEME = 2;
+    *///?}
 
     private static Data cfg = freshState();
 
@@ -178,8 +186,7 @@ public class PhantomConfig {
     public static boolean isChestTrackerVisible()     { return cfg.chestTrackerVisible; }
     public static boolean isSoloDetectorEnabled()     { return cfg.soloDetectorEnabled; }
     public static boolean isCannonAutoCloseEnabled()  { return cfg.cannonAutoClose; }
-    public static boolean isKuudraDirectionEnabled()   { return cfg.kuudraDirectionEnabled; }
-    public static boolean isTuxedoWarningEnabled()     { return cfg.tuxedoWarningEnabled; }
+    public static boolean isKuudraDirectionEnabled()   { return cfg.kuudraDirectionEnabled; }    public static boolean isTuxedoWarningEnabled()     { return cfg.tuxedoWarningEnabled; }
     public static boolean isBoneTimingAssistEnabled()  { return cfg.boneTimingAssistEnabled; }
     public static float   getBoneTimingAssistOffset()  { return cfg.boneTimingAssistOffset; }
     public static boolean isBoneTimingHitboxOutlineEnabled() { return cfg.boneTimingHitboxOutlineEnabled; }
@@ -265,6 +272,10 @@ public class PhantomConfig {
     public static void setPvTabIcons(boolean v)   { cfg.pvTabIcons = v; save(); }
     public static boolean isPvOverflowSkills()      { return cfg.pvOverflowSkills; }
     public static void setPvOverflowSkills(boolean v) { cfg.pvOverflowSkills = v; save(); }
+    public static boolean isPvRememberPage()        { return cfg.pvRememberPage; }
+    public static void setPvRememberPage(boolean v) { cfg.pvRememberPage = v; save(); }
+    public static boolean isDonatorNamesEnabled()   { return cfg.donatorNamesEnabled; }
+    public static void setDonatorNamesEnabled(boolean v) { cfg.donatorNamesEnabled = v; save(); }
     public static boolean  isUiTransparencyEnabled() { return cfg.uiTransparencyEnabled; }
     public static boolean isAutoSprintEnabled()       { return cfg.autoSprintEnabled; }
     public static boolean isSlotBindsEnabled()        { return cfg.slotBindsEnabled; }
@@ -337,6 +348,13 @@ public class PhantomConfig {
     public static boolean        isSupplyLocationAnnounceEnabled() { return cfg.supplyLocationAnnounceEnabled; }
     public static boolean        isSupplySpawnCountdownEnabled()   { return cfg.supplySpawnCountdownEnabled; }
     public static boolean        isBuildProgressHudEnabled()       { return cfg.buildProgressHudEnabled; }
+    public static boolean        isStunReminderEnabled()           { return cfg.stunReminderEnabled; }
+    public static RoleMode       getStunReminderRoleMode()         { return safeEnum(RoleMode.class, cfg.stunReminderRoleMode, RoleMode.AUTO); }
+    public static int            getStunReminderTravelMs()         { return cfg.stunReminderTravelMs; }
+    public static int            getStunReminderMaxPercent()       { return cfg.stunReminderMaxPercent; }
+    public static float          getStunReminderHudX()             { return cfg.stunReminderHudX; }
+    public static float          getStunReminderHudY()             { return cfg.stunReminderHudY; }
+    public static float          getStunReminderHudScale()         { return cfg.stunReminderHudScale; }
     public static boolean        isAnnounceFreshEnabled()          { return cfg.announceFreshEnabled; }
     public static boolean        isSupplyHitboxEnabled()           { return cfg.supplyHitboxEnabled; }
     public static boolean        isSupplyRodRadiusEnabled()        { return cfg.supplyRodRadiusEnabled; }
@@ -352,6 +370,10 @@ public class PhantomConfig {
     public static boolean        isBlockCloseItemEnabled()                 { return cfg.blockCloseItemEnabled; }
     public static boolean        isSupplyGiantHitboxEnabled()              { return cfg.supplyGiantHitboxEnabled; }
     public static boolean        isGiantHitboxEnabled()                    { return cfg.giantHitboxEnabled; }
+    public static boolean        isTentacleGrabWarningEnabled()            { return cfg.tentacleGrabWarningEnabled; }
+    public static float          getTentacleGrabWarningMinConfidence()     { return cfg.tentacleGrabWarningMinConfidence; }
+    public static boolean        isTentacleGrabLineEnabled()               { return cfg.tentacleGrabLineEnabled; }
+    public static boolean        isTentacleGrabHudEnabled()                { return cfg.tentacleGrabHudEnabled; }
     public static boolean        isGiantHitboxFilled()                     { return cfg.giantHitboxFilled; }
     public static float          getGiantHitboxFillOpacity()               { return cfg.giantHitboxFillOpacity; }
     public static int            getGiantHitboxColor()                     { return cfg.giantHitboxColor; }
@@ -376,6 +398,8 @@ public class PhantomConfig {
     // Split timer
     public static boolean isSplitTimerEnabled()  { return cfg.splitTimerEnabled; }
     public static boolean isSupplyTimesEnabled() { return cfg.supplyTimesEnabled; }
+    public static boolean isRunBreakdownEnabled() { return cfg.runBreakdownEnabled; }
+    public static boolean isShitterHighlightEnabled() { return cfg.shitterHighlightEnabled; }
 
     // Item customisation
     public static boolean isItemCustomizationEnabled() { return cfg.itemCustomizationEnabled; }
@@ -501,8 +525,7 @@ public class PhantomConfig {
     public static void setChestTrackerVisible(boolean v)    { cfg.chestTrackerVisible = v;      save(); }
     public static void setSoloDetectorEnabled(boolean v)    { cfg.soloDetectorEnabled = v;      save(); }
     public static void setCannonAutoCloseEnabled(boolean v) { cfg.cannonAutoClose = v;          save(); }
-    public static void setKuudraDirectionEnabled(boolean v) { cfg.kuudraDirectionEnabled = v;   save(); }
-    public static void setTuxedoWarningEnabled(boolean v)   { cfg.tuxedoWarningEnabled = v;     save(); }
+    public static void setKuudraDirectionEnabled(boolean v) { cfg.kuudraDirectionEnabled = v;   save(); }    public static void setTuxedoWarningEnabled(boolean v)   { cfg.tuxedoWarningEnabled = v;     save(); }
     public static void setBoneTimingAssistEnabled(boolean v) { cfg.boneTimingAssistEnabled = v; save(); }
     public static void setBoneTimingAssistOffset(float v) { cfg.boneTimingAssistOffset = Math.clamp(v, -3.0f, 1.0f); save(); }
     public static void setBoneTimingHitboxOutlineEnabled(boolean v) { cfg.boneTimingHitboxOutlineEnabled = v; save(); }
@@ -602,6 +625,9 @@ public class PhantomConfig {
     public static void setBackboneProgressBarHudX(float v)        { cfg.backboneProgressBarHudX     = clamp01(v); }
     public static void setBackboneProgressBarHudY(float v)        { cfg.backboneProgressBarHudY     = clamp01(v); }
     public static void setBackboneProgressBarHudScale(float v)    { cfg.backboneProgressBarHudScale = clampHudScale(v); }
+    public static void setStunReminderHudX(float v)               { cfg.stunReminderHudX     = clamp01(v); }
+    public static void setStunReminderHudY(float v)               { cfg.stunReminderHudY     = clamp01(v); }
+    public static void setStunReminderHudScale(float v)           { cfg.stunReminderHudScale = clampHudScale(v); }
     public static void setKuudraHighlightEnabled(boolean v)     { cfg.kuudraHighlightEnabled = v;        save(); }
     public static void setKuudraHighlightFilled(boolean v)      { cfg.kuudraHighlightFilled = v;         save(); }
     public static void setEtherwarpSlotBlockerEnabled(boolean v) { cfg.etherwarpSlotBlockerEnabled = v; save(); }
@@ -611,6 +637,10 @@ public class PhantomConfig {
     public static void setSupplyLocationAnnounceEnabled(boolean v)   { cfg.supplyLocationAnnounceEnabled = v;       save(); }
     public static void setSupplySpawnCountdownEnabled(boolean v)     { cfg.supplySpawnCountdownEnabled = v;         save(); }
     public static void setBuildProgressHudEnabled(boolean v)         { cfg.buildProgressHudEnabled = v;             save(); }
+    public static void setStunReminderEnabled(boolean v)             { cfg.stunReminderEnabled = v;                 save(); }
+    public static void setStunReminderRoleMode(RoleMode m)           { cfg.stunReminderRoleMode = m.name();         save(); }
+    public static void setStunReminderTravelMs(int v)                { cfg.stunReminderTravelMs = Math.max(0, Math.min(20000, v)); save(); }
+    public static void setStunReminderMaxPercent(int v)              { cfg.stunReminderMaxPercent = Math.max(1, Math.min(100, v)); save(); }
     public static void setAnnounceFreshEnabled(boolean v)            { cfg.announceFreshEnabled = v;                save(); }
     public static void setSupplyHitboxEnabled(boolean v)             { cfg.supplyHitboxEnabled = v;                 save(); }
     public static void setSupplyRodRadiusEnabled(boolean v)          { cfg.supplyRodRadiusEnabled = v;              save(); }
@@ -626,6 +656,10 @@ public class PhantomConfig {
     public static void setBlockCloseItemEnabled(boolean v)                 { cfg.blockCloseItemEnabled = v;                 save(); }
     public static void setSupplyGiantHitboxEnabled(boolean v)              { cfg.supplyGiantHitboxEnabled = v;              save(); }
     public static void setGiantHitboxEnabled(boolean v)                    { cfg.giantHitboxEnabled = v;                    save(); }
+    public static void setTentacleGrabWarningEnabled(boolean v)            { cfg.tentacleGrabWarningEnabled = v;            save(); }
+    public static void setTentacleGrabWarningMinConfidence(float v)        { cfg.tentacleGrabWarningMinConfidence = clamp01(v); save(); }
+    public static void setTentacleGrabLineEnabled(boolean v)               { cfg.tentacleGrabLineEnabled = v;               save(); }
+    public static void setTentacleGrabHudEnabled(boolean v)                { cfg.tentacleGrabHudEnabled = v;                save(); }
     public static void setGiantHitboxFilled(boolean v)                     { cfg.giantHitboxFilled = v;                     save(); }
     public static void setGiantHitboxFillOpacity(float v)                  { cfg.giantHitboxFillOpacity = clamp01(v);       save(); }
     public static void setGiantHitboxColor(int v)                          { cfg.giantHitboxColor = v & 0xFFFFFF;           save(); }
@@ -682,11 +716,19 @@ public class PhantomConfig {
     public static void setCratePriorityHudX(float v)      { cfg.cratePriorityHudX     = clamp01(v); }
     public static void setCratePriorityHudY(float v)      { cfg.cratePriorityHudY     = clamp01(v); }
     public static void setCratePriorityHudScale(float v)  { cfg.cratePriorityHudScale = clampHudScale(v); }
+    public static float getTentacleWarnHudX()             { return cfg.tentacleWarnHudX; }
+    public static float getTentacleWarnHudY()             { return cfg.tentacleWarnHudY; }
+    public static float getTentacleWarnHudScale()         { return cfg.tentacleWarnHudScale; }
+    public static void setTentacleWarnHudX(float v)       { cfg.tentacleWarnHudX     = clamp01(v); }
+    public static void setTentacleWarnHudY(float v)       { cfg.tentacleWarnHudY     = clamp01(v); }
+    public static void setTentacleWarnHudScale(float v)   { cfg.tentacleWarnHudScale = clampHudScale(v); }
     public static boolean isSupplyRecoveryMsgEnabled()      { return cfg.supplyRecoveryMsgEnabled; }
     public static void setSupplyRecoveryMsgEnabled(boolean v){ cfg.supplyRecoveryMsgEnabled = v;  save(); }
     public static boolean isFreshNotifyEnabled()            { return cfg.freshNotifyEnabled; }
     public static void setFreshNotifyEnabled(boolean v)     { cfg.freshNotifyEnabled = v;         save(); }
     public static boolean isBuildStartedNotifyEnabled()     { return cfg.buildStartedNotifyEnabled; }
+    public static boolean isBuildStartTimerEnabled()        { return cfg.buildStartTimerEnabled; }
+    public static void setBuildStartTimerEnabled(boolean v) { cfg.buildStartTimerEnabled = v; save(); }
     public static void setBuildStartedNotifyEnabled(boolean v){ cfg.buildStartedNotifyEnabled = v; save(); }
     public static boolean isFastDpsNotifyEnabled()          { return cfg.fastDpsNotifyEnabled; }
     public static void setFastDpsNotifyEnabled(boolean v)   { cfg.fastDpsNotifyEnabled = v;       save(); }
@@ -734,8 +776,6 @@ public class PhantomConfig {
     public static void setHideBossBarEnabled(boolean v)       { cfg.hideBossBarEnabled = v; save(); }
     public static void setHideBossBarOnlyInKuudra(boolean v)  { cfg.hideBossBarOnlyInKuudra = v; save(); }
     public static void setHideFallingBlocksEnabled(boolean v) { cfg.hideFallingBlocksEnabled = v; save(); }
-    public static boolean isManaDrainAnnouncerEnabled()       { return cfg.manaDrainAnnouncerEnabled; }
-    public static void setManaDrainAnnouncerEnabled(boolean v){ cfg.manaDrainAnnouncerEnabled = v; save(); }
     public static boolean isHideEntityFireEnabled()           { return cfg.hideEntityFireEnabled; }
     public static void setHideEntityFireEnabled(boolean v)    { cfg.hideEntityFireEnabled = v; save(); }
     public static boolean isLavaBobberFixEnabled()             { return cfg.lavaBobberFixEnabled; }
@@ -810,6 +850,8 @@ public class PhantomConfig {
     // Split timer
     public static void setSplitTimerEnabled(boolean v)  { cfg.splitTimerEnabled = v;  save(); }
     public static void setSupplyTimesEnabled(boolean v) { cfg.supplyTimesEnabled = v; save(); }
+    public static void setRunBreakdownEnabled(boolean v) { cfg.runBreakdownEnabled = v; save(); }
+    public static void setShitterHighlightEnabled(boolean v) { cfg.shitterHighlightEnabled = v; save(); }
 
     // Item customisation
     public static void setItemCustomizationEnabled(boolean v) { cfg.itemCustomizationEnabled = v; save(); }
@@ -817,6 +859,33 @@ public class PhantomConfig {
     // ── Load / Save ───────────────────────────────────────────────────────────
 
     private static boolean firstRun;
+
+    /**
+     * Key codes mean different keys in different versions of the game. A config saved by a version that numbers keys
+     * another way gets its key bindings put back to the defaults instead of being read as the wrong keys.
+     */
+    private static void resetKeysIfNumberedDifferently(Data d) {
+        int saved = d.keyScheme == 0 ? 1 : d.keyScheme;
+        if (saved != KEY_SCHEME) {
+            Data fresh = new Data();
+            d.shopMainKey = fresh.shopMainKey;
+            d.shopCannonKey = fresh.shopCannonKey;
+            d.slotBindSetKey = fresh.slotBindSetKey;
+            d.openGuiKey = fresh.openGuiKey;
+            d.wardrobeOpenKey = fresh.wardrobeOpenKey;
+            d.statsOpenKey = fresh.statsOpenKey;
+            d.petsOpenKey = fresh.petsOpenKey;
+            d.eqWardrobeOpenKey = fresh.eqWardrobeOpenKey;
+            d.loadoutsOpenKey = fresh.loadoutsOpenKey;
+            d.wardrobeSlotKeys = fresh.wardrobeSlotKeys;
+            d.loadoutSlotKeys = fresh.loadoutSlotKeys;
+            d.wardrobeNextPageKey = fresh.wardrobeNextPageKey;
+            d.wardrobePrevPageKey = fresh.wardrobePrevPageKey;
+            d.wardrobeUnequipKey = fresh.wardrobeUnequipKey;
+            com.phantomaddons.PhantomAddons.LOGGER.info("[PhantomAddons] The saved key bindings were made for another Minecraft version; they were reset.");
+        }
+        d.keyScheme = KEY_SCHEME;
+    }
 
     public static void load() {
         File file = CONFIG_PATH.toFile();
@@ -858,6 +927,7 @@ public class PhantomConfig {
             d.pearlTimerHeight  = clamp01(d.pearlTimerHeight);
             d.pearlTimerSize    = clamp01(d.pearlTimerSize);
             d.pearlCircleSize   = clamp01(d.pearlCircleSize);
+            resetKeysIfNumberedDifferently(d);
             d.lowPing           = Math.max(0, d.lowPing);
             d.waypointFillAlpha = clamp01(d.waypointFillAlpha);
             d.beaconAlpha       = clamp01(d.beaconAlpha);
@@ -868,6 +938,8 @@ public class PhantomConfig {
             d.beaconColNormal  &= 0xFFFFFF;
             d.beaconColCorrect &= 0xFFFFFF;
             d.buildBeaconAlpha  = clamp01(d.buildBeaconAlpha);
+            d.stunReminderTravelMs   = Math.max(0, Math.min(20000, d.stunReminderTravelMs));
+            d.stunReminderMaxPercent = Math.max(1, Math.min(100, d.stunReminderMaxPercent));
             d.elleOutlineColor &= 0xFFFFFF;
             d.elleBeaconColor  &= 0xFFFFFF;
             if (d.kuudraApiKey == null) d.kuudraApiKey = "";
@@ -877,6 +949,7 @@ public class PhantomConfig {
             d.supplyBeaconsEnabled          |= d.supplyWaypointsEnabled;
             d.supplyLocationAnnounceEnabled |= d.supplyWaypointsEnabled;
             d.giantHitboxFillOpacity        = clamp01(d.giantHitboxFillOpacity);
+            d.tentacleGrabWarningMinConfidence = clamp01(d.tentacleGrabWarningMinConfidence);
             d.giantHitboxColor             &= 0xFFFFFF;
             d.boneTimingAssistOffset        = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
             d.boneTimingHitboxOutlineColor &= 0xFFFFFF;
@@ -928,6 +1001,7 @@ public class PhantomConfig {
 
     public static void save() {
         Data d = cfg.clone();
+        d.keyScheme              = KEY_SCHEME;
 
         d.roleMode               = roleMode.name();
         d.lavaMode               = lavaMode.name();
@@ -1139,8 +1213,8 @@ public class PhantomConfig {
         boolean cannonAutoClose         = false;
         boolean shopKeybindsEnabled     = false;
         boolean middleClickShopGuiEnabled = false;
-        int     shopMainKey             = 49;
-        int     shopCannonKey           = 50;
+        int     shopMainKey             = InputConstants.KEY_1;
+        int     shopCannonKey           = InputConstants.KEY_2;
         boolean explosionFilterEnabled  = false;
         float   explosionHideRadius     = 0.3f;
         float   explosionSizeMultiplier = 0.33f;
@@ -1183,6 +1257,8 @@ public class PhantomConfig {
         String  pvTheme        = "MATCH";
         boolean pvArabicNumerals = false;
         boolean pvOverflowSkills = false;
+        boolean pvRememberPage = false;
+        boolean donatorNamesEnabled = true;
         boolean pvTabIcons = true;
         boolean pvPartyFinderPreview = false;
         boolean pvClickNames = false;
@@ -1252,6 +1328,13 @@ public class PhantomConfig {
         boolean supplyLocationAnnounceEnabled = false;
         boolean supplySpawnCountdownEnabled  = true;
         boolean buildProgressHudEnabled      = false;
+        boolean stunReminderEnabled          = false;
+        String  stunReminderRoleMode         = "AUTO";
+        int     stunReminderTravelMs         = 0;
+        int     stunReminderMaxPercent       = 94;
+        float   stunReminderHudX             = 0.5f;
+        float   stunReminderHudY             = 0.25f;
+        float   stunReminderHudScale         = 1.0f;
         boolean announceFreshEnabled         = false;
         boolean supplyHitboxEnabled          = false;
         boolean supplyRodRadiusEnabled       = false;
@@ -1267,11 +1350,14 @@ public class PhantomConfig {
         boolean blockCloseItemEnabled                 = false;
         boolean supplyGiantHitboxEnabled              = false;
         boolean giantHitboxEnabled                    = false;
+        boolean tentacleGrabWarningEnabled            = false;
+        float   tentacleGrabWarningMinConfidence      = 0.5f;
+        boolean tentacleGrabLineEnabled               = true;
+        boolean tentacleGrabHudEnabled                = false;
         boolean giantHitboxFilled                     = false;
         float   giantHitboxFillOpacity                = 0.05f;
         int     giantHitboxColor                      = 0xFFFFFF;
-        boolean kuudraDirectionEnabled  = false;
-        boolean tuxedoWarningEnabled    = true;
+        boolean kuudraDirectionEnabled  = false;        boolean tuxedoWarningEnabled    = true;
         boolean boneTimingAssistEnabled = false;
         float   boneTimingAssistOffset = 0f;
         boolean boneTimingHitboxOutlineEnabled = false;
@@ -1305,9 +1391,13 @@ public class PhantomConfig {
         float cratePriorityHudX      = 0.5f;
         float cratePriorityHudY      = 0.6f;
         float cratePriorityHudScale  = 2.0f;
+        float tentacleWarnHudX       = 0.5f;
+        float tentacleWarnHudY       = 0.35f;
+        float tentacleWarnHudScale   = 3.0f;
         boolean supplyRecoveryMsgEnabled = false;
         boolean freshNotifyEnabled       = false;
         boolean buildStartedNotifyEnabled= false;
+        boolean buildStartTimerEnabled = true;
         boolean fastDpsNotifyEnabled     = false;
         boolean soloNotifyEnabled        = false;
         boolean noPreNotifyEnabled       = false;
@@ -1331,7 +1421,6 @@ public class PhantomConfig {
         boolean hideBossBarEnabled         = false;
         boolean hideBossBarOnlyInKuudra    = false;
         boolean hideFallingBlocksEnabled  = false;
-        boolean manaDrainAnnouncerEnabled  = false;
         boolean hideEntityFireEnabled      = false;
         boolean lavaBobberFixEnabled       = false;
         boolean legacyRodPhysicsEnabled    = false;
@@ -1353,11 +1442,14 @@ public class PhantomConfig {
         int     petsOpenKey         = -1;
         int     eqWardrobeOpenKey   = -1;
         int     loadoutsOpenKey     = -1;
-        int[]   wardrobeSlotKeys    = {49,50,51,52,53,54,55,56,57};
+        int[]   wardrobeSlotKeys    = {InputConstants.KEY_1, InputConstants.KEY_2, InputConstants.KEY_3, InputConstants.KEY_4, InputConstants.KEY_5,
+                                       InputConstants.KEY_6, InputConstants.KEY_7, InputConstants.KEY_8, InputConstants.KEY_9};
         int[]   loadoutSlotKeys     = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-        int     wardrobeNextPageKey = 262;
-        int     wardrobePrevPageKey = 263;
-        int     wardrobeUnequipKey  = 85;
+        int     wardrobeNextPageKey = InputConstants.KEY_RIGHT;
+        int     wardrobePrevPageKey = InputConstants.KEY_LEFT;
+        int     wardrobeUnequipKey  = InputConstants.KEY_U;
+        /** Which numbering the saved key codes use, so a config copied from another version doesn't bind the wrong keys. */
+        int     keyScheme           = 0;
         boolean wardrobeDisableUnequipEnabled = true;
         boolean wardrobeAutoCloseEnabled      = true;
         int     wardrobeExtraAutoCloseMs      = 0;
@@ -1400,6 +1492,8 @@ public class PhantomConfig {
 
         boolean   splitTimerEnabled  = true;
         boolean   supplyTimesEnabled = true;
+        boolean   runBreakdownEnabled = true;
+        boolean   shitterHighlightEnabled = true;
         double[][] splitPbs          = null;
         double[]   totalRunPbs       = null;
         double[]   totalRunTimeSum   = null;

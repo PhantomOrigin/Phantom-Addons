@@ -10,6 +10,7 @@ import com.phantomaddons.features.supplies.SupplyBeaconRenderer;
 import com.phantomaddons.features.supplies.giant.GiantHitboxOutline;
 import com.phantomaddons.features.supplies.giant.SupplyGiantHitbox;
 import com.phantomaddons.features.supplies.SupplyRenderHelper;
+import com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarningRenderer;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlWaypointRenderer;
 import com.phantomaddons.features.supplies.waypointlines.WaypointLinesRenderer;
 import com.phantomaddons.features.stundps.StunPreviewRenderer;
@@ -57,6 +58,7 @@ public abstract class WorldRendererMixin {
         AnnounceFresh.renderTimers(matrices, camera, tickDelta);
         SupplyGiantHitbox.render(matrices, camera, tickDelta);
         GiantHitboxOutline.render(matrices, camera, tickDelta);
+        TentacleGrabWarningRenderer.render(matrices, camera, tickDelta);
         WaypointLinesRenderer.render(matrices, camera, tickDelta);
         BoneTimingHitboxOutline.render(matrices, camera, tickDelta);
         IchorRadiusRenderer.render(matrices, camera, tickDelta);

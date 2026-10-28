@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 //? if <26.2 {
 /*import net.minecraft.world.entity.monster.Slime;
@@ -62,7 +63,7 @@ public final class KuudraDirectionHud {
                 return;
             }
             String d = computeDirection(kuudra.getX(), kuudra.getZ());
-            direction = d;
+            direction = d != null ? d : directionFromYaw(kuudra.getYRot());
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
@@ -135,5 +136,13 @@ public final class KuudraDirectionHud {
         if (x > X_LEFT)  return "LEFT!";
         if (z < Z_BACK)  return "BACK!";
         return null;
+    }
+
+    private static String directionFromYaw(float yaw) {
+        float y = Mth.wrapDegrees(yaw);
+        if (y >= -135f && y < -45f) return "RIGHT!";
+        if (y >= 45f && y < 135f)   return "LEFT!";
+        if (y >= -45f && y < 45f)   return "BACK!";
+        return "FRONT!";
     }
 }

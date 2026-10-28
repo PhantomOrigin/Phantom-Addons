@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
@@ -23,25 +24,21 @@ public class KeyCapture extends Feature {
 
     static String nameForCode(int code) {
         if (code <= 0) return "None";
-        if (code >= PhantomScreen.MOUSE_OFFSET) return "Mouse " + (code - PhantomScreen.MOUSE_OFFSET + 1);
-        if (code == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN) return "None";
-        try {
-            String name = org.lwjgl.glfw.GLFW.glfwGetKeyName(code, -1);
-            return name != null ? name.toUpperCase() : "Key " + code;
-        } catch (Exception e) { return "Key " + code; }
+        if (code >= PhantomScreen.MOUSE_OFFSET) return "Mouse " + com.phantomaddons.utils.InputCompat.mouseButtonNumber(code - PhantomScreen.MOUSE_OFFSET);
+        return com.phantomaddons.utils.InputCompat.keyName(code);
     }
 
     private String keyName() { return nameForCode(getKey.getAsInt()); }
 
     @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
         drawLabel(ctx, s, x, y, labelColor != null ? labelColor : C_TEXT_DIM);
-        String label = capturing ? "[ Press key or mouse... ]" : "[ " + keyName() + " ]";
+        String label = capturing ? "Press key or mouse..." : keyName();
         int lw = s.font().width(label);
         int bx = x + w - lw - 16, by = y + 3, bh = ROW_H - 6;
         boolean hov = !capturing && mx >= bx && mx <= bx + lw + 8 && my >= by && my <= by + bh;
-        roundedFill(ctx, bx, by, bx + lw + 8, by + bh, capturing ? 0xFF1A3344 : hov ? C_CYCLE_HOVER : C_CYCLE_BG, CONTROL_RADIUS);
+        raisedFill(ctx, bx, by, bx + lw + 8, by + bh, capturing ? 0xFF1A3344 : hov ? C_CYCLE_HOVER : C_CYCLE_BG, CONTROL_RADIUS);
         drawText(ctx, s.font(), Component.literal(label),
-                bx + 4, by + (bh - s.font().lineHeight) / 2,
+                bx + 4, by + (bh - s.font().lineHeight) / 2 + 1,
                 capturing ? 0xFF88CCFF : C_ACCENT);
     }
     @Override boolean onDown(double mx, double my, int x, int y, int w) {
@@ -51,7 +48,7 @@ public class KeyCapture extends Feature {
     }
     @Override void onKey(int key) {
         if (!capturing) return;
-        if (key == 256) { setKey.accept(-1); capturing = false; return; } // Escape = unbind
+        if (key == InputConstants.KEY_ESCAPE) { setKey.accept(-1); capturing = false; return; } // Escape = unbind
         setKey.accept(key); capturing = false;
     }
     void onMouseButton(int button) {

@@ -4,6 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.phantomaddons.PhantomAddons;
+import com.phantomaddons.PhantomConfig;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import com.phantomaddons.utils.PhantomPaths;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
@@ -25,7 +28,10 @@ public final class DonatorNames {
     private static final Path CACHE = PhantomPaths.resolve("phantomaddons_donators.json");
     private static final long MAX_AGE_MS = 12L * 60 * 60 * 1000;
 
+    private static final long REFRESH_COOLDOWN_MS = 10L * 60 * 1000;
+
     private static volatile Map<String, StyledText> styles = Map.of();
+    private static volatile long lastRefreshAt;
 
     private DonatorNames() {}
 
@@ -40,7 +46,26 @@ public final class DonatorNames {
         if (!fresh) CompletableFuture.runAsync(DonatorNames::refresh);
     }
 
-    private static void refresh() {
+    public static long cooldownLeftMs() {
+        return Math.max(0L, lastRefreshAt + REFRESH_COOLDOWN_MS - System.currentTimeMillis());
+    }
+
+    public static void refreshNow() {
+        Minecraft mc = Minecraft.getInstance();
+        if (cooldownLeftMs() > 0) return;
+        CompletableFuture.runAsync(() -> {
+            boolean ok = refresh();
+            mc.execute(() -> {
+                if (mc.player == null) return;
+                mc.player.sendSystemMessage(Component.literal(ok
+                        ? "§aDonator names refreshed."
+                        : "§eCouldn't refresh the donator names. Using the saved list."));
+            });
+        });
+    }
+
+    private static boolean refresh() {
+        lastRefreshAt = System.currentTimeMillis();
         try {
             HttpURLConnection conn = (HttpURLConnection) URI.create(URL).toURL().openConnection();
             conn.setRequestProperty("User-Agent", "PhantomAddons-Donators");
@@ -51,8 +76,10 @@ public final class DonatorNames {
             try (var in = conn.getInputStream()) { body = new String(in.readAllBytes(), StandardCharsets.UTF_8); }
             styles = parse(body);
             Files.writeString(CACHE, body, StandardCharsets.UTF_8);
+            return true;
         } catch (Exception e) {
             PhantomAddons.LOGGER.warn("[PhantomAddons] Couldn't refresh donator names ({}), using the saved list", e.getMessage());
+            return false;
         }
     }
 
@@ -82,7 +109,7 @@ public final class DonatorNames {
     }
 
     public static float centerShift(net.minecraft.client.gui.Font font, FormattedCharSequence original) {
-        if (original == null || styles.isEmpty()) return 0f;
+        if (original == null || styles.isEmpty() || !PhantomConfig.isDonatorNamesEnabled()) return 0f;
         FormattedCharSequence applied = apply(original, 0f);
         if (applied == original) return 0f;
         return (font.width(original) - font.width(steady(applied))) / 2f;
@@ -96,7 +123,7 @@ public final class DonatorNames {
 
     public static FormattedCharSequence apply(FormattedCharSequence in, float y) {
         Map<String, StyledText> map = styles;
-        if (in == null || map.isEmpty()) return in;
+        if (in == null || map.isEmpty() || !PhantomConfig.isDonatorNamesEnabled()) return in;
         try {
             StringBuilder token = TOKEN.get();
             token.setLength(0);

@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
@@ -36,23 +37,23 @@ public class VisualWordEntry extends Feature {
 
         drawField(ctx, s, inputX(x), fy, fw, fh, inText, focus == 1, "find");
         drawCenteredText(ctx, s.font(), Component.literal("→"),
-                arrowX(x, w) + 4, fy + (fh - s.font().lineHeight) / 2, C_TEXT_DIM);
+                arrowX(x, w) + 4, fy + (fh - s.font().lineHeight) / 2 + 1, C_TEXT_DIM);
         drawField(ctx, s, replX(x, w), fy, fw, fh, repText, focus == 2, "replace");
 
         int rx = removeX(x, w);
         boolean hov = mx >= rx && mx <= rx + 14 && my >= fy && my <= fy + fh;
-        roundedFill(ctx, rx, fy, rx + 14, fy + fh, dangerBg(hov), CONTROL_RADIUS);
+        raisedFill(ctx, rx, fy, rx + 14, fy + fh, dangerBg(hov), CONTROL_RADIUS);
         drawCenteredText(ctx, s.font(), Component.literal("✕"),
-                rx + 7, fy + (fh - s.font().lineHeight) / 2, C_ERROR);
+                rx + 7, fy + (fh - s.font().lineHeight) / 2 + 1, C_ERROR);
     }
 
     private void drawField(GuiGraphicsExtractor ctx, PhantomScreen s, int fx, int fy, int fw, int fh,
                            String text, boolean foc, String hint) {
-        roundedFill(ctx, fx, fy, fx + fw, fy + fh, foc ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
+        insetFill(ctx, fx, fy, fx + fw, fy + fh, foc ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
         boolean placeholder = (text == null || text.isEmpty()) && !foc;
         String disp = placeholder ? hint : (text == null ? "" : text);
         drawText(ctx, s.font(), Component.literal(disp),
-                fx + 4, fy + (fh - s.font().lineHeight) / 2, placeholder ? C_TEXT_DIM : C_TEXT);
+                fx + 4, fy + (fh - s.font().lineHeight) / 2 + 1, placeholder ? C_TEXT_DIM : C_TEXT);
     }
 
     @Override boolean onDown(double mx, double my, int x, int y, int w) {
@@ -77,13 +78,13 @@ public class VisualWordEntry extends Feature {
 
     @Override void onKey(int key) {
         if (focus == 0) return;
-        if (key == 256) { commit(); }                         // Esc saves current value
-        else if (key == 257 || key == 335) { commit(); }
-        else if (key == 258) { // Tab → jump to the other field
+        if (key == InputConstants.KEY_ESCAPE) { commit(); }                         // Esc saves current value
+        else if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER) { commit(); }
+        else if (key == InputConstants.KEY_TAB) { // Tab → jump to the other field
             var r = rule();
             if (r != null) { int next = focus == 1 ? 2 : 1; commit(); focusOn(next, next == 1 ? r.input : r.replacement); }
         }
-        else if (key == 259 && draft != null && !draft.isEmpty())
+        else if (key == InputConstants.KEY_BACKSPACE && draft != null && !draft.isEmpty())
             draft = draft.substring(0, draft.length() - 1);
     }
 

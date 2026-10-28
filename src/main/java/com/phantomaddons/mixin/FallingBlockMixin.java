@@ -16,7 +16,11 @@ public class FallingBlockMixin {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private <E extends Entity> void phantomaddons$hideFallingBlock(
             E entity, Frustum frustum, double camX, double camY, double camZ,
+            //? if <26.3 {
             CallbackInfoReturnable<Boolean> cir) {
+            //?} else {
+            /*float partialTick, CallbackInfoReturnable<Boolean> cir) {
+            *///?}
         if (PhantomConfig.isHideFallingBlocksEnabled() && entity instanceof FallingBlockEntity) {
             cir.setReturnValue(false);
         }

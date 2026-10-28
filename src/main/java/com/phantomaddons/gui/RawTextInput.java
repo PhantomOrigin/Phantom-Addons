@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -35,7 +36,7 @@ public class RawTextInput extends Feature {
         lastFx = fx; lastFy = fy; lastFw = fw; lastFh = fh;
         boolean hov = fieldHovered(fx, fy, fw, fh, mx, my);
         int bg = focused ? C_FIELD_FOCUS : hov ? C_FIELD_HOVER : C_FIELD_BG;
-        roundedFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
+        insetFill(ctx, fx, fy, fx + fw, fy + fh, bg, CONTROL_RADIUS);
         cursorPos = Math.max(0, Math.min(cursorPos, display.length()));
         selAnchor = Math.max(0, Math.min(selAnchor, display.length()));
         int maxChars = (fw - 8) / Math.max(1, s.font().width("a"));
@@ -46,7 +47,7 @@ public class RawTextInput extends Feature {
         lastStart = start; lastShown = shown;
         if (focused) drawSelection(ctx, s.font(), shown, start, selAnchor, cursorPos, fx + 4, fy, fh, withAlpha(C_ACCENT, 90));
         String shownForDraw = (masked && !focused) ? "*".repeat(shown.length()) : shown;
-        drawText(ctx, s.font(), Component.literal(shownForDraw), fx + 4, fy + (fh - s.font().lineHeight) / 2, C_TEXT);
+        drawText(ctx, s.font(), Component.literal(shownForDraw), fx + 4, fy + (fh - s.font().lineHeight) / 2 + 1, C_TEXT);
         if (focused) {
             int visibleCursor = Math.max(start, Math.min(cursorPos, start + shown.length()));
             int caretX = fx + 4 + s.font().width(display.substring(start, visibleCursor));
@@ -72,29 +73,29 @@ public class RawTextInput extends Feature {
     @Override void onKey(int key) {
         if (!focused) return;
         boolean ctrl = isCtrlDown(), shift = isShiftDown();
-        if (key == 256 || key == 257 || key == 335) { commit(); focused = false; return; }
-        if (ctrl && key == 65) { selAnchor = 0; cursorPos = draft == null ? 0 : draft.length(); return; } // Ctrl+A
-        if (ctrl && key == 67) { copySelection(); return; } // Ctrl+C
-        if (ctrl && key == 88) { copySelection(); deleteSelection(); return; } // Ctrl+X
-        if (ctrl && key == 86) { pasteAtCursor(); return; } // Ctrl+V
-        if (key == 259) { // Backspace
+        if (key == InputConstants.KEY_ESCAPE || key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER) { commit(); focused = false; return; }
+        if (ctrl && key == InputConstants.KEY_A) { selAnchor = 0; cursorPos = draft == null ? 0 : draft.length(); return; } // Ctrl+A
+        if (ctrl && key == InputConstants.KEY_C) { copySelection(); return; } // Ctrl+C
+        if (ctrl && key == InputConstants.KEY_X) { copySelection(); deleteSelection(); return; } // Ctrl+X
+        if (ctrl && key == InputConstants.KEY_V) { pasteAtCursor(); return; } // Ctrl+V
+        if (key == InputConstants.KEY_BACKSPACE) { // Backspace
             if (selAnchor != cursorPos) deleteSelection();
             else if (draft != null) { draft = deleteBefore(draft, cursorPos); cursorPos = Math.max(0, cursorPos - 1); selAnchor = cursorPos; }
             return;
         }
-        if (key == 261) { // Delete
+        if (key == InputConstants.KEY_DELETE) { // Delete
             if (selAnchor != cursorPos) deleteSelection();
             else if (draft != null) draft = deleteAfter(draft, cursorPos);
             selAnchor = cursorPos;
             return;
         }
-        if (key == 263) { // Left
+        if (key == InputConstants.KEY_LEFT) { // Left
             if (!shift && selAnchor != cursorPos) cursorPos = Math.min(selAnchor, cursorPos);
             else cursorPos = Math.max(0, cursorPos - 1);
             if (!shift) selAnchor = cursorPos;
             return;
         }
-        if (key == 262) { // Right
+        if (key == InputConstants.KEY_RIGHT) { // Right
             int len = draft == null ? 0 : draft.length();
             if (!shift && selAnchor != cursorPos) cursorPos = Math.max(selAnchor, cursorPos);
             else cursorPos = Math.min(len, cursorPos + 1);

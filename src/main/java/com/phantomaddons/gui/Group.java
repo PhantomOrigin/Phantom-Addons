@@ -4,6 +4,7 @@ import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -16,6 +17,8 @@ public final class Group extends Node {
     final Consumer<Boolean> set;
     final List<Node> children = new ArrayList<>();
     String tooltip;
+    BooleanSupplier warnWhen;
+    String warnText;
 
     Group(String name, Tab tab, String key, Supplier<Boolean> get, Consumer<Boolean> set) {
         super(tab); this.name = name; this.key = key; this.get = get; this.set = set;
@@ -24,6 +27,8 @@ public final class Group extends Node {
     }
 
     public Group withTooltip(String t) { this.tooltip = t; return this; }
+    public Group withWarning(BooleanSupplier when, String text) { this.warnWhen = when; this.warnText = text; return this; }
+    boolean warning() { return warnWhen != null && warnWhen.getAsBoolean(); }
     public Group add(Feature f)        { children.add(new Leaf(f, tab)); return this; }
     public Group add(Group g)          { children.add(g); return this; }
 }

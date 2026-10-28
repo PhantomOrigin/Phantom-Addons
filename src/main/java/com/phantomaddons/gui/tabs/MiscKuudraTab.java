@@ -17,11 +17,13 @@ public final class MiscKuudraTab {
     private MiscKuudraTab() {}
 
     public static void build(MenuBuilder m) {
+        m.heading("Mobs and warnings");
         m.add(new RangeSlider("Kuudra Mob Size", 1.0f, 200.0f, "%.0f%%",
                 PhantomConfig::getKuudraSizeScale, PhantomConfig::setKuudraSizeScale));
         m.add(new Toggle("Tuxedo Warning",
                 PhantomConfig::isTuxedoWarningEnabled, PhantomConfig::setTuxedoWarningEnabled));
 
+        m.heading("Shop and chests");
         Group shop = m.group("Shop Keybinds", PhantomConfig::isShopKeybindsEnabled, PhantomConfig::setShopKeybindsEnabled);
         shop.add(new KeyCapture("Main Key", PhantomConfig::getShopMainKey,   PhantomConfig::setShopMainKey));
         shop.add(new KeyCapture("Cannon Key", PhantomConfig::getShopCannonKey, PhantomConfig::setShopCannonKey));
@@ -76,9 +78,9 @@ public final class MiscKuudraTab {
         m.add(profit);
 
         m.add(new Toggle("Highlight Unopened Chests",
-                PhantomConfig::isHighlightUnopenedChestsEnabled, PhantomConfig::setHighlightUnopenedChestsEnabled)
-                .withTooltip("Highlights unopened Kuudra chests in Croesus/Vesuvius — works independently of Profit Tracker"));
+                PhantomConfig::isHighlightUnopenedChestsEnabled, PhantomConfig::setHighlightUnopenedChestsEnabled));
 
+        m.heading("Runs");
         Group kicked = m.group("Kicked Notification", PhantomConfig::isKickedNotificationEnabled, PhantomConfig::setKickedNotificationEnabled);
         m.sound(kicked, PhantomConfig.SOUND_KICKED);
         m.add(kicked);
@@ -86,6 +88,7 @@ public final class MiscKuudraTab {
         autoRequeue.add(new Toggle("Party Chat Message",
                 PhantomConfig::isAutoRequeueMessageEnabled, PhantomConfig::setAutoRequeueMessageEnabled));
         m.add(autoRequeue);
+        m.heading("Hiding and extras");
         m.add(new Toggle("Hide Damage Title",
                 PhantomConfig::isHideDamageTitleEnabled, PhantomConfig::setHideDamageTitleEnabled));
         m.add(new Toggle("Hollow Wand Announcer",
@@ -112,10 +115,27 @@ public final class MiscKuudraTab {
         m.add(new Toggle("Party Commands",
                 PhantomConfig::isPartyCmdsEnabled, PhantomConfig::setPartyCmdsEnabled));
 
+        if (RemoteFeatureGate.isEnabled()) {
+            Group shitters = m.group("Shitter List", PhantomConfig::isShitterHighlightEnabled, PhantomConfig::setShitterHighlightEnabled)
+                    .withTooltip("Recolours the names of players on your shitter list");
+            shitters.add(new Toggle("Auto Kick Shitters",
+                    ShitterList::isAutoKickEnabled,
+                    ShitterList::setAutoKickEnabled));
+            m.add(shitters);
+        } else {
+            m.add(new Toggle("Shitter List",
+                    PhantomConfig::isShitterHighlightEnabled, PhantomConfig::setShitterHighlightEnabled)
+                    .withTooltip("Recolours the names of players on your shitter list"));
+        }
+
         Group split = m.group("Split Timer", PhantomConfig::isSplitTimerEnabled, PhantomConfig::setSplitTimerEnabled);
         split.add(new Toggle("Supply Times",
                 PhantomConfig::isSupplyTimesEnabled, PhantomConfig::setSupplyTimesEnabled));
         m.add(split);
+
+        m.add(new Toggle("Run Breakdown",
+                PhantomConfig::isRunBreakdownEnabled, PhantomConfig::setRunBreakdownEnabled)
+                .withTooltip("Prints each split and the total time in chat when a run ends"));
 
         if (RemoteFeatureGate.isEnabled()) {
             Group autoKick = m.group("Auto Kick", PhantomConfig::isAutoKickEnabled, PhantomConfig::setAutoKickEnabled);
@@ -130,13 +150,11 @@ public final class MiscKuudraTab {
             autoKick.add(new Toggle("Rend",
                     PhantomConfig::isAkRequireRend, PhantomConfig::setAkRequireRend));
             autoKick.add(new OptionalIntInput("Gdrag Level", PhantomConfig::getAkMinGdragLevel, PhantomConfig::setAkMinGdragLevel));
-            autoKick.add(new Toggle("Auto Kick Shitters",
-                    ShitterList::isAutoKickEnabled,
-                    ShitterList::setAutoKickEnabled));
             m.add(autoKick);
 
-            m.add(new Toggle("Profile Viewer",
-                    PhantomConfig::isProfileViewerEnabled, PhantomConfig::setProfileViewerEnabled));
+            m.add(new Toggle("Kuudra Profile Viewer",
+                    PhantomConfig::isProfileViewerEnabled, PhantomConfig::setProfileViewerEnabled)
+                    .withTooltip("/kuudra and party join prompt"));
         }
     }
 }

@@ -26,9 +26,11 @@ public final class UpdateChecker {
     private static final String ARCHIVE_BASE_NAME = "PhantomAddons";
     //? if <26.2 {
     /*private static final String MC_VERSION_TAG = "26.1.x";
-    *///?} else {
+    *///?} else if <26.3 {
     private static final String MC_VERSION_TAG = "26.2.x";
-    //?}
+    //?} else {
+    /*private static final String MC_VERSION_TAG = "26.3.x";
+    *///?}
     private static final String SUFFIX_FULL     = "full";
     private static final String SUFFIX_NOAUTO   = "full-noautoupdate";
     private static final String SUFFIX_STANDARD = ""; // Standard ships with no suffix: PhantomAddons-<version>.jar
@@ -199,19 +201,27 @@ public final class UpdateChecker {
         };
     }
 
+    private static void openUrl(String url) {
+        //? if <26.3 {
+        net.minecraft.util.Util.getPlatform().openUri(url);
+        //?} else {
+        /*com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(url));
+        *///?}
+    }
+
     public static String editionPageUrl() {
         return Edition.CURRENT == Edition.STANDARD ? MODRINTH_URL : GITHUB_URL;
     }
 
     public static void openEditionPage() {
         try {
-            net.minecraft.util.Util.getPlatform().openUri(editionPageUrl());
+            openUrl(editionPageUrl());
         } catch (Exception ignored) {}
     }
 
     public static void openReleasePage() {
         try {
-            net.minecraft.util.Util.getPlatform().openUri(GITHUB_URL);
+            openUrl(GITHUB_URL);
         } catch (Exception ignored) {}
     }
 

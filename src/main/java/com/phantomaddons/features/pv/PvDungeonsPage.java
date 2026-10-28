@@ -52,7 +52,6 @@ final class PvDungeonsPage {
             return c.lh(es);
         }
 
-        // ── Floor cards take the bottom two rows, the stats strip sits just above them ──
         float fs = 0.75f * es;
         int floorCardH = 2 * c.lh(fs) + 9;
         int floorsH = 2 * floorCardH + 4;
@@ -62,14 +61,13 @@ final class PvDungeonsPage {
         int stripH = Math.max(2 * statLine, immSlot);
         int topH = Math.max(availH - floorsH - stripH - 2 * gap, Math.round(110 * es));
 
-        // ── Left: level bars ──
         PvLeveling.Level cata = catacombs(PvJson.num(d, 0, "dungeon_types", "catacombs", "experience"));
         List<PvLeveling.Level> classes = new ArrayList<>();
         double classSum = 0;
         for (String cl : CLASSES) {
             PvLeveling.Level l = catacombs(PvJson.num(d, 0, "player_classes", cl, "experience"));
             classes.add(l);
-            classSum += Math.min(50, l.level());   // the average stays out of overflow
+            classSum += Math.min(50, l.level());
         }
         String selected = PvJson.str(d, "", "selected_dungeon_class");
         int viewKey = c.key() + 50;
@@ -94,14 +92,11 @@ final class PvDungeonsPage {
         }
         int sectionH = Math.max(topH, 6 * rowH);
 
-        // ── Right: class setup cards, full height of the top section ──
         int rx = x0 + leftW + gap, rw = avail - leftW - gap;
         List<PvDungeonGear.Group> groups = c.v().analysis.dungeonGear.setups.get(CLASSES[viewed]);
-        // In a chat card the player's name sits on the first line at the top right, so the setup starts below it.
         int nameRoom = s.inCard() ? c.lh(es) + 4 : 0;
         setupCards(c, groups, rx, y0 + nameRoom, rw, sectionH - nameRoom);
 
-        // ── Stats strip: full width under the class bars and setup, immunity slots on the right ──
         int iy = y0 + sectionH + gap;
         GuiDraw.roundedFill(c.g(), x0, iy - gap / 2 - 1, x0 + avail, iy - gap / 2, PvTheme.overlay(0x18), 0);
         int immW = 3 * (immSlot + 3);
@@ -109,7 +104,7 @@ final class PvDungeonsPage {
         int statW = (statsW - 2 * 10) / 3;
         String[][] stats = {
                 { "Class Avg", String.format(Locale.ROOT, "%.2f", classSum / CLASSES.length) },
-                { "Secrets", PvPages.shortNum(PvJson.num(d, 0, "secrets")) },
+                { "Secrets", secrets(d) },
                 { "Magical Power", c.v().magicalPower >= 0 ? String.valueOf(c.v().magicalPower) : "?" },
                 { "Best Floor", floorName(false, (int) PvJson.num(d, -1, "dungeon_types", "catacombs", "highest_tier_completed")) },
                 { "Best Master", floorName(true, (int) PvJson.num(d, -1, "dungeon_types", "master_catacombs", "highest_tier_completed")) },
@@ -129,11 +124,22 @@ final class PvDungeonsPage {
         if (gear.phoenix != null) s.petSlot(c.g(), px, gy, immSlot, gear.phoenix, c.mx(), c.my());
         else immunity(c, ItemStack.EMPTY, "Phoenix Pet", px, gy, immSlot);
 
-        // ── Bottom: floors ──
         int fy = iy + stripH + gap;
         floorRow(c, PvJson.obj(d, "dungeon_types", "catacombs"), false, x0, fy, avail, floorCardH, fs);
         floorRow(c, PvJson.obj(d, "dungeon_types", "master_catacombs"), true, x0, fy + floorCardH + 4, avail, floorCardH, fs);
         return fy + floorsH - y0;
+    }
+
+    private static String secrets(JsonObject d) {
+        double secrets = PvJson.num(d, 0, "secrets");
+        double runs = 0;
+        for (String type : new String[] { "catacombs", "master_catacombs" }) {
+            JsonObject done = PvJson.obj(d, "dungeon_types", type, "tier_completions");
+            if (done == null) continue;
+            for (var e : done.entrySet()) if (e.getKey().chars().allMatch(Character::isDigit)) runs += PvJson.num(done, 0, e.getKey());
+        }
+        String total = PvPages.shortNum(secrets);
+        return runs > 0 ? total + String.format(Locale.ROOT, " (%.2f)", secrets / runs) : total;
     }
 
     private static void immunity(PvPages.Ctx c, ItemStack item, String what, int x, int y, int slot) {
@@ -324,11 +330,11 @@ final class PvDungeonsPage {
         if (score >= 0) lines.add("§7Best Score: §e" + PvPages.num(score));
         double sPlus = PvJson.num(type, -1, "fastest_time_s_plus", k);
         double sRank = PvJson.num(type, -1, "fastest_time_s", k);
-        if (sPlus > 0) lines.add("§7Fastest §6S+§7: §a" + PvPages.time(sPlus));
-        if (sRank > 0) lines.add("§7Fastest §eS§7: §a" + PvPages.time(sRank));
+        if (sPlus > 0) lines.add("§7Fastest §6S+§7: §a" + PvPages.timePrecise(sPlus));
+        if (sRank > 0) lines.add("§7Fastest §eS§7: §a" + PvPages.timePrecise(sRank));
         if (sPlus <= 0 && sRank <= 0) {
             double any = PvJson.num(type, -1, "fastest_time", k);
-            if (any > 0) lines.add("§7Fastest Completion: §a" + PvPages.time(any));
+            if (any > 0) lines.add("§7Fastest Completion: §a" + PvPages.timePrecise(any));
         }
         return lines;
     }

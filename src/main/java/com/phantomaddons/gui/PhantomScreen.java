@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.HudEditorScreen;
 import com.phantomaddons.PhantomConfig;
 import net.minecraft.client.Minecraft;
@@ -14,8 +15,10 @@ import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.phantomaddons.gui.GuiDraw.*;
 import static com.phantomaddons.gui.Theme.*;
@@ -30,11 +33,15 @@ public class PhantomScreen extends Screen {
     private static final int BASE_PANEL_H = 280;
     private static int PANEL_W = BASE_PANEL_W;
     private static int PANEL_H = BASE_PANEL_H;
-    private static final int ROW_GAP   = 3;
+    private static final int ROW_GAP   = 1;
     private static final int PAD       = 12;
     private static final int INDENT    = 12;
     private static final int PANEL_RADIUS = 6;
-    private static final int GROUP_PAD_B = 6;
+    private static final int GROUP_PAD_B = 2;
+    private static final int HEADING_H = 22;
+    private static final int SEARCH_W = 144, SEARCH_H = 17, SEARCH_PAD = 5, SEARCH_RIGHT = 7;
+    private static final int BAR_H = 28;
+    private static final String[] BAR_LABELS = { "HUD Layout Editor", "Discord", "GitHub" };
 
     private static final Identifier LOGO =
             Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/logo.png");
@@ -184,6 +191,7 @@ public class PhantomScreen extends Screen {
         Theme.apply(PhantomConfig.getUiTheme());
         applyGuiScale(PhantomConfig.getUiGuiScale());
         buildFeatures();
+        startTabIn(currentTab);
     }
 
     private static void applyGuiScale(float scale) {
@@ -214,9 +222,16 @@ public class PhantomScreen extends Screen {
 
     @Override
     protected void init() {
-        int sfX = px() + PANEL_W - 148;
-        int sfY = py() + (HEADER_H - 14) / 2;
-        searchField = new EditBox(font, sfX, sfY, 138, 14, Component.empty());
+        int sbx = px() + PANEL_W - SEARCH_RIGHT - SEARCH_W;
+        int sby = py() + (HEADER_H - SEARCH_H) / 2;
+        final int hitX0 = sbx, hitY0 = sby, hitX1 = sbx + SEARCH_W, hitY1 = sby + SEARCH_H;
+        searchField = new EditBox(font, sbx + SEARCH_PAD, sby + SEARCH_PAD,
+                SEARCH_W - 2 * SEARCH_PAD, 9, Component.empty()) {
+            @Override
+            public boolean isMouseOver(double mouseX, double mouseY) {
+                return mouseX >= hitX0 && mouseX < hitX1 && mouseY >= hitY0 && mouseY < hitY1;
+            }
+        };
         searchField.setMaxLength(64);
         searchField.setBordered(false);
         searchField.setTextColor(C_TEXT);
@@ -246,8 +261,9 @@ public class PhantomScreen extends Screen {
 
     private void stepAnims(float delta) {
         float step = delta * GROUP_SPEED * 0.05f; // delta is ~ticks; tune
+        if (tabInT >= 1f && tabOutT >= 1f) flyingGroups.clear();
         for (Group g : allGroups) {
-            stepExpandAnim(g.key, step);
+            if (!flyingGroups.contains(g.key)) stepExpandAnim(g.key, step);
 
             if (g.get != null) {
                 float tTgt = g.get.get() ? 1f : 0f;
@@ -260,6 +276,16 @@ public class PhantomScreen extends Screen {
         }
 
         for (String key : CATEGORY_KEYS) stepExpandAnim(key, step);
+    }
+
+    private final Set<String> flyingGroups = new HashSet<>();
+
+    private void startTabIn(Tab t) {
+        tabInT = 0f;
+        tabInElapsed = 0f;
+        flyingGroups.clear();
+        for (Group g : allGroups) if (g.tab == t) ANIM.put(g.key, 0f);
+        for (Node n : roots) if (n.tab == t && n instanceof Group g) flyingGroups.add(g.key);
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────
@@ -281,18 +307,27 @@ public class PhantomScreen extends Screen {
             List<RenderRow> out = new ArrayList<>();
             int baseX = cx() + PAD;
             int baseW = cw() - PAD * 2;
-            int[] y = { cy() + PAD - scroll };
+            int[] y = { cy() + topPad(null) - scroll };
             for (Node f : filteredRoots()) layoutNode(f, 0, baseX, baseW, 1f, y, out);
             return out;
         }
         return layoutRowsForTab(currentTab);
     }
 
+    private int topPad(Tab tab) {
+        if (tab == null || !query.isEmpty()) return 5;
+        for (Node n : roots) {
+            if (n.tab != tab) continue;
+            return n instanceof Heading ? 4 : 5;
+        }
+        return 5;
+    }
+
     private List<RenderRow> layoutRowsForTab(Tab tab) {
         List<RenderRow> out = new ArrayList<>();
         int baseX = cx() + PAD;
         int baseW = cw() - PAD * 2;
-        int[] y = { cy() + PAD - scroll };
+        int[] y = { cy() + topPad(tab) - scroll };
         for (Node n : roots) {
             if (n.tab != tab) continue;
             layoutNode(n, 0, baseX, baseW, 1f, y, out);
@@ -301,6 +336,7 @@ public class PhantomScreen extends Screen {
     }
 
     private Node filterNode(Node n, String q) {
+        if (n instanceof Heading) return null;
         if (n instanceof Leaf lf) {
             return lf.f.searchName.contains(q) ? lf : null;
         }
@@ -310,7 +346,11 @@ public class PhantomScreen extends Screen {
         for (Node c : g.children) {
             Node fc = filterNode(c, q);
             if (fc != null) {
-                if (copy == null) copy = new Group(g.name, g.tab, g.key, g.get, g.set).withTooltip(g.tooltip);
+                if (copy == null) {
+                    copy = new Group(g.name, g.tab, g.key, g.get, g.set).withTooltip(g.tooltip);
+                    copy.warnWhen = g.warnWhen;
+                    copy.warnText = g.warnText;
+                }
                 copy.children.add(fc);
             }
         }
@@ -329,7 +369,7 @@ public class PhantomScreen extends Screen {
             return;
         }
 
-        int naturalH = ROW_H;
+        int naturalH = n instanceof Heading ? HEADING_H : ROW_H;
         int slotH = Math.round(naturalH * ancestorAnim);
         int gap   = Math.round(ROW_GAP * ancestorAnim);
 
@@ -363,9 +403,18 @@ public class PhantomScreen extends Screen {
         if (super.mouseClicked(click, isDoubleClick)) return true;
         if (searchField != null) searchField.setFocused(false);
         this.setFocused(null);
-        if (click.button() != 0) return false;
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return false;
 
         double mx = click.x(), my = click.y();
+
+        if (mx >= px() && mx < px() + SIDEBAR_W && my >= barTop() && my < py() + PANEL_H) {
+            int[][] rects = barButtonRects();
+            for (int i = 0; i < rects.length; i++) {
+                int[] r = rects[i];
+                if (mx >= r[0] && mx < r[2] && my >= r[1] && my < r[3]) { barAction(i); break; }
+            }
+            return true;
+        }
 
         if (sbMaxScroll > 0) {
             int sbX = cx() + cw() - 5;
@@ -383,7 +432,7 @@ public class PhantomScreen extends Screen {
         int startY = py() + HEADER_H + 6;
         for (TabRow r : tabRows) {
             int ty = startY + r.y() - tabScroll;
-            if (ty < startY || ty + r.h() > py() + PANEL_H) continue;
+            if (ty < startY || ty + r.h() > barTop()) continue;
             if (!(mx >= px() && mx <= px() + SIDEBAR_W - 1 && my >= ty && my <= ty + r.h())) continue;
 
             if (r.isHeader()) {
@@ -398,8 +447,7 @@ public class PhantomScreen extends Screen {
                 outgoingRows = layoutRowsForTab(currentTab);
                 tabOutT = 0f;
                 currentTab = r.tab();
-                tabInT = 0f;
-                tabInElapsed = 0f;
+                startTabIn(currentTab);
                 scroll = 0;
             }
             return true;
@@ -481,13 +529,13 @@ public class PhantomScreen extends Screen {
 
         Feature capturing = capturingFeature(true);
         if (capturing != null) { capturing.onKey(key); return true; }
-        if (key == 256 && searchField != null && searchField.isFocused()) {
+        if (key == InputConstants.KEY_ESCAPE && searchField != null && searchField.isFocused()) {
             searchField.setFocused(false);
             this.setFocused(null);
             return true;
         }
 
-        if (key == 256) { this.onClose(); return true; }
+        if (key == InputConstants.KEY_ESCAPE) { this.onClose(); return true; }
         return super.keyPressed(event);
     }
 
@@ -511,6 +559,7 @@ public class PhantomScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         this.frameDelta = delta;
+        updateTextInput();
         extractBackground(ctx, mx, my, delta);
 
         if (closing) {
@@ -558,18 +607,20 @@ public class PhantomScreen extends Screen {
         int logoS = HEADER_H - 8, logoX = px + 6, logoY = py + 4;
         ctx.blit(darkMode ? LOGO : LOGO_LIGHT, logoX, logoY, logoX + logoS, logoY + logoS, 0f, 1f, 0f, 1f);
         drawText(ctx, font, Component.literal("PhantomAddons"),
-                logoX + logoS + 6, py + (HEADER_H - font.lineHeight) / 2, C_ACCENT);
+                logoX + logoS + 6, py + (HEADER_H - font.lineHeight) / 2 + 1, C_ACCENT);
 
-        int sfX = px + PANEL_W - 148, sfY = py + (HEADER_H - 16) / 2;
-        roundedFill(ctx, sfX - 3, sfY - 1, sfX + 141, sfY + 15, darkMode ? 0xFF090B0E : 0xFFFFFBEF, CONTROL_RADIUS);
+        int sbx = px + PANEL_W - SEARCH_RIGHT - SEARCH_W, sby = py + (HEADER_H - SEARCH_H) / 2;
+        insetFill(ctx, sbx, sby, sbx + SEARCH_W, sby + SEARCH_H, darkMode ? 0xFF0F1218 : 0xFFFFFBEF, CONTROL_RADIUS);
         if (searchField != null && query.isEmpty() && !searchField.isFocused()) {
-            drawText(ctx, font, Component.literal("Search..."), sfX, sfY + (16 - font.lineHeight) / 2, C_TEXT_DIM, false);
+            drawText(ctx, font, Component.literal("Search..."), sbx + SEARCH_PAD, sby + SEARCH_PAD, C_TEXT_DIM, false);
         }
 
         roundedFill(ctx, px, py + HEADER_H, px + SIDEBAR_W, py + PANEL_H, C_SIDEBAR, PANEL_RADIUS, false, false, true, false);
         ctx.fill(px + SIDEBAR_W - 1, py + HEADER_H, px + SIDEBAR_W, py + PANEL_H, C_BORDER);
         renderTabs(ctx, px, py, mx, my);
+        renderSidebarBar(ctx, px, py, mx, my);
         renderContent(ctx, mx, my);
+        if (barHoverLabel != null) drawTooltip(ctx, barHoverLabel, mx, my);
         ctx.disableScissor();
 
         m.popMatrix();
@@ -584,11 +635,31 @@ public class PhantomScreen extends Screen {
         return EXPANDED.getOrDefault("cat:" + category, false);
     }
 
+    private static boolean hasVisibleContent(Node n) {
+        if (n instanceof Leaf lf) return lf.f.visible.get();
+        if (n instanceof Group g) {
+            if (g.get != null) return true;
+            for (Node c : g.children) if (hasVisibleContent(c)) return true;
+        }
+        return false;
+    }
+
+    private boolean tabHasContent(Tab t) {
+        if (t == Tab.ABOUT) return true;
+        for (Node n : roots) if (n.tab == t && hasVisibleContent(n)) return true;
+        return false;
+    }
+
     private void layoutTabRows() {
         tabRows.clear();
+        if (!tabHasContent(currentTab)) {
+            currentTab = Tab.ABOUT;
+            scroll = 0;
+        }
         int y = 0;
         String lastCategory = null;
         for (Tab t : Tab.values()) {
+            if (!tabHasContent(t)) continue;
             if (t.category != null && !t.category.equals(lastCategory)) {
                 tabRows.add(new TabRow(null, true, t.category, y, TAB_HEADER_H));
                 y += TAB_HEADER_H + TAB_GAP;
@@ -608,7 +679,54 @@ public class PhantomScreen extends Screen {
         }
     }
 
-    private int tabListVisibleH() { return PANEL_H - HEADER_H - 6 - 4; }
+    private int tabListVisibleH() { return PANEL_H - HEADER_H - 6 - 4 - BAR_H; }
+
+    private int barTop() { return py() + PANEL_H - BAR_H; }
+
+    private int[][] barButtonRects() {
+        int x0 = px() + 6, x1 = px() + SIDEBAR_W - 7;
+        int gap = 4, h = 18, y0 = barTop() + 5;
+        int w = (x1 - x0 - gap * 2) / 3;
+        return new int[][] {
+            { x0, y0, x0 + w, y0 + h },
+            { x0 + w + gap, y0, x0 + 2 * w + gap, y0 + h },
+            { x1 - w, y0, x1, y0 + h }
+        };
+    }
+
+    private void barAction(int index) {
+        switch (index) {
+            case 0 -> openHudEditor();
+            case 1 -> Links.open(Links.DISCORD);
+            case 2 -> Links.open(Links.GITHUB);
+            default -> {}
+        }
+    }
+
+    private static final Identifier[] BAR_ICONS = {
+        Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/icon_hud.png"),
+        Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/icon_discord.png"),
+        Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/icon_github.png")
+    };
+    private static final int BAR_ICON_SIZE = 12;
+    private String barHoverLabel;
+
+    private void renderSidebarBar(GuiGraphicsExtractor ctx, int px, int py, int mx, int my) {
+        int top = barTop();
+        roundedFill(ctx, px, top, px + SIDEBAR_W, py + PANEL_H, C_HEADER, PANEL_RADIUS, false, false, true, false);
+        ctx.fill(px, top, px + SIDEBAR_W - 1, top + 1, C_BORDER);
+        ctx.fill(px + SIDEBAR_W - 1, top, px + SIDEBAR_W, py + PANEL_H, C_BORDER);
+        barHoverLabel = null;
+        int[][] rects = barButtonRects();
+        for (int i = 0; i < rects.length; i++) {
+            int[] r = rects[i];
+            boolean hov = mx >= r[0] && mx < r[2] && my >= r[1] && my < r[3];
+            raisedFill(ctx, r[0], r[1], r[2], r[3], hov ? C_FIELD_HOVER : C_FIELD_BG, CONTROL_RADIUS);
+            int ix = (r[0] + r[2] - BAR_ICON_SIZE) / 2, iy = (r[1] + r[3] - BAR_ICON_SIZE) / 2;
+            ctx.blit(BAR_ICONS[i], ix, iy, ix + BAR_ICON_SIZE, iy + BAR_ICON_SIZE, 0f, 1f, 0f, 1f);
+            if (hov) barHoverLabel = BAR_LABELS[i];
+        }
+    }
 
     private void renderTabs(GuiGraphicsExtractor ctx, int px, int py, int mx, int my) {
         layoutTabRows();
@@ -618,26 +736,26 @@ public class PhantomScreen extends Screen {
         int maxScroll = Math.max(0, totalH - tabListVisibleH());
         tabScroll = Mth.clamp(tabScroll, 0, maxScroll);
 
-        ctx.enableScissor(px, startY, px + SIDEBAR_W, py + PANEL_H);
+        ctx.enableScissor(px, startY, px + SIDEBAR_W, barTop());
         for (TabRow r : tabRows) {
             int tx = px, ty = startY + r.y() - tabScroll;
-            if (ty + r.h() < startY || ty > py + PANEL_H) continue;
+            if (ty + r.h() < startY || ty > barTop()) continue;
 
             if (r.isHeader()) {
                 boolean expanded = isCategoryExpanded(r.label());
                 boolean headerHover = mx >= tx && mx <= tx + SIDEBAR_W - 1 && my >= ty && my <= ty + r.h()
-                        && my >= startY && my <= py + PANEL_H;
+                        && my >= startY && my <= barTop();
                 String arrow = expanded ? "▼" : "▶";
                 drawText(ctx, font, Component.literal(arrow),
-                        tx + 10, ty + (r.h() - font.lineHeight) / 2, headerHover ? C_TEXT : C_TEXT_DIM);
+                        tx + 10, ty + (r.h() - font.lineHeight) / 2 + 1, headerHover ? C_TEXT : C_TEXT_DIM);
                 drawText(ctx, font, Component.literal(r.label()),
-                        tx + 20, ty + (r.h() - font.lineHeight) / 2, headerHover ? C_TEXT : C_TEXT_DIM);
+                        tx + 20, ty + (r.h() - font.lineHeight) / 2 + 1, headerHover ? C_TEXT : C_TEXT_DIM);
                 continue;
             }
 
             boolean active = r.tab() == currentTab && query.isEmpty();
             boolean hover  = !active && mx >= tx && mx <= tx + SIDEBAR_W - 1 && my >= ty && my <= ty + r.h()
-                    && my >= startY && my <= py + PANEL_H;
+                    && my >= startY && my <= barTop();
             if (active) {
                 ctx.fill(tx, ty, tx + SIDEBAR_W - 1, ty + r.h(), C_TAB_ACTIVE);
                 ctx.fill(tx, ty, tx + 2, ty + r.h(), C_ACCENT);
@@ -645,16 +763,18 @@ public class PhantomScreen extends Screen {
                 ctx.fill(tx, ty, tx + SIDEBAR_W - 1, ty + r.h(), C_TAB_HOVER);
             }
             drawText(ctx, font, Component.literal(r.label()),
-                    tx + 14, ty + (r.h() - font.lineHeight) / 2,
+                    tx + 14, ty + (r.h() - font.lineHeight) / 2 + 1,
                     active ? C_ACCENT : hover ? C_TEXT : C_TEXT_DIM);
+            if (r.tab() == Tab.ABOUT && PingWarning.active())
+                drawWarningMark(ctx, font, tx + 14 + font.width(r.label()) + 4, ty + (r.h() - ROW_H) / 2);
         }
         ctx.disableScissor();
 
         if (maxScroll > 0) {
             int barX = px + SIDEBAR_W - 3;
-            int barH = Math.max(16, (int) ((float) tabListVisibleH() / totalH * (py + PANEL_H - startY)));
-            int barY = startY + (int) ((float) tabScroll / maxScroll * (py + PANEL_H - startY - barH));
-            ctx.fill(barX, startY, barX + 2, py + PANEL_H, overlay(0x22));
+            int barH = Math.max(16, (int) ((float) tabListVisibleH() / totalH * (barTop() - startY)));
+            int barY = startY + (int) ((float) tabScroll / maxScroll * (barTop() - startY - barH));
+            ctx.fill(barX, startY, barX + 2, barTop(), overlay(0x22));
             ctx.fill(barX, barY, barX + 2, barY + barH, overlay(0x88));
         }
     }
@@ -680,8 +800,9 @@ public class PhantomScreen extends Screen {
 
         int totalH = 0;
         for (RenderRow r : rows) totalH = Math.max(totalH, (r.y + scroll) + r.h);
-        totalH -= (cy + PAD);
-        int maxScroll = Math.max(0, totalH - ch + PAD * 2);
+        int tp = topPad(currentTab);
+        totalH -= (cy + tp);
+        int maxScroll = Math.max(0, totalH - ch + tp + PAD);
         int clamped = Mth.clamp(scroll, 0, maxScroll);
         if (clamped != scroll) {
             int shift = scroll - clamped;
@@ -697,23 +818,22 @@ public class PhantomScreen extends Screen {
             RenderRow r = rows.get(i);
             if (!(r.node instanceof Group g)) continue;
             if (animOf(g) <= 0.002f) continue;
-            int blockTop = r.y;
             int blockBot = r.y + r.h;
             for (int j = i + 1; j < rows.size(); j++) {
                 if (rows.get(j).depth <= r.depth) break;
                 blockBot = rows.get(j).y + rows.get(j).h;
             }
-            int bx = r.x, bRight = cx + cw - PAD;
-            int bb = blockBot + Math.round((GROUP_PAD_B + ROW_GAP) * animOf(g));
-            ctx.fill(bx, blockTop, bRight, bb, C_GROUP_BG);
-            ctx.fill(bx, blockTop, bx + 2, bb, C_GROUP_BAR);   // left bar (amber)
-            ctx.fill(bx, bb - 1, bRight, bb, overlay(0x22));   // subtle bottom border
+            int guideTop = r.y + r.h;
+            if (blockBot > guideTop) ctx.fill(r.x + 5, guideTop, r.x + 6, blockBot, C_GROUP_BAR);
         }
 
         String hoverTooltip = null;
+        String hoverWarning = null;
 
+        int topRows = -1;
         for (int i = 0; i < rows.size(); i++) {
             RenderRow r = rows.get(i);
+            if (r.depth == 0 && r.contentH > 0) topRows++;
             if (r.h <= 0) continue;
             int top = Math.max(cy, r.y);
             int bot = Math.min(cy + ch, r.y + r.h);
@@ -722,13 +842,12 @@ public class PhantomScreen extends Screen {
             ctx.enableScissor(cx, top, cx + cw, bot);
 
             int rowOffsetX = 0;
-            int rowFadeA   = 0;
             if (flyingIn) {
-                int   stagger  = Math.min(i, TAB_IN_MAX_STAGGER_ROWS);
+                int   stagger  = Math.min(Math.max(topRows, 0), TAB_IN_MAX_STAGGER_ROWS);
                 float rowT     = Mth.clamp((tabInElapsed - stagger * TAB_IN_STAGGER) * TAB_IN_SPEED, 0f, 1f);
+                if (rowT >= 1f && r.depth == 0 && r.node instanceof Group landed) flyingGroups.remove(landed.key);
                 float rowEase  = rowT * rowT * (3f - 2f * rowT);
                 rowOffsetX = Math.round((1f - rowEase) * -TAB_IN_DIST);
-                rowFadeA   = (int) ((1f - rowEase) * 235) << 24;
             }
 
             int rx = r.x + rowOffsetX;
@@ -739,22 +858,23 @@ public class PhantomScreen extends Screen {
             if (r.node instanceof Group g) {
                 renderGroupHeader(ctx, g, rx, r.y, rw, mx, my);
                 if (rowHovered && g.tooltip != null) hoverTooltip = g.tooltip;
+                if (rowHovered && g.warning()) hoverWarning = g.warnText;
+            } else if (r.node instanceof Heading hd) {
+                renderHeading(ctx, hd, rx, r.y, rw);
             } else if (r.node instanceof Leaf lf) {
-                ctx.fill(rx, r.y, cx + cw - PAD, r.y + r.contentH, overlay(0x0A));
+                if (rowHovered) ctx.fill(rx, r.y, rx + rw, r.y + r.contentH, overlay(0x08));
+                ctx.fill(rx, r.y + r.contentH - 1, rx + rw, r.y + r.contentH, overlay(0x12));
                 lf.f.render(ctx, this, rx, r.y, rw, mx, my);
                 if (rowHovered && lf.f.tooltip != null) hoverTooltip = lf.f.tooltip;
-            }
-
-            if (rowFadeA != 0) {
-                ctx.fill(cx, top, cx + cw, bot, (C_BG & 0xFFFFFF) | rowFadeA);
+                if (rowHovered && lf.f.warning()) hoverWarning = lf.f.warnText;
             }
 
             ctx.disableScissor();
         }
         ctx.disableScissor();
 
-        if (hoverTooltip != null) {
-            drawTooltip(ctx, hoverTooltip, mx, my);
+        if (hoverTooltip != null || hoverWarning != null) {
+            drawTooltip(ctx, hoverTooltip, hoverWarning, mx, my);
         }
 
         sbMaxScroll = maxScroll;
@@ -774,7 +894,6 @@ public class PhantomScreen extends Screen {
     private void renderOutgoingRows(GuiGraphicsExtractor ctx, int cx, int cy, int cw, int ch) {
         float ease     = tabOutT * tabOutT * (3f - 2f * tabOutT);
         int   offsetX  = Math.round(ease * TAB_OUT_DIST);
-        int   fadeA    = (int) (ease * 235) << 24;
 
         ctx.enableScissor(cx, cy, cx + cw, cy + ch);
         for (RenderRow r : outgoingRows) {
@@ -787,10 +906,11 @@ public class PhantomScreen extends Screen {
             int rx = r.x + offsetX;
             if (r.node instanceof Group g) {
                 renderGroupHeader(ctx, g, rx, r.y, r.w, -1, -1);
+            } else if (r.node instanceof Heading hd) {
+                renderHeading(ctx, hd, rx, r.y, r.w);
             } else if (r.node instanceof Leaf lf) {
                 lf.f.render(ctx, this, rx, r.y, r.w, -1, -1);
             }
-            ctx.fill(cx, top, cx + cw, bot, (C_BG & 0xFFFFFF) | fadeA);
             ctx.disableScissor();
         }
         ctx.disableScissor();
@@ -799,25 +919,37 @@ public class PhantomScreen extends Screen {
     private static final int TOOLTIP_MAX_W = 200;
 
     private void drawTooltip(GuiGraphicsExtractor ctx, String text, int mx, int my) {
-        List<String> lines = wrapTooltip(text, TOOLTIP_MAX_W);
+        drawTooltip(ctx, text, null, mx, my);
+    }
+
+    private void drawTooltip(GuiGraphicsExtractor ctx, String text, String warning, int mx, int my) {
+        List<String> lines = text != null ? wrapTooltip(text, TOOLTIP_MAX_W) : List.of();
+        List<String> warn = warning != null ? wrapWords(warning, TOOLTIP_MAX_W) : List.of();
         int lineH = font.lineHeight + 2;
+        int gap = !lines.isEmpty() && !warn.isEmpty() ? 3 : 0;
         int tw = 0;
         for (String l : lines) tw = Math.max(tw, font.width(l));
+        for (String l : warn) tw = Math.max(tw, font.width(l));
 
-        int boxW = tw + 8;
-        int boxH = lines.size() * lineH + 4;
-        int tx = mx < px() + PANEL_W / 2 ? mx + 12 : mx - boxW - 12;
-        tx = Mth.clamp(tx, px() + 4, px() + PANEL_W - boxW - 4);
-        int ty = my - boxH - 6;
-        if (ty < 0) ty = my + 16;
+        int padX = 5, padY = 4;
+        int textH = (lines.size() + warn.size() - 1) * lineH + gap + 7;
+        int boxW = tw + 2 * padX;
+        int boxH = textH + 2 * padY;
+        int bx = mx < px() + PANEL_W / 2 ? mx + 12 : mx - boxW - 12;
+        bx = Mth.clamp(bx, px() + 4, px() + PANEL_W - boxW - 4);
+        int by = my - boxH - 3;
+        if (by < 0) by = my + 16;
 
-        roundedFill(ctx, tx - 4, ty - 3, tx + boxW + 4, ty + boxH + 3,
-                darkMode ? 0xEC0A0A0E : 0xF0FFFBEF, 4);
-        ctx.fill(tx - 4, ty - 3, tx + boxW + 4, ty - 2, C_GROUP_BAR);
+        roundedFill(ctx, bx, by, bx + boxW, by + boxH, darkMode ? 0xEC0A0A0E : 0xF0FFFBEF, 4);
 
-        int ly = ty;
+        int ly = by + padY - 1;
         for (String l : lines) {
-            drawText(ctx, font, Component.literal(l), tx, ly, C_TEXT, false);
+            drawText(ctx, font, Component.literal(l), bx + padX, ly, C_TEXT, false);
+            ly += lineH;
+        }
+        ly += gap;
+        for (String l : warn) {
+            drawText(ctx, font, Component.literal(l), bx + padX, ly, WARNING_RED, false);
             ly += lineH;
         }
     }
@@ -851,27 +983,53 @@ public class PhantomScreen extends Screen {
 
     private void renderGroupHeader(GuiGraphicsExtractor ctx, Group g,
                                    int x, int y, int w, int mx, int my) {
-        boolean expanded = isExpanded(g);
-        float a = animOf(g);
         boolean hov = mx >= x && mx <= x + w && my >= y && my <= y + ROW_H;
+        boolean toggled = g.get != null && g.set != null;
+        boolean open = isExpanded(g);
 
-        ctx.fill(x, y, x + w, y + ROW_H, hov ? overlay(0x14) : overlay(0x0C));
-        ctx.fill(x, y, x + w, y + 1, overlay(0x22));
-
-        String arrow = a > 0.5f ? "▾" : "▸";
-        drawText(ctx, font, Component.literal(arrow),
-                x + 6, y + (ROW_H - font.lineHeight) / 2, expanded ? C_ACCENT : C_TEXT_DIM);
+        if (hov) ctx.fill(x, y, x + w, y + ROW_H, overlay(0x08));
+        ctx.fill(x, y + ROW_H - 1, x + w, y + ROW_H, overlay(0x12));
 
         drawText(ctx, font, g.nameLabel,
-                x + 18, y + (ROW_H - font.lineHeight) / 2,
-                expanded ? C_ACCENT : C_TEXT);
+                x + 8, y + (ROW_H - font.lineHeight) / 2 + 1,
+                open ? C_ACCENT : C_TEXT);
+        if (g.warning()) drawWarningMark(ctx, font, x + 8 + font.width(g.nameLabel) + 4, y);
 
-        if (g.get != null && g.set != null) {
+        int arrowX = toggled ? x + w - 34 - 8 - 16 : x + w - 18;
+        drawChevron(ctx, arrowX, y + ROW_H / 2, animOf(g), open || hov ? C_ACCENT : C_TEXT_DIM);
+
+        if (toggled) {
             Float knobAnim = GROUP_TOGGLE_ANIM.get(g.key);
             drawSwitch(ctx, x, y, w, knobAnim != null ? knobAnim : g.get.get() ? 1f : 0f);
         }
     }
 
-    @Override public void removed()          { PhantomConfig.save(); }
+    private void renderHeading(GuiGraphicsExtractor ctx, Heading h, int x, int y, int w) {
+        drawText(ctx, font, h.label, x + 8, y + HEADING_H - font.lineHeight - 4, C_ACCENT);
+        ctx.fill(x, y + HEADING_H - 1, x + w, y + HEADING_H, overlay(0x2A));
+    }
+
+    private static void drawChevron(GuiGraphicsExtractor ctx, int x, int cy, float open, int color) {
+        if (open > 0.5f) {
+            for (int i = 0; i < 4; i++) ctx.fill(x + i, cy - 2 + i, x + 7 - i, cy - 1 + i, color);
+        } else {
+            for (int i = 0; i < 4; i++) ctx.fill(x + 2 + i, cy - 3 + i, x + 3 + i, cy + 4 - i, color);
+        }
+    }
+
+    private boolean textInputOn;
+
+    private void updateTextInput() {
+        boolean want = capturingFeature(false) != null;
+        if (want == textInputOn) return;
+        textInputOn = want;
+        com.phantomaddons.utils.TextInputCompat.set(this, want);
+    }
+
+    @Override public void removed() {
+        if (textInputOn) com.phantomaddons.utils.TextInputCompat.set(this, false);
+        textInputOn = false;
+        PhantomConfig.save();
+    }
     @Override public boolean isPauseScreen() { return false; }
 }

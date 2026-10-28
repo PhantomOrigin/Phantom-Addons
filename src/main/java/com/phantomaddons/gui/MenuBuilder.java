@@ -23,6 +23,7 @@ public final class MenuBuilder {
 
     public void add(Feature f) { roots.add(new Leaf(f, tab)); }
     public void add(Group g)   { roots.add(g); }
+    public void heading(String name) { roots.add(new Heading(name, tab)); }
 
     public Group group(String name, Supplier<Boolean> get, Consumer<Boolean> set) {
         return new Group(name, tab, tab.name() + "/" + name, get, set);

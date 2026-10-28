@@ -1,5 +1,6 @@
 package com.phantomaddons.features.misckuudra.profile;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -87,7 +88,7 @@ public final class KuudraProfileScreen extends Screen {
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() == 256) { onClose(); return true; } // Escape
+        if (event.key() == InputConstants.KEY_ESCAPE) { onClose(); return true; } // Escape
         return super.keyPressed(event);
     }
 

@@ -2,6 +2,7 @@ package com.phantomaddons.phase;
 
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.build.AnnounceFresh;
+import com.phantomaddons.features.build.StunReminder;
 import com.phantomaddons.features.stundps.AutoGFS;
 import com.phantomaddons.features.build.buildprogress.BuildProgressHud;
 import com.phantomaddons.features.build.buildprogress.BuildProgressTracker;
@@ -38,6 +39,7 @@ public final class KuudraPhaseEvents {
                     EtherwarpWaypointManager.onSuppliesStart();
                     SupplyProgressHud.onSuppliesStart();
                     BuildProgressHud.reset();
+                    StunReminder.reset();
                     AnnounceFresh.reset();
                     PearlWaypointManager.reset();
                     AutoGFS.stop();
@@ -57,6 +59,7 @@ public final class KuudraPhaseEvents {
                     SupplyProgressHud.reset();
                     BuildProgressTracker.start();
                     BuildProgressHud.onBuildStart();
+                    StunReminder.onBuildStart();
                     AnnounceFresh.onBuildStart();
                     Phase2BuildTracker.start();
                     PearlWaypointManager.reset();
@@ -66,6 +69,7 @@ public final class KuudraPhaseEvents {
                 case EATEN -> {
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();
+                    StunReminder.reset();
                     PhaseLogger.resetTick();
                     RoleManager.reset();
                     if (PhantomConfig.isAutoMode()) {
@@ -97,6 +101,7 @@ public final class KuudraPhaseEvents {
                 case SKIP -> {
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();
+                    StunReminder.reset();
                     AnnounceFresh.reset();
                     AutoGFS.stop();
                     Phase2BuildTracker.stop();
@@ -137,6 +142,7 @@ public final class KuudraPhaseEvents {
                     HideArmorStands.deactivate();
                     BuildProgressTracker.stop();
                     BuildProgressHud.reset();
+                    StunReminder.reset();
                     AnnounceFresh.reset();
                     SupplyProgressHud.reset();
                     AutoGFS.stop();

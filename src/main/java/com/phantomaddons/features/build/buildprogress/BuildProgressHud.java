@@ -46,7 +46,9 @@ public final class BuildProgressHud {
 
             if (elapsed < BUILD_DELAY_S) {
                 double remaining = BUILD_DELAY_S - elapsed;
-                NotificationHud.setCountdown(String.format("§eBuild Starts: §f%.2fs", remaining));
+                if (PhantomConfig.isBuildStartTimerEnabled())
+                    NotificationHud.setCountdown(String.format("§eBuild Starts: §f%.2fs", remaining));
+                else NotificationHud.clearCountdown();
             } else {
                 NotificationHud.clearCountdown();
                 if (!buildStartedNotified && PhantomConfig.isBuildStartedNotifyEnabled()) {

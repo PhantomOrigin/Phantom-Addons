@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -37,10 +38,10 @@ public class RgbInput extends Feature {
         for (int i = 0; i < 3; i++) {
             int fxv = fx(x, w, i), fy = y + 3, fh = ROW_H - 6;
             boolean foc = focus == i + 1;
-            roundedFill(ctx, fxv, fy, fxv + FW, fy + fh, foc ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
+            insetFill(ctx, fxv, fy, fxv + FW, fy + fh, foc ? C_FIELD_FOCUS : C_FIELD_BG, CONTROL_RADIUS);
             String disp = foc ? (draft == null ? "" : draft) : String.valueOf(comp(i));
             drawCenteredText(ctx, s.font(), Component.literal(disp),
-                    fxv + FW / 2, fy + (fh - s.font().lineHeight) / 2, C_TEXT);
+                    fxv + FW / 2, fy + (fh - s.font().lineHeight) / 2 + 1, C_TEXT);
         }
     }
 
@@ -58,10 +59,10 @@ public class RgbInput extends Feature {
 
     @Override void onKey(int key) {
         if (focus == 0) return;
-        if (key == 256) { commit(); }                         // Esc saves current value
-        else if (key == 257 || key == 335) { commit(); }
-        else if (key == 258) { int next = focus % 3 + 1; commit(); focus = next; draft = String.valueOf(comp(next - 1)); }
-        else if (key == 259 && draft != null && !draft.isEmpty())
+        if (key == InputConstants.KEY_ESCAPE) { commit(); }                         // Esc saves current value
+        else if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER) { commit(); }
+        else if (key == InputConstants.KEY_TAB) { int next = focus % 3 + 1; commit(); focus = next; draft = String.valueOf(comp(next - 1)); }
+        else if (key == InputConstants.KEY_BACKSPACE && draft != null && !draft.isEmpty())
             draft = draft.substring(0, draft.length() - 1);
     }
 

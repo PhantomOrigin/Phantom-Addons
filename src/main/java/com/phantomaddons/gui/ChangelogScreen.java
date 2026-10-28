@@ -1,5 +1,6 @@
 package com.phantomaddons.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.PhantomConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -272,7 +273,7 @@ public final class ChangelogScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
-        if (click.button() != 0) return true;
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return true;
         if (inside(actionBtn, click.x(), click.y())) runAction();
         else if (inside(skipBtn, click.x(), click.y())) skipVersion();
         else if (inside(closeBtn, click.x(), click.y())) onClose();
@@ -288,9 +289,9 @@ public final class ChangelogScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         int key = event.key();
-        if (key == 257 || key == 335 || key == 32) { onClose(); return true; }   // Enter, keypad Enter, Space
-        if (key == 265) { scroll = Mth.clamp(scroll - 14, 0, maxScroll()); return true; }   // Up
-        if (key == 264) { scroll = Mth.clamp(scroll + 14, 0, maxScroll()); return true; }   // Down
+        if (key == InputConstants.KEY_RETURN || key == InputConstants.KEY_NUMPADENTER || key == InputConstants.KEY_SPACE) { onClose(); return true; }   // Enter, keypad Enter, Space
+        if (key == InputConstants.KEY_UP) { scroll = Mth.clamp(scroll - 14, 0, maxScroll()); return true; }   // Up
+        if (key == InputConstants.KEY_DOWN) { scroll = Mth.clamp(scroll + 14, 0, maxScroll()); return true; }   // Down
         return super.keyPressed(event);                                                      // Escape closes
     }
 }

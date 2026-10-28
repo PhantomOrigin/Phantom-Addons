@@ -1,5 +1,6 @@
 package com.phantomaddons.features.pv;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.gui.Theme;
 import net.minecraft.client.Minecraft;
@@ -131,7 +132,7 @@ final class PvPromptScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
-        if (click.button() != 0) return true;
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return true;
         if (inside(enableBtn, click.x(), click.y())) choose(true);
         else if (inside(keepBtn, click.x(), click.y())) choose(false);
         return true;

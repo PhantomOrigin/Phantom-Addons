@@ -16,12 +16,13 @@ public final class VisualWordsTab {
     private VisualWordsTab() {}
 
     public static void build(MenuBuilder m) {
-        m.add(new Toggle("Visual Words", VisualWords::isEnabled, VisualWords::setEnabled));
+        m.add(new Toggle("Visual Words", VisualWords::isEnabled, VisualWords::setEnabled)
+                .withTooltip("Replaces words everywhere text is drawn. The replacement can use colour and format codes: &c colours, &l bold, &o italic, &n underline, &m strikethrough, &k obfuscated, &#RRGGBB for any colour, &r to reset. Formatting only applies to the replacement itself, the text after it is untouched."));
         m.add(new Button("Add Word", "+ Add", () -> { VisualWords.addRule(); m.screen().rebuild(); }));
         int vwCount = VisualWords.getRules().size();
         for (int i = 0; i < vwCount; i++) {
             m.add(new VisualWordEntry(i, () -> m.screen().rebuild()));
-            if (DataFeatures.isPresent()) addGradientRows(m, i);
+            if (DataFeatures.hasHighlight()) addGradientRows(m, i);
         }
     }
 

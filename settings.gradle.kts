@@ -17,6 +17,7 @@ stonecutter {
     create(rootProject) {
         version("26.1.x", "26.1.2")
         version("26.2.x", "26.2")
+        version("26.3.x", "26.3")
         vcsVersion = "26.2.x"
     }
 }

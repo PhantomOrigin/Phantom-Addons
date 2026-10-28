@@ -9,7 +9,8 @@ import java.util.UUID;
 
 public final class PvData {
 
-    public record Profile(String id, String cuteName, String gameMode, boolean selected, long bank, JsonObject member) {
+    public record Profile(String id, String cuteName, String gameMode, boolean selected, long bank,
+                          List<String> coop, JsonObject member) {
         public String symbol() {
             return switch (gameMode) {
                 case "ironman" -> "§7♲ ";
@@ -67,6 +68,7 @@ public final class PvData {
                     PvJson.str(p, "normal", "game_mode"),
                     !p.has("selected") || p.get("selected").getAsBoolean(),
                     (long) PvJson.num(p, -1, "banking", "balance"),
+                    coopFromMembers(PvJson.obj(p, "members"), key),
                     member));
         }
         return new PvData(dashed(key), name != null ? name : key, profiles, true, true);
@@ -86,10 +88,31 @@ public final class PvData {
                     PvJson.str(p, "normal", "gameMode"),
                     p.has("selected") && p.get("selected").getAsBoolean(),
                     (long) PvJson.num(p, -1, "bank"),
+                    coopFromList(p),
                     PvJson.obj(p, "member")));
         }
         boolean extras = root.has("extras") && root.get("extras").isJsonPrimitive() && root.get("extras").getAsBoolean();
         return new PvData(uuid, name, profiles, false, extras);
+    }
+
+    private static List<String> coopFromMembers(JsonObject members, String self) {
+        List<String> out = new ArrayList<>();
+        if (members == null) return out;
+        for (String id : members.keySet()) {
+            if (id.equals(self)) continue;
+            if (PvJson.obj(members, id, "profile", "deletion_notice") != null) continue;
+            out.add(id);
+        }
+        return out;
+    }
+
+    private static List<String> coopFromList(JsonObject profile) {
+        List<String> out = new ArrayList<>();
+        JsonElement e = profile.get("coop");
+        if (e != null && e.isJsonArray()) {
+            for (JsonElement i : e.getAsJsonArray()) if (i.isJsonPrimitive()) out.add(i.getAsString());
+        }
+        return out;
     }
 
     public int selectedIndex() {

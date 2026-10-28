@@ -1,5 +1,6 @@
 package com.phantomaddons.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.features.pv.ChatCards;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -20,6 +21,6 @@ public abstract class ChatScreenMixin {
 
     @Inject(method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z", at = @At("HEAD"), cancellable = true)
     private void phantomaddons$cardClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (event.button() == 0 && ChatCards.click(event.x(), event.y(), doubleClick)) cir.setReturnValue(true);
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && ChatCards.click(event.x(), event.y(), doubleClick)) cir.setReturnValue(true);
     }
 }

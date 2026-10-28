@@ -85,6 +85,12 @@ public final class ChangelogData {
         return all.subList(0, Math.min(count, all.size()));
     }
 
+    public static List<Entry> forVersion(String version) {
+        List<Entry> out = new ArrayList<>();
+        for (Entry e : all()) if (compare(e.version(), version) == 0) out.add(e);
+        return out.isEmpty() ? latest(1) : out;
+    }
+
     public static List<Entry> unseen(String lastSeen, String current, int max) {
         List<Entry> out = new ArrayList<>();
         for (Entry e : all()) {

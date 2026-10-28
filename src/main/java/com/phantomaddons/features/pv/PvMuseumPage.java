@@ -27,7 +27,10 @@ final class PvMuseumPage {
     private static final DateTimeFormatter DONATED =
             DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH).withZone(ZoneId.systemDefault());
 
-    private enum State { DONATED, COVERED, MISSING }
+    enum State { DONATED, COVERED, MISSING }
+
+    private static final int RED = 0xFFE5484D, GREEN = 0xFF46D160, DARK_GREEN = 0xFF0B7A2A, OWNED = 0xFFFF9A1F;
+    private static final int UPGRADES = CATEGORIES.length;
 
     private static final Map<JsonObject, java.util.concurrent.CompletableFuture<Map<String, List<ItemStack>>>> DECODED =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -47,7 +50,8 @@ final class PvMuseumPage {
         }
         JsonObject items = PvJson.obj(museum, "items");
         if (items == null) items = new JsonObject();
-        String cat = CATEGORIES[Math.min(c.sub(), CATEGORIES.length - 1)];
+        boolean upgrades = c.sub() >= UPGRADES;
+        String cat = upgrades ? "upgrades" : CATEGORIES[Math.max(0, c.sub())];
 
         int yy = y0;
         double value = PvJson.num(museum, 0, "value");
@@ -59,6 +63,7 @@ final class PvMuseumPage {
         s.text(c.g(), right, x0 + avail - s.textW(right, ss), yy + (c.lh(es) - c.lh(ss)) / 2, PvTheme.text(), ss);
         yy += c.lh(es) + 6;
 
+        if (upgrades) return yy - y0 + upgrades(c, museum, items, consts, x0, yy, avail);
         if (cat.equals("special")) return yy - y0 + special(c, museum, x0, yy, avail);
 
         // ── Category grid ──
@@ -82,7 +87,7 @@ final class PvMuseumPage {
         int max = (int) PvJson.num(consts, ids.size(), "max_values", cat);
         String progress = "§7Donated §f" + (donated + covered) + "§7/" + max
                 + (covered > 0 ? "  §8(" + covered + " by higher tiers)" : "")
-                + (borrowed > 0 ? "  §6" + borrowed + " borrowed" : "");
+                + (borrowed > 0 ? "  §2" + borrowed + " borrowed" : "");
         s.text(c.g(), progress, x0, yy, PvTheme.text(), ss);
         yy += c.lh(ss) + 6;
 
@@ -103,15 +108,14 @@ final class PvMuseumPage {
             String pieceId = armorToId != null && armorToId.has(id) ? armorToId.get(id).getAsString() : id;
             if (st == State.DONATED) {
                 ItemStack shown = pick(decoded.get(id), pieceId);
-                if (borrowed(items, id))
-                    GuiDraw.roundedFill(c.g(), sx - 1, sy - 1, sx + slot + 1, sy + slot + 1, 0xFFFFAA00, 4);
+                GuiDraw.roundedFill(c.g(), sx - 1, sy - 1, sx + slot + 1, sy + slot + 1, borrowed(items, id) ? DARK_GREEN : GREEN, 4);
                 s.slotNoTooltip(c.g(), sx, sy, slot, shown.isEmpty() ? s.repoIcon(pieceId, Items.BARRIER) : shown);
                 if (s.hovered(c.mx(), c.my(), sx, sy, slot, slot)) {
                     List<String> tip = new ArrayList<>();
                     tip.add(nameOf(shown, pieceId, id));
                     long when = (long) PvJson.num(items, 0, id, "donated_time");
                     if (when > 0) tip.add("§7Donated " + DONATED.format(Instant.ofEpochMilli(when)));
-                    if (borrowed(items, id)) tip.add("§6Currently borrowed");
+                    if (borrowed(items, id)) tip.add("§2Currently borrowed");
                     List<ItemStack> pieces = decoded.get(id);
                     if (pieces != null && pieces.size() > 1) {
                         tip.add("");
@@ -121,9 +125,10 @@ final class PvMuseumPage {
                     s.tooltipLines(tip);
                 }
             } else {
+                GuiDraw.roundedFill(c.g(), sx - 1, sy - 1, sx + slot + 1, sy + slot + 1, st == State.COVERED ? GREEN : RED, 4);
                 s.slotNoTooltip(c.g(), sx, sy, slot, s.repoIcon(pieceId, Items.BARRIER));
                 c.g().nextStratum();
-                GuiDraw.roundedFill(c.g(), sx, sy, sx + slot, sy + slot, st == State.COVERED ? 0x66000000 : 0xB0000000, 3);
+                GuiDraw.roundedFill(c.g(), sx, sy, sx + slot, sy + slot, st == State.COVERED ? 0x55000000 : 0x66000000, 3);
                 if (s.hovered(c.mx(), c.my(), sx, sy, slot, slot)) {
                     s.tooltip(nameOf(ItemStack.EMPTY, pieceId, id),
                             st == State.COVERED ? "§aDonated via a higher tier" : "§cNot donated",
@@ -133,6 +138,71 @@ final class PvMuseumPage {
         }
         yy += ((ids.size() + cols - 1) / cols) * (slot + g);
         return yy - y0;
+    }
+
+    private static int upgrades(PvPages.Ctx c, JsonObject museum, JsonObject items, JsonObject consts, int x, int y, int w) {
+        PvScreen s = c.s();
+        float es = c.es(), ss = 0.85f * es;
+        PvMuseumUpgrades.Result res = PvMuseumUpgrades.get(c.v(), museum, items, consts);
+        int yy = y;
+        String summary = "§7Museum XP still available: §b" + res.missingXp() + "   §6Orange: already owned";
+        s.text(c.g(), summary, x, yy, PvTheme.text(), ss);
+        if (!res.pricesLoaded()) {
+            String loading = "§8loading prices...";
+            s.text(c.g(), loading, x + w - s.textW(loading, ss), yy, PvTheme.dim(), ss);
+        }
+        yy += c.lh(ss) + 6;
+
+        JsonObject armorToId = PvJson.obj(consts, "armor_to_id");
+        int slot = Math.max(14, Math.round(20 * es)), g = PvScreen.gapFor(slot);
+        int cols = Math.max(1, (w + g) / (slot + g));
+        int gx = x + (w - (cols * (slot + g) - g)) / 2;
+        yy += upgradeGrid(c, "Purchasable §7(" + res.buyable().size() + ")  §8cheapest per XP first", res.buyable(), armorToId, x, gx, cols, slot, g, yy);
+        yy += 6;
+        yy += upgradeGrid(c, "Not purchasable §7(" + res.unbuyable().size() + ")  §8no price found", res.unbuyable(), armorToId, x, gx, cols, slot, g, yy);
+        return yy - y;
+    }
+
+    private static int upgradeGrid(PvPages.Ctx c, String label, List<PvMuseumUpgrades.Entry> entries, JsonObject armorToId,
+                                   int x, int gx, int cols, int slot, int g, int y) {
+        PvScreen s = c.s();
+        float ls = 0.8f * c.es();
+        s.text(c.g(), label, x, y, PvTheme.text(), ls);
+        int gy = y + c.lh(ls) + 4;
+        if (entries.isEmpty()) {
+            s.text(c.g(), "§8None", x, gy, PvTheme.text(), ls);
+            return gy - y + c.lh(ls);
+        }
+        for (int i = 0; i < entries.size(); i++) {
+            PvMuseumUpgrades.Entry e = entries.get(i);
+            int sx = gx + (i % cols) * (slot + g), sy = gy + (i / cols) * (slot + g);
+            if (s.offscreen(sy, slot)) continue;
+            String pieceId = armorToId != null && armorToId.has(e.id()) ? armorToId.get(e.id()).getAsString() : e.id();
+            PvItems.RepoItem repo = PvItems.repoItem(pieceId);
+            ItemStack icon = s.repoIcon(pieceId, Items.BARRIER);
+            if (e.owned()) GuiDraw.roundedFill(c.g(), sx - 1, sy - 1, sx + slot + 1, sy + slot + 1, OWNED, 4);
+            PvScreen.rarityBg(c.g(), sx, sy, slot, repo != null ? PvItems.rarityColor(repo.stack()) : -1);
+            s.item(c.g(), icon, sx + 1, sy + 1, slot - 2);
+            if (s.hovered(c.mx(), c.my(), sx, sy, slot, slot)) {
+                c.g().nextStratum();
+                GuiDraw.roundedFill(c.g(), sx, sy, sx + slot, sy + slot, PvTheme.overlay(0x28), 3);
+                List<String> tip = new ArrayList<>();
+                tip.add(nameOf(ItemStack.EMPTY, pieceId, e.id()));
+                tip.add("§7" + PvProfileView.prettify(e.category()));
+                if (e.owned()) tip.add("§6You already own this");
+                tip.add("");
+                tip.add("§7Museum XP: §b" + e.xp());
+                if (e.buyable()) {
+                    tip.add("§7Price: §6" + PvPages.shortNum(e.price()));
+                    tip.add("§7Per XP: §6" + PvPages.shortNum(e.perXp()));
+                    if (e.pieces().size() > 1) tip.add("§8Total of " + e.pieces().size() + " pieces");
+                } else {
+                    tip.add("§8No price data");
+                }
+                s.tooltipLines(tip);
+            }
+        }
+        return gy - y + ((entries.size() + cols - 1) / cols) * (slot + g);
     }
 
     private static int special(PvPages.Ctx c, JsonObject museum, int x, int y, int w) {
@@ -158,7 +228,7 @@ final class PvMuseumPage {
         return yy - y + ((entries.size() + cols - 1) / cols) * (slot + g);
     }
 
-    private static Map<String, State> states(List<String> ids, JsonObject items, JsonObject children) {
+    static Map<String, State> states(List<String> ids, JsonObject items, JsonObject children) {
         Map<String, State> out = new HashMap<>();
         for (String id : ids) out.put(id, items.has(id) ? State.DONATED : State.MISSING);
         if (children == null) return out;
@@ -203,7 +273,7 @@ final class PvMuseumPage {
         return ItemStack.EMPTY;
     }
 
-    private static String nameOf(ItemStack stack, String pieceId, String id) {
+    static String nameOf(ItemStack stack, String pieceId, String id) {
         if (!stack.isEmpty()) return stack.getHoverName().getString();
         PvItems.RepoItem repo = PvItems.repoItem(pieceId);
         String name = repo != null ? repo.displayName() : PvProfileView.prettify(id);

@@ -1,5 +1,6 @@
 package com.phantomaddons.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.ShopKeybinds;
@@ -86,7 +87,7 @@ public class HandledScreenMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$profitButtonClick(MouseButtonEvent event, boolean isDouble,
                                                 CallbackInfoReturnable<Boolean> cir) {
-        if (event.button() != 0) return;
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return;
         if (!ProfitHud.shouldShow()) return;
         int mx = (int) event.x(), my = (int) event.y();
         if (ProfitHud.handleClick(mx, my)) {
@@ -94,7 +95,7 @@ public class HandledScreenMixin {
         }
     }
 
-    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$middleClickShopGui(Slot slot, int slotId, int mouseButton,
                                                  ContainerInput clickType, CallbackInfo ci) {
         if (!PhantomConfig.isMiddleClickShopGuiEnabled()) return;
@@ -109,7 +110,7 @@ public class HandledScreenMixin {
         this.slotClicked(slot, slotId, 2, ContainerInput.CLONE);
     }
 
-    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$blockCloseItemClick(Slot slot, int slotId, int mouseButton,
                                                   ContainerInput clickType, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
@@ -118,7 +119,7 @@ public class HandledScreenMixin {
         }
     }
 
-    @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V", at = @At("HEAD"), cancellable = true)
     private void kuudrahelper$slotBindsClick(Slot slot, int slotId, int mouseButton,
                                              ContainerInput clickType, CallbackInfo ci) {
         AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
@@ -258,9 +259,7 @@ public class HandledScreenMixin {
     }
 
     private static boolean isControlDown() {
-        com.mojang.blaze3d.platform.Window window = Minecraft.getInstance().getWindow();
-        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL)
-                || com.mojang.blaze3d.platform.InputConstants.isKeyDown(window, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL);
+        return com.phantomaddons.utils.InputCompat.isCtrlDown();
     }
 
 }

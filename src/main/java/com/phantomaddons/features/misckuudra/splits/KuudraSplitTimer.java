@@ -386,6 +386,7 @@ public final class KuudraSplitTimer {
 
     private static void printRunSummary() {
         Minecraft mc = Minecraft.getInstance();
+        if (!PhantomConfig.isRunBreakdownEnabled()) return;
         if (mc.player == null || runStartMs < 0 || runEndMs < 0) return;
 
         int tier = KuudraTierDetector.getTier();

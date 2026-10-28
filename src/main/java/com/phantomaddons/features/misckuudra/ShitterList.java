@@ -3,6 +3,7 @@ package com.phantomaddons.features.misckuudra;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.phantomaddons.HudEditorScreen;
+import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.gui.PhantomScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -132,7 +133,7 @@ public final class ShitterList {
     }
 
     private static boolean active() {
-        if (NAMES.isEmpty()) return false;
+        if (NAMES.isEmpty() || !PhantomConfig.isShitterHighlightEnabled()) return false;
         var screen = Minecraft.getInstance().gui.screen();
         if (screen instanceof PhantomScreen || screen instanceof HudEditorScreen) return false;
         return true;

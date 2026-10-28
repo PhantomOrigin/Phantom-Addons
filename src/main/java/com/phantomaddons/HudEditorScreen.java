@@ -1,5 +1,6 @@
 package com.phantomaddons;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -12,12 +13,13 @@ import java.util.List;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 12;
+    private static final int N = 14;
 
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Crate Pickup Progress",
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
-        "Profit Tracker", "Chest Value", "Backbone Progress Bar", "Chest Tracker"
+        "Profit Tracker", "Chest Value", "Backbone Progress Bar", "Chest Tracker",
+        "Stun Reminder", "Tentacle Warning"
     };
     private final float[] px = new float[N];
     private final float[] py = new float[N];
@@ -83,6 +85,14 @@ public class HudEditorScreen extends Screen {
         px[11] = PhantomConfig.getChestTrackerHudX();
         py[11] = PhantomConfig.getChestTrackerHudY();
         ps[11] = PhantomConfig.getChestTrackerHudScale();
+
+        px[12] = PhantomConfig.getStunReminderHudX();
+        py[12] = PhantomConfig.getStunReminderHudY();
+        ps[12] = PhantomConfig.getStunReminderHudScale();
+
+        px[13] = PhantomConfig.getTentacleWarnHudX();
+        py[13] = PhantomConfig.getTentacleWarnHudY();
+        ps[13] = PhantomConfig.getTentacleWarnHudScale();
     }
 
     @Override
@@ -134,6 +144,14 @@ public class HudEditorScreen extends Screen {
         PhantomConfig.setChestTrackerHudX(px[11]);
         PhantomConfig.setChestTrackerHudY(py[11]);
         PhantomConfig.setChestTrackerHudScale(ps[11]);
+
+        PhantomConfig.setStunReminderHudX(px[12]);
+        PhantomConfig.setStunReminderHudY(py[12]);
+        PhantomConfig.setStunReminderHudScale(ps[12]);
+
+        PhantomConfig.setTentacleWarnHudX(px[13]);
+        PhantomConfig.setTentacleWarnHudY(py[13]);
+        PhantomConfig.setTentacleWarnHudScale(ps[13]);
 
         PhantomConfig.save();
         minecraft.gui.setScreen(parent);
@@ -243,6 +261,8 @@ public class HudEditorScreen extends Screen {
                     new Line(0,         60, "§bChest Profit:§r §a§f38.0M§r")));
             case 10 -> centered(3.0f, new Line(0, 0, "§8[§6||||||||||||§f||||||||§8] §b60%"));
             case 11 -> leftAligned(List.of(new Line(0, 0, "§f12§7 (§a5§7 / §c2§7)")));
+            case 12 -> centered(3.0f, new Line(0, 0, "§cLEAVE BUILD!"));
+            case 13 -> centered(1.0f, new Line(0, -lh / 2, "§c§l!!!"));
             default -> throw new IllegalArgumentException("No HUD element " + i);
         };
     }
@@ -365,7 +385,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
-        if (click.button() != 0) return super.mouseClicked(click, isDoubleClick);
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(click, isDoubleClick);
 
         double mx = click.x(), my = click.y();
 
@@ -390,7 +410,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent click, double dx, double dy) {
-        if (draggingIdx >= 0 && click.button() == 0) {
+        if (draggingIdx >= 0 && click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             px[draggingIdx] = clamp01(dragStartPx + (float)(click.x() - dragStartMX) / width);
             py[draggingIdx] = clamp01(dragStartPy + (float)(click.y() - dragStartMY) / height);
             return true;
@@ -400,7 +420,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent click) {
-        if (click.button() == 0) draggingIdx = -1;
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) draggingIdx = -1;
         return super.mouseReleased(click);
     }
 
@@ -416,7 +436,7 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 256) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             onClose();
             return true;
         }
@@ -439,6 +459,8 @@ public class HudEditorScreen extends Screen {
         px[9] = 0.3f;   py[9] = 0.3f;  ps[9] = 1.0f;
         px[10] = 0.5f;  py[10] = 0.6f; ps[10] = 1.0f;
         px[11] = 0.556f; py[11] = 0.958f; ps[11] = 1.0f;
+        px[12] = 0.5f;  py[12] = 0.25f; ps[12] = 1.0f;
+        px[13] = 0.5f;  py[13] = 0.35f; ps[13] = 3.0f;
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

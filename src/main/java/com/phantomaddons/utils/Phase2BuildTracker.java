@@ -20,6 +20,9 @@ public final class Phase2BuildTracker {
 
     public static final int BLINDNESS_TICKS = 9;
     private static boolean waitingForAgro = false;
+    private static boolean wasBlind       = false;
+    private static boolean blindChecked   = false;
+    private static boolean timerFinished  = false;
 
     public static int pingTicks() {
         if (!PhantomConfig.isEatenTimerSubtractPingEnabled()) return 0;
@@ -53,6 +56,8 @@ public final class Phase2BuildTracker {
         wasRidingArmorStand = false;
         postTimerTicks      = 0;
         waitingForAgro      = false;
+        blindChecked        = false;
+        timerFinished       = false;
         PhantomAddons.LOGGER.info("[PhantomAddons] Phase 2 build tracking started");
     }
 
@@ -63,6 +68,8 @@ public final class Phase2BuildTracker {
         wasRidingArmorStand = false;
         postTimerTicks      = 0;
         waitingForAgro      = false;
+        blindChecked        = false;
+        timerFinished       = false;
         PhantomAddons.LOGGER.info("[PhantomAddons] Phase 2 build reset");
     }
 
@@ -89,21 +96,37 @@ public final class Phase2BuildTracker {
 
         wasRidingArmorStand = ridingArmorStand;
 
+        boolean blind = client.player.hasEffect(MobEffects.BLINDNESS);
+        if (!blindChecked) {
+            wasBlind = blind;
+            blindChecked = true;
+        }
+        boolean blindnessGained = blind && !wasBlind;
+        wasBlind = blind;
+        if (blindnessGained && !timerFinished && mountTimer <= 0) {
+            mountTimer       = BLINDNESS_TICKS;
+            mountGraceTicks  = 0;
+            mountTimerActive = true;
+            waitingForAgro   = false;
+            PhantomAddons.LOGGER.info("[PhantomAddons] Eaten timer started by blindness, the mount was not seen");
+        }
+
         if (mountTimer > 0 && atEatenPosition(client)) {
             mountTimer       = 0;
             mountGraceTicks  = 0;
             mountTimerActive = false;
             waitingForAgro   = false;
+            timerFinished    = true;
         }
 
         if (mountTimer > 0) {
-            boolean blind = client.player.hasEffect(MobEffects.BLINDNESS);
             if (mountTimer == blindnessMark() && !blind) waitingForAgro = true;
             if (waitingForAgro && blind) waitingForAgro = false;
             if (!waitingForAgro) {
                 mountTimer--;
                 if (mountTimer == 0) {
                     postTimerTicks = 60;
+                    timerFinished  = true;
                 }
             }
         }

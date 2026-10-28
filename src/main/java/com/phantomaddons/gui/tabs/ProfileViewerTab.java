@@ -11,10 +11,24 @@ public final class ProfileViewerTab {
     private ProfileViewerTab() {}
 
     public static void build(MenuBuilder m) {
+        m.heading("General");
         m.add(new Toggle("Profile Viewer (/pv)",
                 PhantomConfig::isPvEnabled, PhantomConfig::setPvEnabled)
                 .withTooltip("/pv <player> opens a SkyBlock profile viewer. /pv on its own views your own profile."));
 
+        m.add(new Toggle("Click Names To Open Profile",
+                PhantomConfig::isPvClickNames, PhantomConfig::setPvClickNames)
+                .withTooltip("Clicking a player's name in chat opens their profile viewer instead of starting a message to them. Holding Shift still inserts the name into the chat box."));
+
+        m.add(new Toggle("Party Finder Shift Preview",
+                PhantomConfig::isPvPartyFinderPreview, PhantomConfig::setPvPartyFinderPreview)
+                .withTooltip("Hold Shift over a Kuudra party in the Party Finder to preview its members' profiles. This looks each member up on our server, and signs you in to it the first time you use it. Off by default."));
+
+        m.add(new Toggle("Preserve Last Open Page",
+                PhantomConfig::isPvRememberPage, PhantomConfig::setPvRememberPage)
+                .withTooltip("Opening the profile viewer on someone you looked at in the last 10 minutes puts you back on the page and sub-tab you left it on, instead of the first page."));
+
+        m.heading("Window");
         m.add(new RangeSlider("GUI Size", 0.6f, 2.5f, "%.2fx",
                 PhantomConfig::getPvGuiScale, PhantomConfig::setPvGuiScale)
                 .withTooltip("Size of the profile viewer window. Everything inside it, text included, grows with it."));
@@ -29,8 +43,7 @@ public final class ProfileViewerTab {
                     case SMALL  -> PhantomConfig.PvContent.MEDIUM;
                     case MEDIUM -> PhantomConfig.PvContent.LARGE;
                     case LARGE  -> PhantomConfig.PvContent.SMALL;
-                }))
-                .withTooltip("How big the items and text are compared with the window. Small fits more on each page; large shows less, bigger. Pages rearrange to suit."));
+                })));
 
         m.add(new Cycle("Theme",
                 () -> switch (PhantomConfig.getPvTheme()) {
@@ -46,17 +59,9 @@ public final class ProfileViewerTab {
 
         m.add(new Cycle("Tab Style",
                 () -> PhantomConfig.isPvTabIcons() ? "Icons" : "Text",
-                () -> PhantomConfig.setPvTabIcons(!PhantomConfig.isPvTabIcons()))
-                .withTooltip("Text shows each tab's name along the top, scrolling when there are too many. Icons shows one small icon per tab, all on one screen, with the name when you hover it."));
+                () -> PhantomConfig.setPvTabIcons(!PhantomConfig.isPvTabIcons())));
 
-        m.add(new Toggle("Party Finder Shift Preview",
-                PhantomConfig::isPvPartyFinderPreview, PhantomConfig::setPvPartyFinderPreview)
-                .withTooltip("Hold Shift over a Kuudra party in the Party Finder to preview its members' profiles. This looks each member up on our server, and signs you in to it the first time you use it. Off by default."));
-
-        m.add(new Toggle("Click Names To Open Profile",
-                PhantomConfig::isPvClickNames, PhantomConfig::setPvClickNames)
-                .withTooltip("Clicking a player's name in chat opens their profile viewer instead of starting a message to them. Holding Shift still inserts the name into the chat box."));
-
+        m.heading("Numbers");
         m.add(new Toggle("Replace Roman Numerals",
                 PhantomConfig::isPvArabicNumerals, PhantomConfig::setPvArabicNumerals)
                 .withTooltip("Shows numbers instead of Roman numerals in the profile viewer, e.g. Sharpness 7 instead of Sharpness VII."));

@@ -6,7 +6,10 @@ import com.phantomaddons.gui.GuiDraw;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 final class PvFarmingPage {
 
@@ -35,6 +38,7 @@ final class PvFarmingPage {
             case 1 -> contests(c);
             case 2 -> garden(c);
             case 3 -> milestones(c);
+            case 4 -> greenhouse(c);
             default -> gear(c);
         };
     }
@@ -76,7 +80,6 @@ final class PvFarmingPage {
         int cw = avail / cols;
         int toolRow = slot + 4;
         float ns = 0.8f * es;
-        // Every crop's tool, then the vacuum and watering can in the slots after them.
         int count = CROPS.length + 2;
         for (int i = 0; i < count; i++) {
             ItemStack tool = i < CROPS.length ? a.farmingTool(CROPS[i].tool) : i == CROPS.length ? a.vacuum : a.wateringCan;
@@ -297,6 +300,99 @@ final class PvFarmingPage {
             }
         }
         yy += ((CROPS.length + cols - 1) / cols) * rowH;
+        return yy - y0;
+    }
+
+    // ── Greenhouse ────────────────────────────────────────────────────────────
+
+    private static final String[] RARITIES = { "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON" };
+
+    private static String rarityCode(String rarity) {
+        return switch (rarity) {
+            case "LEGENDARY" -> "§6";
+            case "EPIC" -> "§5";
+            case "RARE" -> "§9";
+            case "UNCOMMON" -> "§a";
+            default -> "§f";
+        };
+    }
+
+    private static Set<String> idSet(JsonObject obj, String key) {
+        Set<String> out = new HashSet<>();
+        JsonElement e = obj == null ? null : obj.get(key);
+        if (e != null && e.isJsonArray()) {
+            for (JsonElement i : e.getAsJsonArray()) if (i.isJsonPrimitive()) out.add(i.getAsString().toLowerCase(Locale.ROOT));
+        }
+        return out;
+    }
+
+    private static int greenhouse(PvPages.Ctx c) {
+        PvScreen s = c.s();
+        float es = c.es();
+        int pad = PvPages.PAD;
+        int x0 = c.x() + pad, y0 = c.y() + pad - c.scroll(), avail = c.w() - 2 * pad;
+        int yy = y0;
+        yy += s.title(c.g(), "Greenhouse", x0, yy);
+
+        List<PvMutations.Mutation> crops = PvMutations.list();
+        if (crops == null) {
+            s.text(c.g(), PvMutations.failed() ? "Could not load the greenhouse crop list." : "Loading greenhouse crops...",
+                    x0, yy, PvTheme.dim(), 0.8f * es);
+            return yy - y0 + c.lh(es);
+        }
+
+        JsonObject gardenData = PvJson.obj(c.m(), "garden_player_data");
+        Set<String> discovered = idSet(gardenData, "discovered_greenhouse_crops");
+        Set<String> analyzed = idSet(gardenData, "analyzed_greenhouse_crops");
+
+        int total = crops.size(), analyzable = 0, found = 0, done = 0;
+        for (PvMutations.Mutation m : crops) {
+            String id = m.id().toLowerCase(Locale.ROOT);
+            if (m.analyzable()) analyzable++;
+            if (discovered.contains(id) || analyzed.contains(id)) found++;
+            if (analyzed.contains(id)) done++;
+        }
+        String summary = "§7Discovered: §e" + found + "§7/§e" + total + "   §7Analyzed: §e" + done + "§7/§e" + analyzable;
+        s.text(c.g(), summary, x0, yy, PvTheme.text(), 0.9f * es);
+        yy += c.lh(0.9f * es) + 6;
+
+        int slot = Math.max(14, Math.round(20 * es));
+        int gap = 3;
+        int cols = Math.max(1, (avail + gap) / (slot + gap));
+        for (String rarity : RARITIES) {
+            List<PvMutations.Mutation> group = new java.util.ArrayList<>();
+            int groupFound = 0;
+            for (PvMutations.Mutation m : crops) {
+                if (!m.rarity().equalsIgnoreCase(rarity)) continue;
+                group.add(m);
+                String id = m.id().toLowerCase(Locale.ROOT);
+                if (discovered.contains(id) || analyzed.contains(id)) groupFound++;
+            }
+            if (group.isEmpty()) continue;
+
+            String label = rarityCode(rarity) + rarity.charAt(0) + rarity.substring(1).toLowerCase(Locale.ROOT)
+                    + " §8(" + groupFound + "/" + group.size() + ")";
+            s.text(c.g(), label, x0, yy, PvTheme.text(), 0.85f * es);
+            yy += c.lh(0.85f * es) + 3;
+
+            int rgb = PvScreen.rarityRgb(rarity);
+            for (int i = 0; i < group.size(); i++) {
+                PvMutations.Mutation m = group.get(i);
+                String id = m.id().toLowerCase(Locale.ROOT);
+                boolean isAnalyzed = analyzed.contains(id);
+                boolean isFound = isAnalyzed || discovered.contains(id);
+                int sx = x0 + (i % cols) * (slot + gap), sy = yy + (i / cols) * (slot + gap);
+                ItemStack icon = s.repoIcon(m.id(), Items.WHEAT_SEEDS);
+                s.raritySlot(c.g(), sx, sy, slot, icon, isFound ? rgb : -1, !isAnalyzed, c.mx(), c.my());
+                if (s.hovered(c.mx(), c.my(), sx, sy, slot, slot)) {
+                    s.hoverStack = null;
+                    String status = isAnalyzed ? "§aAnalyzed" : isFound
+                            ? (m.analyzable() ? "§eDiscovered, not analyzed" : "§eDiscovered") : "§cNot discovered";
+                    s.tooltip(rarityCode(rarity) + m.name(), "§8" + rarity.charAt(0) + rarity.substring(1).toLowerCase(Locale.ROOT), status);
+                }
+            }
+            yy += ((group.size() + cols - 1) / cols) * (slot + gap) + 5;
+        }
         return yy - y0;
     }
 }

@@ -1,5 +1,6 @@
 package com.phantomaddons;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -249,7 +250,7 @@ public class PbEditorScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
         if (super.mouseClicked(click, isDoubleClick)) return true;
         double mx = click.x(), my = click.y();
-        if (click.button() != 0) return false;
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return false;
 
         int tierBoxW = 30, tierBoxX = panelX + panelW - PAD - tierBoxW, tierBoxY = panelY + 6;
         if (mx >= tierBoxX && mx <= tierBoxX + tierBoxW && my >= tierBoxY && my <= tierBoxY + 16) {
@@ -290,7 +291,7 @@ public class PbEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == 256) { onClose(); return true; } // Esc
+        if (event.key() == InputConstants.KEY_ESCAPE) { onClose(); return true; } // Esc
         return super.keyPressed(event);
     }
 

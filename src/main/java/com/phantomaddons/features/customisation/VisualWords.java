@@ -73,7 +73,7 @@ public final class VisualWords {
         } catch (Exception ignored) {}
     }
 
-    private static boolean gradientsAvailable() { return com.phantomaddons.DataFeatures.isPresent(); }
+    private static boolean gradientsAvailable() { return com.phantomaddons.DataFeatures.hasHighlight(); }
 
     private static boolean anyGradient = false;
 
@@ -81,7 +81,7 @@ public final class VisualWords {
         anyGradient = false;
         for (Rule r : RULES) {
             int[] cols = gradientsAvailable() && r.gradient != null ? NameGradient.parseColors(r.gradient) : new int[0];
-            boolean codes = gradientsAvailable() && r.replacement != null && r.replacement.matches("(?s).*&([0-9a-fA-Fk-oK-OrR]|#[0-9a-fA-F]{6}).*");
+            boolean codes = r.replacement != null && r.replacement.matches("(?s).*&([0-9a-fA-Fk-oK-OrR]|#[0-9a-fA-F]{6}).*");
             r.styled = cols.length == 0 && !codes ? null
                     : new StyledText(r.replacement, cols.length == 0 ? null
                             : new NameGradient(cols, r.gradientLength, r.gradientDirection, r.gradientSpeed));
@@ -118,7 +118,7 @@ public final class VisualWords {
 
     private static String applyRules(String s) {
         for (Rule r : RULES) {
-            if (r.pattern == null) continue;
+            if (r.pattern == null || r.styled != null) continue;
             s = r.pattern.matcher(s).replaceAll(r.replQuoted);
         }
         return s;

@@ -1,5 +1,40 @@
 [
   {
+    "version": "1.7.3",
+    "title": "Minecraft 26.3 support, Stun Reminder and Tentacle Grab Warning",
+    "sections": [
+      {
+        "name": "Additions",
+        "items": [
+          "Added 26.3 Support",
+          "Added Stun Reminder",
+          "Added Tentacle Grab Warning",
+          "Added Kuudra Rotation based direction display (this saves like 1-2 ticks sometimes)",
+          "Added toggle for donator names and a refresh button",
+          "Added formatting codes support for Visual Words",
+          "Added Preserve Last Open Page for profile viewer",
+          "Added Sacks to Profile Viewer",
+          "Added Greenhouse information to Profile Viewer",
+          "Added Coop Member Information when hovering over playernames in the profile viewer",
+          "Added Secrets Per Run to Profile Viewer",
+          "Added warnings when ping is set to 0 in about tab",
+          "Added Museum Upgrades Tab to Profile viewer"
+        ]
+      },
+      {
+        "name": "Other Changes",
+        "items": [
+          "Reworked the Main GUI slightly",
+          "Hides empty tabs on the standard version",
+          "Changed Dungeon PB times to round down instead of up and show decimals on hover",
+          "Removed a few unnecessary descriptions",
+          "Shitter List is now toggleable",
+          "Changed museum tab colours"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.2",
     "title": "Profile viewer upgrades, a better eaten timer and optional data sharing",
     "sections": [

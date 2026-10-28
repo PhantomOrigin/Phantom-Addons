@@ -73,9 +73,10 @@ public final class AlwaysOnTopRenderTypes {
         }
     }
 
-    private static RenderPipeline withAlwaysDepth(RenderPipeline base, Identifier newLocation) {
+    private static RenderPipeline withAlwaysDepth(RenderPipeline base, Identifier newLocation) throws Exception {
         DepthStencilState alwaysOn = new DepthStencilState(CompareOp.ALWAYS_PASS, false);
 
+        //? if <26.3 {
         com.mojang.blaze3d.pipeline.ColorTargetState[] colorTargets = base.getColorTargetStates();
 
         RenderPipeline.Snippet snippet = new RenderPipeline.Snippet(
@@ -92,7 +93,38 @@ public final class AlwaysOnTopRenderTypes {
                 Optional.of(base.getPrimitiveTopology()));
 
         return RenderPipeline.builder(snippet).withLocation(newLocation).build();
+        //?} else {
+        /*java.lang.reflect.Constructor<?> ctor = RenderPipeline.class.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Class<?>[] types = ctor.getParameterTypes();
+
+        Object colorTargets = toArray(readField(base, "colorTargetStates"), types[4].getComponentType());
+        Object vertexFormats = toArray(readField(base, "vertexFormatPerBuffer"), types[8].getComponentType());
+
+        return (RenderPipeline) ctor.newInstance(
+                newLocation,
+                readField(base, "shaders"),
+                readField(base, "shaderDefines"),
+                readField(base, "bindGroupLayouts"),
+                colorTargets,
+                alwaysOn,
+                readField(base, "polygonMode"),
+                readField(base, "cull"),
+                vertexFormats,
+                readField(base, "primitiveTopology"),
+                readField(base, "pushConstantSize"),
+                readField(base, "sortKey"));
+        *///?}
     }
+
+    //? if >=26.3 {
+    /*private static Object toArray(Object list, Class<?> component) {
+        java.util.List<?> items = (java.util.List<?>) list;
+        Object array = java.lang.reflect.Array.newInstance(component, items.size());
+        for (int i = 0; i < items.size(); i++) java.lang.reflect.Array.set(array, i, items.get(i));
+        return array;
+    }
+    *///?}
 
     private static Object cloneSetupWithPipeline(Object baseSetup, RenderPipeline newPipeline) throws Exception {
         Class<?> renderSetupClass = baseSetup.getClass();
@@ -117,9 +149,18 @@ public final class AlwaysOnTopRenderTypes {
         builderClass.getMethod("setLayeringTransform", Class.forName("net.minecraft.client.renderer.rendertype.LayeringTransform"))
                 .invoke(setupBuilder, layeringTransform);
 
-        Object outputTarget = readField(baseSetup, "outputTarget");
-        builderClass.getMethod("setOutputTarget", Class.forName("net.minecraft.client.renderer.rendertype.OutputTarget"))
-                .invoke(setupBuilder, outputTarget);
+        if (hasField(baseSetup, "outputTarget")) {
+            Object outputTarget = readField(baseSetup, "outputTarget");
+            builderClass.getMethod("setOutputTarget", Class.forName("net.minecraft.client.renderer.rendertype.OutputTarget"))
+                    .invoke(setupBuilder, outputTarget);
+        }
+        if (hasField(baseSetup, "oitPipelineSet") && readField(baseSetup, "oitPipelineSet") != null) {
+            builderClass.getMethod("setOitPipelines", Class.forName("net.minecraft.client.renderer.oit.OitPipelineSet"))
+                    .invoke(setupBuilder, readField(baseSetup, "oitPipelineSet"));
+        }
+        if (hasField(baseSetup, "forceSolidModelPhase") && (boolean) readField(baseSetup, "forceSolidModelPhase")) {
+            builderClass.getMethod("withForcedSolidModelPhase").invoke(setupBuilder);
+        }
 
         Object textureTransform = readField(baseSetup, "textureTransform");
         builderClass.getMethod("setTextureTransform", Class.forName("net.minecraft.client.renderer.rendertype.TextureTransform"))
@@ -136,6 +177,15 @@ public final class AlwaysOnTopRenderTypes {
         }
 
         return builderClass.getMethod("createRenderSetup").invoke(setupBuilder);
+    }
+
+    private static boolean hasField(Object target, String name) {
+        try {
+            target.getClass().getDeclaredField(name);
+            return true;
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
     }
 
     private static Object readField(Object target, String name) throws Exception {

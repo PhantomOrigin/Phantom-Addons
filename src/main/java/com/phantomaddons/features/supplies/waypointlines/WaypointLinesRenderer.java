@@ -50,8 +50,6 @@ public final class WaypointLinesRenderer {
         imm.endBatch(RenderTypes.lines());
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         *///?} else {
-        // Everything this feature draws is always-on-top (visible through walls) — see
-        // renderAlwaysOnTop, which draws it via ImmediateDraw from AFTER_TRANSLUCENT_TERRAIN instead.
         //?}
     }
 

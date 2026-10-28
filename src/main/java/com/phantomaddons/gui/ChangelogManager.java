@@ -128,6 +128,25 @@ public final class ChangelogManager {
         });
     }
 
+    public static void openFromAbout() {
+        Minecraft mc = Minecraft.getInstance();
+        CompletableFuture.runAsync(() -> {
+            ChangelogData.loadSaved();
+            try {
+                ChangelogData.fetch();
+            } catch (Exception e) {
+                PhantomAddons.LOGGER.info("[Changelog] couldn't read the changelog from GitHub ({}), using the saved copy", e.getMessage());
+            }
+            String current = UpdateChecker.currentVersion();
+            String latest = UpdateChecker.getLatestVersion();
+            List<ChangelogData.Entry> entries = UpdateChecker.hasUpdate() && latest != null
+                    ? ChangelogData.newer(current, latest, 10) : List.of();
+            if (entries.isEmpty()) entries = ChangelogData.forVersion(current);
+            List<ChangelogData.Entry> shown = entries;
+            mc.execute(() -> mc.gui.setScreen(new ChangelogScreen(mc.gui.screen(), shown)));
+        });
+    }
+
     private static boolean inSkyblock(Minecraft mc) {
         Objective sidebar = mc.level.getScoreboard().getDisplayObjective(DisplaySlot.SIDEBAR);
         if (sidebar == null) return false;

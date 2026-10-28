@@ -21,14 +21,14 @@ public class CustomCategoryRow extends Feature {
 
     @Override void render(GuiGraphicsExtractor ctx, PhantomScreen s, int x, int y, int w, int mx, int my) {
         drawText(ctx, s.font(), Component.literal(PREFIX),
-                x + 8, y + (ROW_H - s.font().lineHeight) / 2, C_TEXT_DIM);
+                x + 8, y + (ROW_H - s.font().lineHeight) / 2 + 1, C_TEXT_DIM);
         drawText(ctx, s.font(), Component.literal("\"" + matchString + "\""),
-                x + 8 + s.font().width(PREFIX), y + (ROW_H - s.font().lineHeight) / 2, C_TEXT);
+                x + 8 + s.font().width(PREFIX), y + (ROW_H - s.font().lineHeight) / 2 + 1, C_TEXT);
         int bw = 58, bh = ROW_H - 6, bx = x + w - bw - 8, by = y + 3;
         boolean hov = mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
-        roundedFill(ctx, bx, by, bx + bw, by + bh, dangerBg(hov), CONTROL_RADIUS);
+        raisedFill(ctx, bx, by, bx + bw, by + bh, dangerBg(hov), CONTROL_RADIUS);
         drawCenteredText(ctx, s.font(), Component.literal("Remove"),
-                bx + bw / 2, by + (bh - s.font().lineHeight) / 2, C_ERROR);
+                bx + bw / 2, by + (bh - s.font().lineHeight) / 2 + 1, C_ERROR);
     }
 
     @Override boolean onDown(double mx, double my, int x, int y, int w) {

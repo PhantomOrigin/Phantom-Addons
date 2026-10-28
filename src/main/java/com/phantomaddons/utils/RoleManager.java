@@ -40,7 +40,7 @@ public final class RoleManager {
         if (client != null) client.execute(() -> resolveAutoRole(client));
     }
 
-    private static boolean isWearingHollowArmor(Player player) {
+    public static boolean isWearingHollowArmor(Player player) {
         int count = 0;
         if (isHollow(player.getItemBySlot(EquipmentSlot.FEET)))  count++;
         if (isHollow(player.getItemBySlot(EquipmentSlot.LEGS)))  count++;

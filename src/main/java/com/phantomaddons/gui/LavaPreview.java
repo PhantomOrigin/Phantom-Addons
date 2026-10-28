@@ -13,6 +13,6 @@ public class LavaPreview extends Feature {
         ctx.fill(swX, swY, swX + sw, swY + sh, previewArgb);
         ctx.fill(swX, swY, swX + sw, swY + 1, 0x22FFFFFF);
         drawCenteredText(ctx, s.font(), Component.literal("Colour Preview"),
-                swX + sw / 2, swY + (sh - s.font().lineHeight) / 2, 0xCCFFFFFF);
+                swX + sw / 2, swY + (sh - s.font().lineHeight) / 2 + 1, 0xCCFFFFFF);
     }
 }

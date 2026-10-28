@@ -1,7 +1,11 @@
 package com.phantomaddons.features.pv;
 
 import com.mojang.authlib.GameProfile;
+//? if <26.3 {
 import com.mojang.authlib.yggdrasil.ProfileResult;
+//?} else {
+/*import com.mojang.authlib.services.ProfileResult;
+*///?}
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.RemotePlayer;

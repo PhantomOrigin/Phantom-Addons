@@ -37,10 +37,10 @@ public class DisableAllButton extends Feature {
         String label = label();
         int bh = ROW_H - 6, bx = x + w - BTN_W - 8, by = y + 3;
         boolean hov = mx >= bx && mx <= bx + BTN_W && my >= by && my <= by + bh;
-        roundedFill(ctx, bx, by, bx + BTN_W, by + bh, hov ? C_CYCLE_HOVER : C_CYCLE_BG, CONTROL_RADIUS);
+        raisedFill(ctx, bx, by, bx + BTN_W, by + bh, hov ? C_CYCLE_HOVER : C_CYCLE_BG, CONTROL_RADIUS);
         int colour = label.equals("Confirm") ? C_ERROR : label.equals("Disabled!") ? C_ON : C_ACCENT;
         drawCenteredText(ctx, s.font(), Component.literal(label),
-                bx + BTN_W / 2, by + (bh - s.font().lineHeight) / 2, colour);
+                bx + BTN_W / 2, by + (bh - s.font().lineHeight) / 2 + 1, colour);
     }
 
     @Override boolean onDown(double mx, double my, int x, int y, int w) {

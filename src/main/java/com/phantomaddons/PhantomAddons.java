@@ -54,7 +54,6 @@ import com.phantomaddons.features.dungeons.DungeonsGfs;
 import com.phantomaddons.features.misckuudra.splits.SplitHud;
 import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,10 +133,12 @@ public class PhantomAddons implements ClientModInitializer {
         bossJumpBlockerRegister();
         SupplyProgressHud.register();
         BuildProgressHud.register();
+        com.phantomaddons.features.build.StunReminder.register();
         NotificationHud.register();
         com.phantomaddons.features.misckuudra.TuxedoWarning.register();
         com.phantomaddons.features.misckuudra.KickedTimerHud.register();
         CratePriority.register();
+        com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarningHud.register();
         com.phantomaddons.features.boss.KuudraHpHud.register();
 
         com.phantomaddons.features.misckuudra.profittracker.ProfitStore.load();
@@ -178,7 +179,6 @@ public class PhantomAddons implements ClientModInitializer {
             if (!overlay) AnnounceFresh.onChat(raw);
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) handleSupplyNotifications(clean);
-            if (!overlay) com.phantomaddons.features.boss.mana.ManaDrainAnnouncer.onChat(clean);
             if (overlay) com.phantomaddons.features.boss.mana.ManaTracker.onChat(clean);
             com.phantomaddons.features.misckuudra.HollowWandAnnouncer.onChat(clean);
             if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
@@ -409,6 +409,7 @@ public class PhantomAddons implements ClientModInitializer {
         PhaseLogger.end();
         RoleManager.reset();
         PearlWaypointManager.reset();
+        com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarning.reset();
         PearlTitleListener.reset();
         SoloDetector.onPhaseEnd();
         KuudraTierDetector.reset();
@@ -427,6 +428,7 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraDirectionHud.reset();
         BuildProgressTracker.stop();
         BuildProgressHud.reset();
+        com.phantomaddons.features.build.StunReminder.reset();
         SupplyProgressHud.reset();
         AnnounceFresh.reset();
         PearlRefill.reset();
@@ -460,10 +462,7 @@ public class PhantomAddons implements ClientModInitializer {
 
             int openGuiKey = PhantomConfig.getOpenGuiKey();
             if (openGuiKey > 0) {
-                long handle = GLFW.glfwGetCurrentContext();
-                boolean down = handle != 0 && (openGuiKey >= PhantomScreen.MOUSE_OFFSET
-                        ? GLFW.glfwGetMouseButton(handle, openGuiKey - PhantomScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS
-                        : GLFW.glfwGetKey(handle, openGuiKey) == GLFW.GLFW_PRESS);
+                boolean down = com.phantomaddons.utils.InputCompat.isBoundDown(openGuiKey);
                 if (down && !openGuiKeyPrevDown && client.player != null && client.level != null
                         && client.gui.screen() == null) {
                     client.gui.setScreen(new PhantomScreen());
@@ -496,6 +495,7 @@ public class PhantomAddons implements ClientModInitializer {
             com.phantomaddons.features.pv.ChatCards.tick();
             com.phantomaddons.features.supplies.giant.SupplyGiantHitbox.tick(client);
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
+            com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarning.tick(client);
             GiantYLogger.tick(client);
             KuudraStationaryLogger.tick(client);
             DataFeatures.tick(client);

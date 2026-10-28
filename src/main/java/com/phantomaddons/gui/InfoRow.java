@@ -23,6 +23,6 @@ public class InfoRow extends Feature {
         Value v = value.get();
         drawText(ctx, s.font(), Component.literal(v.text()),
                 x + w - s.font().width(v.text()) - 8,
-                y + (ROW_H - s.font().lineHeight) / 2, v.colour());
+                y + (ROW_H - s.font().lineHeight) / 2 + 1, v.colour());
     }
 }

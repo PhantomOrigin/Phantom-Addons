@@ -9,7 +9,6 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +49,7 @@ public final class PartyFinderProfileHook {
     }
 
     private static boolean isShiftDown(Minecraft mc) {
-        var window = mc.getWindow();
-        return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return com.phantomaddons.utils.InputCompat.isShiftDown();
     }
 
     private static List<String> extractMembers(ItemStack stack, Minecraft mc) {

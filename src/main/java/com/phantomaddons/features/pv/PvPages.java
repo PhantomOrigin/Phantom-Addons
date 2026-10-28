@@ -36,8 +36,13 @@ final class PvPages {
     }
 
     static String time(double ms) {
-        long total = Math.round(ms / 1000);
+        long total = (long) Math.floor(ms / 1000);
         return String.format(Locale.ROOT, "%d:%02d", total / 60, total % 60);
+    }
+
+    static String timePrecise(double ms) {
+        long total = (long) Math.floor(ms);
+        return String.format(Locale.ROOT, "%d:%02d.%03d", total / 60000, total / 1000 % 60, total % 1000);
     }
 
     static int tierFromIncrements(double xp, long[] perTier) {

@@ -43,6 +43,12 @@ public abstract class FishingHookMixin {
         if (!PhantomConfig.isLavaBobberFixEnabled()) return;
         FishingHook self = (FishingHook) (Object) this;
         boolean inLava = self.level().getFluidState(self.blockPosition()).is(FluidTags.LAVA);
+        //? if <26.3 {
         self.getInterpolation().setInterpolationLength(inLava ? 0 : InterpolationHandler.DEFAULT_INTERPOLATION_STEPS);
+        //?} else {
+        /*if (self.getInterpolation() instanceof net.minecraft.world.entity.LinearInterpolationHandler handler) {
+            handler.setInterpolationLength(inLava ? 0 : net.minecraft.world.entity.LinearInterpolationHandler.DEFAULT_INTERPOLATION_STEPS);
+        }
+        *///?}
     }
 }

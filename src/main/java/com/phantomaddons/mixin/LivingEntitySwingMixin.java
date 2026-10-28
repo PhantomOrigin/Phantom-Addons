@@ -8,6 +8,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+//? if >=26.3 {
+/*import net.minecraft.world.item.component.SwingAnimation;
+*///?}
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,8 +20,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public class LivingEntitySwingMixin {
 
+    //? if <26.3 {
     @Inject(method = "swing(Lnet/minecraft/world/InteractionHand;)V", at = @At("HEAD"))
     private void kuudrahelper$onSwing(InteractionHand hand, CallbackInfo ci) {
+        kuudrahelper$handleSwing(hand);
+    }
+    //?} else {
+    /*@Inject(method = "swing(Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/item/component/SwingAnimation;Z)Z", at = @At("HEAD"))
+    private void kuudrahelper$onSwing(InteractionHand hand, SwingAnimation animation, boolean updateSelf, CallbackInfoReturnable<Boolean> cir) {
+        kuudrahelper$handleSwing(hand);
+    }
+    *///?}
+
+    private void kuudrahelper$handleSwing(InteractionHand hand) {
         if (hand != InteractionHand.MAIN_HAND) return;
 
         if ((Object) this instanceof Player swinger) {
@@ -31,8 +45,19 @@ public class LivingEntitySwingMixin {
         com.phantomaddons.features.boss.bonetiming.BoneTimingAssist.onLeftClick(mc.player.getMainHandItem());
     }
 
+    //? if <26.3 {
     @Inject(method = "getCurrentSwingDuration", at = @At("RETURN"), cancellable = true)
     private void kuudrahelper$modifySwingDuration(CallbackInfoReturnable<Integer> cir) {
+        kuudrahelper$changeSwingDuration(cir);
+    }
+    //?} else {
+    /*@Inject(method = "getModifiedSwingDuration", at = @At("RETURN"), cancellable = true)
+    private void kuudrahelper$modifySwingDuration(SwingAnimation animation, CallbackInfoReturnable<Integer> cir) {
+        kuudrahelper$changeSwingDuration(cir);
+    }
+    *///?}
+
+    private void kuudrahelper$changeSwingDuration(CallbackInfoReturnable<Integer> cir) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.player != (Object) this) return;
         if (!PhantomConfig.isItemCustomizationEnabled()) return;

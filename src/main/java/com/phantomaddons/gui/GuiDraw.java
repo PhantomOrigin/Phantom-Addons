@@ -10,7 +10,7 @@ import static com.phantomaddons.gui.Theme.*;
 
 public final class GuiDraw {
 
-    public static final int   ROW_H             = 26;
+    public static final int   ROW_H             = 24;
     public static final int   CONTROL_RADIUS    = 5;
     static final float        TOGGLE_ANIM_SPEED = 5f;
 
@@ -33,10 +33,17 @@ public final class GuiDraw {
 
     // ── On/off switch ─────────────────────────────────────────────────────────
 
-    private static final int SWITCH_W = 34, SWITCH_H = 12;
+    static final int WARNING_RED = 0xFFFF4444;
+
+    static void drawWarningMark(GuiGraphicsExtractor ctx, Font font, int x, int rowY) {
+        ctx.text(font, Component.literal("!"), x, rowY + (ROW_H - font.lineHeight) / 2 + 1, WARNING_RED, true);
+    }
+
+    static final int SWITCH_W = 34, SWITCH_H = 12;
 
     static void drawSwitch(GuiGraphicsExtractor ctx, int x, int y, int w, float anim) {
         int px = x + w - SWITCH_W - 8, py = y + (ROW_H - SWITCH_H) / 2;
+        roundedFill(ctx, px - 1, py - 1, px + SWITCH_W + 1, py + SWITCH_H + 1, outlineColour(), SWITCH_H / 2 + 1);
         roundedFill(ctx, px, py, px + SWITCH_W, py + SWITCH_H, lerpColor(C_OFF, C_ON, anim), SWITCH_H / 2);
         int kxOff = px + 1, kxOn = px + SWITCH_W - 12;
         int kx = Math.round(kxOff + (kxOn - kxOff) * anim);
@@ -55,6 +62,21 @@ public final class GuiDraw {
     private static final Identifier CORNER_BL = Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/corner_bl.png");
     private static final Identifier CORNER_BR = Identifier.fromNamespaceAndPath("phantomaddons", "textures/gui/corner_br.png");
     private static final int CORNER_TEX_SIZE = 64;
+
+    private static int outlineColour() { return darkMode ? 0xFF5A5F68 : 0xFF8C8C8C; }
+
+    private static void outlinedFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int inner, int radius) {
+        roundedFill(ctx, x1, y1, x2, y2, outlineColour(), radius);
+        roundedFill(ctx, x1 + 1, y1 + 1, x2 - 1, y2 - 1, inner, Math.max(1, radius - 1));
+    }
+
+    public static void raisedFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color, int radius) {
+        outlinedFill(ctx, x1, y1, x2, y2, shade(color, darkMode ? 16 : -14), radius);
+    }
+
+    public static void insetFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color, int radius) {
+        outlinedFill(ctx, x1, y1, x2, y2, shade(color, darkMode ? 0 : 10), radius);
+    }
 
     public static void roundedFill(GuiGraphicsExtractor ctx, int x1, int y1, int x2, int y2, int color, int radius) {
         roundedFill(ctx, x1, y1, x2, y2, color, radius, true, true, true, true);

@@ -1,5 +1,6 @@
 package com.phantomaddons.features.pv;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.gui.Theme;
 import net.minecraft.client.Minecraft;
@@ -14,6 +15,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,14 +51,14 @@ public final class PvScreen extends Screen {
 
     private static final String[][] SUBTABS = {
             {},
-            { "Inventory", "Loadouts", "Wardrobe", "Equipment", "Accessories", "Pets", "Backpacks", "Ender Chest" },
+            { "Inventory", "Loadouts", "Wardrobe", "Equipment", "Accessories", "Pets", "Backpacks", "Ender Chest", "Sacks" },
             {}, {}, {},
             { "Collections", "Minions", "Bestiary" },
             { "Gear", "HotM", "Commissions" },
-            { "Gear", "Contests", "Garden", "Milestones" },
+            { "Gear", "Contests", "Garden", "Milestones", "Greenhouse" },
             {}, {}, {},
             { "Overview", "Inventory", "Ender Chest" },
-            { "Combat", "Farming", "Mining", "Fishing", "Foraging", "Dungeoneering", "Hunting", "Special" },
+            { "Combat", "Farming", "Mining", "Fishing", "Foraging", "Dungeoneering", "Hunting", "Special", "Upgrades" },
             {},
     };
     private static final int PAGE_FARMING = 7, PAGE_MUSEUM = 12, FARMING_GARDEN = 2, FARMING_MILESTONES = 3;
@@ -68,7 +70,7 @@ public final class PvScreen extends Screen {
     }
 
     private static final int GEAR_INVENTORY = 0, GEAR_LOADOUTS = 1, GEAR_WARDROBE = 2,
-            GEAR_EQUIP_WARDROBE = 3, GEAR_ACCESSORIES = 4, GEAR_PETS = 5, GEAR_BACKPACKS = 6, GEAR_ENDER = 7;
+            GEAR_EQUIP_WARDROBE = 3, GEAR_ACCESSORIES = 4, GEAR_PETS = 5, GEAR_BACKPACKS = 6, GEAR_ENDER = 7, GEAR_SACKS = 8;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -132,7 +134,45 @@ public final class PvScreen extends Screen {
         PvConstants.preload();
         PvIconRepo.load();
         page = startPage;
+        if (startPage == 0) restorePage(name);
         load(name, uuid);
+    }
+
+    private static final long REMEMBER_PAGE_MS = 10 * 60_000L;
+    private static final int  REMEMBER_PAGE_MAX = 50;
+
+    private record SavedPage(int page, int[] subs, long at) {}
+
+    private static final Map<String, SavedPage> SAVED_PAGES = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, SavedPage> eldest) {
+            return size() > REMEMBER_PAGE_MAX;
+        }
+    };
+
+    private static String pageKey(String name) {
+        return name == null ? null : name.toLowerCase(Locale.ROOT);
+    }
+
+    private void restorePage(String name) {
+        String key = pageKey(name);
+        if (key == null || !PhantomConfig.isPvRememberPage()) return;
+        SavedPage saved = SAVED_PAGES.get(key);
+        if (saved == null) return;
+        if (System.currentTimeMillis() - saved.at() > REMEMBER_PAGE_MS) {
+            SAVED_PAGES.remove(key);
+            return;
+        }
+        if (saved.page() < 0 || saved.page() >= TABS.length) return;
+        page = saved.page();
+        System.arraycopy(saved.subs(), 0, subOf, 0, Math.min(saved.subs().length, subOf.length));
+    }
+
+    private void rememberPage() {
+        if (party != null || !PhantomConfig.isPvRememberPage()) return;
+        String key = pageKey(data != null && data.name != null ? data.name : requestedName);
+        if (key == null) return;
+        SAVED_PAGES.put(key, new SavedPage(page, subOf.clone(), System.currentTimeMillis()));
     }
 
     public static final int PAGE_KUUDRA = 4;
@@ -271,6 +311,9 @@ public final class PvScreen extends Screen {
 
     @Override
     public void removed() {
+        if (textInputOn) com.phantomaddons.utils.TextInputCompat.set(this, false);
+        textInputOn = false;
+        rememberPage();
         Theme.apply(PhantomConfig.getUiTheme());
     }
 
@@ -347,6 +390,11 @@ public final class PvScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
+        boolean wantText = searchFocus >= 0;
+        if (wantText != textInputOn) {
+            textInputOn = wantText;
+            com.phantomaddons.utils.TextInputCompat.set(this, wantText);
+        }
         long now = System.currentTimeMillis();
         float dt = lastFrame == 0 ? 0f : Math.min(0.1f, (now - lastFrame) / 1000f);
         lastFrame = now;
@@ -812,7 +860,7 @@ public final class PvScreen extends Screen {
     private static boolean stageReady(int key, PvProfileView v) {
         int pg = key / 100, sub = key % 100;
         return switch (pg) {
-            case 1 -> sub == GEAR_BACKPACKS || sub == GEAR_ENDER ? v.itemsReady() : v.basicReady();
+            case 1 -> sub == GEAR_BACKPACKS || sub == GEAR_ENDER || sub == GEAR_SACKS ? v.itemsReady() : v.basicReady();
             case 2, 3, 4, 8, 9, 11 -> v.itemsReady();
             case 6, 7 -> sub != 0 || v.itemsReady();
             default -> true;
@@ -830,6 +878,7 @@ public final class PvScreen extends Screen {
         transStart = System.currentTimeMillis();
         page = newPage;
         subOf[newPage] = newSub;
+        rememberPage();
     }
 
     // ── Content + page transitions ────────────────────────────────────────────
@@ -927,6 +976,7 @@ public final class PvScreen extends Screen {
             case 100 + GEAR_PETS -> renderPets(ctx, v, x, y, w, h, mx, my, scroll);
             case 100 + GEAR_BACKPACKS -> PvStoragePage.render(this, ctx, v, key, PvStoragePage.Kind.BACKPACKS, x, y, w, h, mx, my, scroll);
             case 100 + GEAR_ENDER -> PvStoragePage.render(this, ctx, v, key, PvStoragePage.Kind.ENDER, x, y, w, h, mx, my, scroll);
+            case 100 + GEAR_SACKS -> PvSacksPage.render(this, ctx, v, key, x, y, w, h, mx, my, scroll);
             default -> {
                 PvPages.Ctx c = new PvPages.Ctx(this, ctx, v, key, key % 100, vx, vy, vw, vh, vmx, vmy, scroll);
                 yield switch (key / 100) {
@@ -1075,6 +1125,7 @@ public final class PvScreen extends Screen {
 
     private final Map<Integer, String> searches = new HashMap<>();
     private int searchFocus = -1;
+    private boolean textInputOn;
 
     String search(int key) { return searches.getOrDefault(key, ""); }
 
@@ -1253,6 +1304,9 @@ public final class PvScreen extends Screen {
         int nx = bx0 + (mw - nw) / 2;
         text(ctx, lvl, nx, by0 + 5, 0xFFFFFFFF, ns);
         text(ctx, data.name, nx + textW(lvl, ns), by0 + 5, C_TEXT, ns);
+        PvData.Profile shownProfile = data.profiles.get(Math.min(profileIdx, data.profiles.size() - 1));
+        if (hovered(mx, my, nx, by0 + 3, nw, lineH(ns) + 4))
+            tooltip(PvNames.coopTooltip(shownProfile.coop()));
 
         float ws = 0.8f * Math.min(es, 1.2f);
         int worthY = by0 + 5 + lineH(ns) + 2;
@@ -2095,7 +2149,7 @@ public final class PvScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean isDoubleClick) {
         double mx = click.x() / uiScale, my = click.y() / uiScale;
-        if (click.button() != 0) return true;
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return true;
 
         if (overlay >= 0) {
             if (overlayBox == null || !(mx >= overlayBox[0] && mx < overlayBox[2] && my >= overlayBox[1] && my < overlayBox[3]))
@@ -2190,13 +2244,13 @@ public final class PvScreen extends Screen {
         if (searchFocus >= 0) {
             String text = search(searchFocus);
             switch (event.key()) {
-                case 256, 257, 335 -> searchFocus = -1;                       // escape / enter
-                case 259 -> { if (!text.isEmpty()) editSearch(text.substring(0, text.length() - 1)); } // backspace
+                case InputConstants.KEY_ESCAPE, InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> searchFocus = -1;                       // escape / enter
+                case InputConstants.KEY_BACKSPACE -> { if (!text.isEmpty()) editSearch(text.substring(0, text.length() - 1)); } // backspace
                 default -> { return true; }
             }
             return true;
         }
-        if (event.key() == 256) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             if (overlay >= 0) overlay = -1;
             else if (dropOpen) dropOpen = false;
             else onClose();

@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
-import org.lwjgl.glfw.GLFW;
+import com.phantomaddons.utils.InputCompat;
 
 import java.util.Map;
 
@@ -30,12 +30,7 @@ public final class SlotBinds {
             int bindKey = PhantomConfig.getSlotBindSetKey();
             if (bindKey <= 0) { bindKeyHeld = false; return; }
 
-            long handle = GLFW.glfwGetCurrentContext();
-            if (handle == 0) { bindKeyHeld = false; return; }
-
-            bindKeyHeld = bindKey >= PhantomScreen.MOUSE_OFFSET
-                    ? GLFW.glfwGetMouseButton(handle, bindKey - PhantomScreen.MOUSE_OFFSET) == GLFW.GLFW_PRESS
-                    : GLFW.glfwGetKey(handle, bindKey) == GLFW.GLFW_PRESS;
+            bindKeyHeld = InputCompat.isBoundDown(bindKey);
         });
     }
 
