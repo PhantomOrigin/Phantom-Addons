@@ -28,6 +28,10 @@ public final class ProfileViewerTab {
                 PhantomConfig::isPvRememberPage, PhantomConfig::setPvRememberPage)
                 .withTooltip("Opening the profile viewer on someone you looked at in the last 10 minutes puts you back on the page and sub-tab you left it on, instead of the first page."));
 
+        m.add(new Toggle("Player Name Suggestions",
+                PhantomConfig::isPvNameSuggestions, PhantomConfig::setPvNameSuggestions)
+                .withTooltip("Tab-completes /pv and /kuudra with your friends, players from your last 2 lobbies and anyone whose profile you opened in the last 5 minutes. Friends are learned from the messages Hypixel sends when you view your friend list, add or remove a friend, or a friend joins or leaves."));
+
         m.heading("Window");
         m.add(new RangeSlider("GUI Size", 0.6f, 2.5f, "%.2fx",
                 PhantomConfig::getPvGuiScale, PhantomConfig::setPvGuiScale)

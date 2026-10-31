@@ -34,7 +34,9 @@ public final class DoublePearlCoords {
     }
 
     public static void onChat(String raw) {
-        String clean = TextUtil.stripColor(raw).trim();
+        com.phantomaddons.utils.ChatLine.Party party = com.phantomaddons.utils.ChatLine.party(TextUtil.stripColor(raw));
+        if (party == null) return;
+        String clean = party.body();
 
         Matcher m = IQ_PATTERN.matcher(clean);
         if (!m.find()) {

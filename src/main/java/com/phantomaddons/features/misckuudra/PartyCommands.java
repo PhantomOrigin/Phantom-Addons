@@ -5,6 +5,7 @@ import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.chesttracking.ChestTracker;
 import com.phantomaddons.features.misckuudra.profile.AutoKickManager;
 import com.phantomaddons.features.misckuudra.profile.KuudraProfileFetcher;
+import com.phantomaddons.utils.PartyLines;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent;
@@ -17,30 +18,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class PartyCommands {
-
-    private static final Pattern PARTY_MSG = Pattern.compile(
-            "Party > (?:\\[[^\\]]+\\] )?(\\w+): (.+)");
-    private static final Pattern PARTY_JOIN = Pattern.compile(
-            "(?:\\[[^\\]]+\\] )?(\\w+) joined the party\\.");
-    private static final Pattern PARTY_LEAVE = Pattern.compile(
-            "(?:\\[[^\\]]+\\] )?(\\w+) (?:left|was removed from|has been removed from) the party\\.");
-    private static final Pattern PARTY_DISBAND = Pattern.compile(
-            "The party was disbanded");
-    private static final Pattern YOU_JOINED = Pattern.compile(
-            "You have joined (?:\\[[^\\]]+\\] )?(\\w+)'s? party!|You accepted (?:\\[[^\\]]+\\] )?(\\w+)'s? party invitation!");
-    private static final Pattern YOU_LEFT_OR_KICKED = Pattern.compile(
-            "^You left the party\\.$|^You are not currently in a party\\.$|^You have been kicked from the party by (?:\\[[^\\]]+\\] )?\\w+$");
-    private static final Pattern PARTY_TRANSFER = Pattern.compile(
-            "^The party was transferred to (?:\\[[^\\]]+\\] )?(\\w+) (?:by|because) (?:\\[[^\\]]+\\] )?\\w+(?: left)?$");
-    private static final Pattern PARTY_INVITE = Pattern.compile(
-            "^(?:\\[[^\\]]+\\] )?(\\w+) invited (?:\\[[^\\]]+\\] )?\\w+ to the party! They have 60 seconds to accept\\.$");
-    private static final Pattern PARTY_LIST_SECTION = Pattern.compile(
-            "^Party (Leader|Moderators|Members): (.+)$");
-    private static final Pattern PARTY_LIST_NAME = Pattern.compile(
-            "^(?:\\[[^\\]]+\\] )?(\\w+)$");
-    private static final String PARTY_LIST_DELIM = " ●";
-    private static final Pattern PARTY_FINDER_JOIN = Pattern.compile(
-            "^Party Finder > (?:\\[[^\\]]+\\] )?(\\w+) joined the group! \\(Combat Level \\d+\\)$");
 
     private static final Map<String, String> TIERS = Map.of(
             "t1", "KUUDRA_NORMAL",
@@ -92,77 +69,66 @@ public final class PartyCommands {
     }
 
     private static void handle(String raw) {
-        Matcher youJoined = YOU_JOINED.matcher(raw);
-        if (youJoined.find()) {
-            partyMembers.clear();
-            partyLeader = youJoined.group(1) != null ? youJoined.group(1) : youJoined.group(2);
-            com.phantomaddons.features.misckuudra.splits.KuudraSplitTimer.resetPartySession();
-            return;
-        }
-
-        if (YOU_LEFT_OR_KICKED.matcher(raw).find()) {
-            partyMembers.clear();
-            partyLeader = null;
-            return;
-        }
-
-        Matcher join = PARTY_JOIN.matcher(raw);
-        if (join.find()) {
-            String joinedName = join.group(1);
-            partyMembers.add(joinedName);
-            queryLeaderIfUnknown();
-            ShitterList.checkAutoKick(joinedName);
-            return;
-        }
-
-        Matcher finderJoin = PARTY_FINDER_JOIN.matcher(raw);
-        if (finderJoin.find()) {
-            String joined = finderJoin.group(1);
-            partyMembers.add(joined);
-            queryLeaderIfUnknown();
-            ShitterList.checkAutoKick(joined);
-            onPartyFinderJoin(joined);
-            return;
-        }
-
-        Matcher leave = PARTY_LEAVE.matcher(raw);
-        if (leave.find()) { partyMembers.remove(leave.group(1)); return; }
-
-        Matcher transfer = PARTY_TRANSFER.matcher(raw);
-        if (transfer.find()) { partyLeader = transfer.group(1); return; }
-
-        Matcher invite = PARTY_INVITE.matcher(raw);
-        if (invite.find()) {
-            String inviter = invite.group(1);
-            partyMembers.add(inviter);
-            if (partyLeader == null) partyLeader = inviter;
-            return;
-        }
-
-        Matcher listSection = PARTY_LIST_SECTION.matcher(raw);
-        if (listSection.find()) {
-            boolean isLeaderSection = listSection.group(1).equals("Leader");
-            for (String token : listSection.group(2).split(PARTY_LIST_DELIM)) {
-                Matcher name = PARTY_LIST_NAME.matcher(token.trim());
-                if (!name.find()) continue;
-                partyMembers.add(name.group(1));
-                if (isLeaderSection) partyLeader = name.group(1);
+        PartyLines.Event event = PartyLines.parse(raw);
+        switch (event.kind()) {
+            case YOU_JOINED -> {
+                partyMembers.clear();
+                partyLeader = event.name();
+                com.phantomaddons.features.misckuudra.splits.KuudraSplitTimer.resetPartySession();
+                return;
             }
-            return;
+            case YOU_LEFT -> {
+                partyMembers.clear();
+                partyLeader = null;
+                return;
+            }
+            case JOINED -> {
+                partyMembers.add(event.name());
+                queryLeaderIfUnknown();
+                ShitterList.checkAutoKick(event.name());
+                return;
+            }
+            case FINDER_JOINED -> {
+                partyMembers.add(event.name());
+                queryLeaderIfUnknown();
+                ShitterList.checkAutoKick(event.name());
+                onPartyFinderJoin(event.name());
+                return;
+            }
+            case LEFT -> {
+                partyMembers.remove(event.name());
+                return;
+            }
+            case TRANSFER -> {
+                partyLeader = event.name();
+                return;
+            }
+            case INVITE -> {
+                partyMembers.add(event.name());
+                if (partyLeader == null) partyLeader = event.name();
+                return;
+            }
+            case LIST -> {
+                for (String name : event.names()) {
+                    partyMembers.add(name);
+                    if (event.leaderSection()) partyLeader = name;
+                }
+                return;
+            }
+            case DISBAND -> {
+                partyMembers.clear();
+                partyLeader = null;
+                com.phantomaddons.features.misckuudra.splits.KuudraSplitTimer.resetPartySession();
+                return;
+            }
+            case NONE -> {
+                return;
+            }
+            case CHAT -> { }
         }
 
-        if (PARTY_DISBAND.matcher(raw).find()) {
-            partyMembers.clear();
-            partyLeader = null;
-            com.phantomaddons.features.misckuudra.splits.KuudraSplitTimer.resetPartySession();
-            return;
-        }
-
-        Matcher m = PARTY_MSG.matcher(raw);
-        if (!m.find()) return;
-
-        String sender = m.group(1);
-        String body   = m.group(2).trim();
+        String sender = event.name();
+        String body   = event.body();
 
         partyMembers.add(sender);
 

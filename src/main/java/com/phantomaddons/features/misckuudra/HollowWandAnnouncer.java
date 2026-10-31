@@ -16,15 +16,16 @@ public final class HollowWandAnnouncer {
 
     private HollowWandAnnouncer() {}
 
-    public static void onChat(String clean) {
+    public static void onChat(String clean, boolean overlay) {
         if (!PhantomConfig.isHollowWandEnabled()) return;
-        if (!clean.contains("Casting Spell:")) return;
+        String text = clean.strip();
+        if (!text.contains("Casting Spell:")) return;
 
         String abbrev;
-        if      (clean.contains(ICHOR_MSG))  abbrev = "Ichor Pool";
-        else if (clean.contains(SPIRIT_MSG)) abbrev = "Spirit Spark";
-        else if (clean.contains(RUSH_MSG))   abbrev = "Hollowed Rush";
-        else if (clean.contains(WIND_MSG))   abbrev = "Raging Wind";
+        if      (matches(text, ICHOR_MSG, overlay))  abbrev = "Ichor Pool";
+        else if (matches(text, SPIRIT_MSG, overlay)) abbrev = "Spirit Spark";
+        else if (matches(text, RUSH_MSG, overlay))   abbrev = "Hollowed Rush";
+        else if (matches(text, WIND_MSG, overlay))   abbrev = "Raging Wind";
         else return;
 
         long now = System.currentTimeMillis();
@@ -38,6 +39,10 @@ public final class HollowWandAnnouncer {
         String pos = String.format("(%d, %d, %d)",
                 (int) p.getX(), (int) p.getY(), (int) p.getZ());
         mc.getConnection().sendCommand("pc [Phantom] " + abbrev + " @ " + pos);
+    }
+
+    private static boolean matches(String text, String message, boolean overlay) {
+        return overlay ? text.contains(message) : text.startsWith(message);
     }
 
     public static void onTitle(String text) {}

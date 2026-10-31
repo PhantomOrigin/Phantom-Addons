@@ -32,6 +32,8 @@ public final class AutoGFS {
             String text = TextUtil.stripColor(msg.getString())
                     .trim();
 
+            if (!TextUtil.hasNoColon(text)) return;
+
             if (text.contains("no Toxic Arrow Poison in your Sacks")) {
                 PhantomAddons.LOGGER.warn("[PhantomAddons] Sacks empty — stopping DPS loop");
                 stop();

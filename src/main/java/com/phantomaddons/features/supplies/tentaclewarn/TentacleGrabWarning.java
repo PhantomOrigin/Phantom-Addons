@@ -3,6 +3,7 @@ package com.phantomaddons.features.supplies.tentaclewarn;
 import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlWaypointManager;
+import com.phantomaddons.features.supplies.tentaclereach.TentacleReach;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
@@ -41,8 +42,6 @@ public final class TentacleGrabWarning {
     private static final long   STALE_TICKS = 40;
     private static final long   RISE_GRACE_MS = 250;
 
-    private static final double RANGE_FULL_TO = 17.5, RANGE_END = 18.5;
-
     private static final double RISE_SPEED = 2.21;
     private static final int[] REST_HEIGHTS = {59, 65, 67, 93, 110, 114};
     private static final Map<Integer, Integer> REST_FOR_START = Map.of(41, 67, 20, 65, 67, 93, 65, 110, 59, 114, 36, 59, 22, 59);
@@ -59,10 +58,11 @@ public final class TentacleGrabWarning {
         long lastSeenTick, lastRiseMs = -1, lungeMs = -1;
         boolean lungeInRange;
         double startY;
+        final double anchorX, anchorZ;   // where it first appeared, which is where its reach sphere stays
         boolean rising, spent;
         int chainLive;
         final Set<UUID> members = new HashSet<>();
-        Cube(Vec3 pos, long tick) { this.pos = pos; this.lastSeenTick = tick; this.startY = pos.y; }
+        Cube(Vec3 pos, long tick) { this.pos = pos; this.lastSeenTick = tick; this.startY = pos.y; this.anchorX = pos.x; this.anchorZ = pos.z; }
     }
 
     private static final Map<UUID, Cube> cubes = new HashMap<>();
@@ -133,7 +133,7 @@ public final class TentacleGrabWarning {
             double dist = Math.hypot(mob.getX() - player.x, mob.getZ() - player.z);
             double riseIn = ticksUntilRise(c, mob);
             if (riseIn >= 0) {
-                float conf = (float) (rangeFactor(dist) * timingFactor(elapsedTicks, (float) Math.max(0.0, remainingTicks - riseIn)));
+                float conf = (float) (rangeFactor(player, mob.getX(), mob.getZ()) * timingFactor(elapsedTicks, (float) Math.max(0.0, remainingTicks - riseIn)));
                 if (DEBUG && tickCount % 4 == 0) {
                     PhantomAddons.LOGGER.info("[TentacleWarn]   {} pending dist={} conf={} chain={} riseInTicks={} anchorY={}",
                             mob.getUUID().toString().substring(0, 4), String.format("%.1f", dist), String.format("%.2f", conf),
@@ -147,12 +147,13 @@ public final class TentacleGrabWarning {
             }
             if (c.lastRiseMs < pickupStartMs) continue;
             if (c.spent) {
-                if (c.lungeMs >= 0 && c.lungeInRange && System.currentTimeMillis() - c.lungeMs <= LUNGE_HOLD_MS) {
+                if (c.lungeMs >= 0 && c.lungeInRange && System.currentTimeMillis() - c.lungeMs <= LUNGE_HOLD_MS
+                        && rangeFactor(player, c.anchorX, c.anchorZ) > 0.0) {   // and you're inside its sphere right now
                     scored.add(new Scored(mob, dist, -1.0, 1f));
                 }
                 continue;
             }
-            float conf = (float) (rangeFactor(dist) * timing);
+            float conf = (float) (rangeFactor(player, mob.getX(), mob.getZ()) * timing);
             if (DEBUG && tickCount % 4 == 0) {
                 List<Box> bx = tentacleBoxes(mob, c);
                 double lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
@@ -164,8 +165,7 @@ public final class TentacleGrabWarning {
             if (conf >= min && conf > 0f) scored.add(new Scored(mob, dist, ticksToRest(c, mob.getY()), conf));
         }
         scored.sort(Comparator.<Scored>comparingDouble(s -> -Math.round(s.confidence() * 100f))
-                .thenComparingDouble(Scored::readyTicks)
-                .thenComparingDouble(Scored::dist));
+                .thenComparingDouble(Scored::readyTicks));
 
         List<Target> out = new ArrayList<>(scored.size());
         for (int i = 0; i < scored.size(); i++) {
@@ -190,7 +190,7 @@ public final class TentacleGrabWarning {
             c.spent = true;
             long now = System.currentTimeMillis();
             if (c.lungeMs < 0 || now - c.lungeMs > LUNGE_HOLD_MS) {
-                c.lungeInRange = rangeFactor(Math.hypot(c.pos.x - player.x, c.pos.z - player.z)) > 0.0;
+                c.lungeInRange = rangeFactor(player, c.anchorX, c.anchorZ) > 0.0;
             }
             c.lungeMs = now;
         } else if (dy > MOVE_EPS) {
@@ -256,10 +256,26 @@ public final class TentacleGrabWarning {
         return boxes;
     }
 
-    static double rangeFactor(double d) {
-        if (d >= RANGE_END) return 0.0;
-        if (d > RANGE_FULL_TO) return (RANGE_END - d) / (RANGE_END - RANGE_FULL_TO);
-        return 1.0;
+    public static double restHeightFor(double startY) {
+        Integer rest = REST_FOR_START.get((int) Math.round(startY));
+        return rest == null || Math.abs(startY - Math.round(startY)) > START_HEIGHT_TOLERANCE ? Double.NaN : rest;
+    }
+
+    public static double restHeightAbove(double y) {
+        for (int h : REST_HEIGHTS) if (h >= y - 0.5) return h;
+        return Double.NaN;
+    }
+
+    public static boolean isRestOnlyHeight(double y) {
+        long r = Math.round(y);
+        if (Math.abs(y - r) > START_HEIGHT_TOLERANCE || REST_FOR_START.containsKey((int) r)) return false;
+        for (int h : REST_HEIGHTS) if (h == r) return true;
+        return false;
+    }
+
+    static double rangeFactor(Vec3 player, double tentacleX, double tentacleZ) {
+        double flat = Math.hypot(player.x - tentacleX, player.z - tentacleZ), up = player.y - TentacleReach.CENTER_Y;
+        return flat * flat + up * up <= TentacleReach.RADIUS * TentacleReach.RADIUS ? 1.0 : 0.0;
     }
 
     static float timingFactor(float elapsedTicks, float remainingTicks) {

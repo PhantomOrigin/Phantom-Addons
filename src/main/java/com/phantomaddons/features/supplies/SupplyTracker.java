@@ -1,5 +1,6 @@
 package com.phantomaddons.features.supplies;
 
+import com.phantomaddons.utils.ChatLine;
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.features.supplies.pearlwaypoints.PearlLocation;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
@@ -17,10 +18,6 @@ public final class SupplyTracker {
 
     private static final double SCAN_RADIUS = 4.0;
 
-    private static final Pattern RECOVERED =
-            Pattern.compile("(\\S+)\\s+recovered (?:a supply|one of Elle's supplies)",
-                    Pattern.CASE_INSENSITIVE);
-
     private static final Set<PearlLocation> completed =
             EnumSet.noneOf(PearlLocation.class);
 
@@ -37,11 +34,10 @@ public final class SupplyTracker {
 
     public static boolean onChat(String raw) {
         String clean = TextUtil.stripColor(raw).trim();
-        Matcher m = RECOVERED.matcher(clean);
-        if (!m.find()) return false;
+        ChatLine.Recovery recovery = ChatLine.recovered(clean);
+        if (recovery == null) return false;
 
-        String name = m.group(1).trim();
-        markByPlayerName(name);
+        markByPlayerName(recovery.name());
         return true;
     }
 

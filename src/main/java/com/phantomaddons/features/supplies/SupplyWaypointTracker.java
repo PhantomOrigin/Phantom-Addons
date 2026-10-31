@@ -175,7 +175,11 @@ public final class SupplyWaypointTracker {
     public static void onChat(String raw) {
         if (!PhantomConfig.isSupplyBeaconsEnabled()) return;
 
-        Matcher m = PING_PATTERN.matcher(raw);
+        com.phantomaddons.utils.ChatLine.Party party =
+                com.phantomaddons.utils.ChatLine.party(com.phantomaddons.utils.TextUtil.stripColor(raw));
+        if (party == null) return;
+
+        Matcher m = PING_PATTERN.matcher(party.body());
         if (!m.find()) return;
 
         String zoneName = m.group(1);

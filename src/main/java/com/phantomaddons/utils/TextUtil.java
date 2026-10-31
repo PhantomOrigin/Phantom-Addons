@@ -21,7 +21,7 @@ public final class TextUtil {
     }
 
     public static boolean isElleLine(String clean) {
-        return clean.contains("Elle:") && countColons(clean) == 1;
+        return ChatLine.isNpc(clean, "Elle") && countColons(clean) == 1;
     }
 
     public static boolean hasNoColon(String clean) {

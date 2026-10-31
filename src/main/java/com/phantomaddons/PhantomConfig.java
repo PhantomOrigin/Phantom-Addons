@@ -52,7 +52,6 @@ public class PhantomConfig {
     private static boolean profitTrackerForced = false; // not saved — session-only
     private static final LinkedHashMap<Integer,Integer> slotBindings = new LinkedHashMap<>();
 
-    /** The game's key numbering: 1 is GLFW (up to 26.2), 2 is SDL (26.3 on). */
     //? if <26.3 {
     private static final int KEY_SCHEME = 1;
     //?} else {
@@ -222,24 +221,22 @@ public class PhantomConfig {
     public static boolean isAutoRequeueMessageEnabled() { return cfg.autoRequeueMessageEnabled; }
     public static boolean isAutoUpdatesEnabled()      { return cfg.autoUpdatesEnabled; }
     public static boolean isDeveloperFeaturesEnabled() { return cfg.developerFeaturesEnabled; }
-    /** Whether the player has agreed to share pearl cancel data. Off until they turn it on. */
     public static boolean isShareSupplyData() { return cfg.shareSupplyData; }
-    /** Whether the changelog window opens after an update. On by default. */
     public static boolean isChangelogEnabled() { return cfg.changelogEnabled; }
-    /** The version whose changelog was last shown, or empty if none has been. */
     public static String getLastChangelogVersion() { return cfg.lastChangelogVersion == null ? "" : cfg.lastChangelogVersion; }
-    /** True if there was no settings file when the game started, which means a fresh install. */
     public static boolean isFirstRun() { return firstRun; }
-    /** The newest update version the player chose to skip, or empty. */
     public static String getSkippedUpdateVersion() { return cfg.skippedUpdateVersion == null ? "" : cfg.skippedUpdateVersion; }
     public static boolean isTentacleHighlightEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleHighlightEnabled; }
     public static boolean isTentacleSpotBeaconsEnabled() { return cfg.developerFeaturesEnabled && cfg.tentacleSpotBeaconsEnabled; }
     public static UiTheme  getUiTheme() { return uiTheme; }
     public static float    getUiGuiScale() { return cfg.uiGuiScale; }
+    public static boolean  isTentacleReachEnabled() { return cfg.tentacleReachEnabled; }
+    public static boolean  isTentacleReachGround() { return cfg.tentacleReachGround; }
+    public static boolean  isTentacleReachLava() { return cfg.tentacleReachLava; }
+    public static float    getTentacleReachOpacity() { return Math.max(0.02f, Math.min(1.0f, cfg.tentacleReachOpacity)); }
     public enum PvTheme { MATCH, DARK, LIGHT }
     public static boolean  isPvEnabled()      { return RemoteFeatureGate.isEnabled() && cfg.pvEnabled; }
     public static float    getPvGuiScale()    { return cfg.pvGuiScale; }
-    /** How much fits in the viewer: 0 small items (more content), 1 medium, 2 large items (less content). */
     public enum PvContent { SMALL, MEDIUM, LARGE }
     public static PvContent getPvContent()    { return safeEnum(PvContent.class, cfg.pvContent, PvContent.MEDIUM); }
     public static float    getPvElementScale(){ return cfg.pvElementScale; }
@@ -252,7 +249,6 @@ public class PhantomConfig {
         };
     }
     public static void setPvEnabled(boolean v)      { cfg.pvEnabled = v; save(); }
-    /** Raw setting, ignoring the remote feature gate. */
     public static boolean  isPvEnabledSetting()        { return cfg.pvEnabled; }
     public static boolean  isPvPromptAnswered()        { return cfg.pvPromptAnswered; }
     public static void setPvPromptAnswered(boolean v)  { cfg.pvPromptAnswered = v; save(); }
@@ -274,6 +270,12 @@ public class PhantomConfig {
     public static void setPvOverflowSkills(boolean v) { cfg.pvOverflowSkills = v; save(); }
     public static boolean isPvRememberPage()        { return cfg.pvRememberPage; }
     public static void setPvRememberPage(boolean v) { cfg.pvRememberPage = v; save(); }
+    public static boolean isPvNameSuggestions()        { return cfg.pvNameSuggestions; }
+    public static void setPvNameSuggestions(boolean v) { cfg.pvNameSuggestions = v; save(); }
+    public static boolean isShopMenuGuiEnabled()        { return cfg.shopMenuGui; }
+    public static void setShopMenuGuiEnabled(boolean v) { cfg.shopMenuGui = v; save(); }
+    public static boolean isCaseInsensitiveCommands()        { return cfg.caseInsensitiveCommands; }
+    public static void setCaseInsensitiveCommands(boolean v) { cfg.caseInsensitiveCommands = v; save(); }
     public static boolean isDonatorNamesEnabled()   { return cfg.donatorNamesEnabled; }
     public static void setDonatorNamesEnabled(boolean v) { cfg.donatorNamesEnabled = v; save(); }
     public static boolean  isUiTransparencyEnabled() { return cfg.uiTransparencyEnabled; }
@@ -318,11 +320,11 @@ public class PhantomConfig {
     public static float          getBuildBeaconAlpha()     { return cfg.buildBeaconAlpha; }
     public static int            getElleOutlineColor()     { return cfg.elleOutlineColor; }
     public static int            getElleBeaconColor()      { return cfg.elleBeaconColor; }
-    /** The Discord API key from older versions. Still saved so it isn't lost, but nothing uses it any more. */
     public static String         getKuudraApiKey()         { return cfg.kuudraApiKey; }
     public static boolean        isBlockSlot9Enabled()     { return cfg.blockSlot9Enabled; }
     public static boolean        isBlockAtomsplitEnabled() { return cfg.blockAtomsplitEnabled; }
     public static boolean        isIchorRadiusEnabled()    { return cfg.ichorRadiusEnabled; }
+    public static boolean        isRightPeakBlockHighlightEnabled() { return cfg.rightPeakBlockHighlightEnabled; }
     public static boolean        isStunPreviewEnabled()           { return cfg.stunPreviewEnabled; }
     public static boolean        isStunPreviewLeftEnabled()       { return cfg.stunPreviewLeftEnabled; }
     public static boolean        isStunPreviewRightEnabled()      { return cfg.stunPreviewRightEnabled; }
@@ -566,6 +568,10 @@ public class PhantomConfig {
     public static void setTentacleHighlightEnabled(boolean v) { cfg.tentacleHighlightEnabled = v; save(); }
     public static void setTentacleSpotBeaconsEnabled(boolean v) { cfg.tentacleSpotBeaconsEnabled = v; save(); }
     public static void setUiTheme(UiTheme v) { uiTheme = v; save(); }
+    public static void setTentacleReachEnabled(boolean v) { cfg.tentacleReachEnabled = v; save(); }
+    public static void setTentacleReachGround(boolean v) { cfg.tentacleReachGround = v; save(); }
+    public static void setTentacleReachLava(boolean v) { cfg.tentacleReachLava = v; save(); }
+    public static void setTentacleReachOpacity(float v) { cfg.tentacleReachOpacity = Math.max(0.02f, Math.min(1.0f, v)); save(); }
     public static void setUiGuiScale(float v) { cfg.uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
     public static void setUiTransparencyEnabled(boolean v) { cfg.uiTransparencyEnabled = v; save(); }
     public static void setAutoSprintEnabled(boolean v)      { cfg.autoSprintEnabled = v;       save(); }
@@ -609,6 +615,7 @@ public class PhantomConfig {
     public static void setBlockSlot9Enabled(boolean v)       { cfg.blockSlot9Enabled = v;        save(); }
     public static void setBlockAtomsplitEnabled(boolean v)   { cfg.blockAtomsplitEnabled = v;    save(); }
     public static void setIchorRadiusEnabled(boolean v)      { cfg.ichorRadiusEnabled = v;       save(); }
+    public static void setRightPeakBlockHighlightEnabled(boolean v) { cfg.rightPeakBlockHighlightEnabled = v; save(); }
     public static void setStunPreviewEnabled(boolean v)          { cfg.stunPreviewEnabled = v;            save(); }
     public static void setStunPreviewLeftEnabled(boolean v)      { cfg.stunPreviewLeftEnabled = v;         save(); }
     public static void setStunPreviewRightEnabled(boolean v)     { cfg.stunPreviewRightEnabled = v;        save(); }
@@ -860,10 +867,6 @@ public class PhantomConfig {
 
     private static boolean firstRun;
 
-    /**
-     * Key codes mean different keys in different versions of the game. A config saved by a version that numbers keys
-     * another way gets its key bindings put back to the defaults instead of being read as the wrong keys.
-     */
     private static void resetKeysIfNumberedDifferently(Data d) {
         int saved = d.keyScheme == 0 ? 1 : d.keyScheme;
         if (saved != KEY_SCHEME) {
@@ -1246,10 +1249,12 @@ public class PhantomConfig {
         String  uiTheme = null;
         boolean uiTransparencyEnabled = true;
         float   uiGuiScale = 1.0f;
+        boolean tentacleReachEnabled = false;
+        boolean tentacleReachGround = false;
+        boolean tentacleReachLava = false;
+        float   tentacleReachOpacity = 0.10f;
         boolean pvEnabled      = false;
-        /** The "new profile viewer" popup has been answered. */
         boolean pvPromptAnswered = false;
-        /** Our profile viewer has been opened at least once. */
         boolean pvOpened       = false;
         float   pvGuiScale     = 1.0f;
         String  pvContent      = "MEDIUM";
@@ -1258,6 +1263,9 @@ public class PhantomConfig {
         boolean pvArabicNumerals = false;
         boolean pvOverflowSkills = false;
         boolean pvRememberPage = false;
+        boolean pvNameSuggestions = true;
+        boolean caseInsensitiveCommands = false;
+        boolean shopMenuGui = false;
         boolean donatorNamesEnabled = true;
         boolean pvTabIcons = true;
         boolean pvPartyFinderPreview = false;
@@ -1303,6 +1311,7 @@ public class PhantomConfig {
         boolean blockSlot9Enabled          = false;
         boolean blockAtomsplitEnabled      = false;
         boolean ichorRadiusEnabled         = false;
+        boolean rightPeakBlockHighlightEnabled = false;
         boolean stunPreviewEnabled         = false;
         Boolean stunPreviewLeftEnabled     = null; // null = not yet saved under its own key; see load()
         Boolean stunPreviewRightEnabled    = null;
@@ -1448,7 +1457,6 @@ public class PhantomConfig {
         int     wardrobeNextPageKey = InputConstants.KEY_RIGHT;
         int     wardrobePrevPageKey = InputConstants.KEY_LEFT;
         int     wardrobeUnequipKey  = InputConstants.KEY_U;
-        /** Which numbering the saved key codes use, so a config copied from another version doesn't bind the wrong keys. */
         int     keyScheme           = 0;
         boolean wardrobeDisableUnequipEnabled = true;
         boolean wardrobeAutoCloseEnabled      = true;

@@ -22,7 +22,7 @@ public class KeyCapture extends Feature {
 
     public KeyCapture withLabelColor(int color) { this.labelColor = color; return this; }
 
-    static String nameForCode(int code) {
+    public static String nameForCode(int code) {
         if (code <= 0) return "None";
         if (code >= PhantomScreen.MOUSE_OFFSET) return "Mouse " + com.phantomaddons.utils.InputCompat.mouseButtonNumber(code - PhantomScreen.MOUSE_OFFSET);
         return com.phantomaddons.utils.InputCompat.keyName(code);

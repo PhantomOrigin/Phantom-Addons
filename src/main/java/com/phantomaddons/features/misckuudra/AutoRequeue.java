@@ -118,6 +118,8 @@ public final class AutoRequeue {
                 return;
             }
 
+            if (lower.indexOf(':') >= 0) return;
+
             if (lower.contains(REQUEUE_CONFIRM)) {
                 PhantomAddons.LOGGER.info("[AutoRequeue] saw requeue confirmation -> requeued=true");
                 requeued = true;

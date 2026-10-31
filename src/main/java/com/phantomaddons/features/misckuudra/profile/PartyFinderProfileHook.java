@@ -42,6 +42,7 @@ public final class PartyFinderProfileHook {
         if (members.isEmpty()) return;
 
         wasTriggered = true;
+        com.phantomaddons.features.pv.PvNameBook.noteViewed(members);
         if (com.phantomaddons.PhantomConfig.isPvEnabled())
             mc.execute(() -> mc.gui.setScreen(com.phantomaddons.features.pv.PvScreen.party(members)));
         else

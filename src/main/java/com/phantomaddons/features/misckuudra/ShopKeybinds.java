@@ -37,7 +37,7 @@ public final class ShopKeybinds {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay || !PhantomConfig.isShopKeybindsEnabled()) return;
             String text = TextUtil.stripColor(message.getString());
-            if (text.contains(PURCHASE_MSG)) {
+            if (TextUtil.hasNoColon(text) && text.contains(PURCHASE_MSG)) {
                 pendingClose = true;
                 PhantomAddons.LOGGER.info("[ShopKeybinds] Human Cannonball purchased — cannon key will close next GUI");
             }
@@ -93,24 +93,49 @@ public final class ShopKeybinds {
         return acted;
     }
 
-    private static boolean clickSlot(Minecraft mc, AbstractContainerScreen<?> screen,
-                                     String fragment, String logName) {
-        AbstractContainerMenu handler = screen.getMenu();
+    public static boolean isPerkMenu(AbstractContainerScreen<?> screen) {
+        return strip(screen.getTitle().getString()).contains(TITLE_PERK_MENU);
+    }
+
+    public static boolean isConfirmMenu(AbstractContainerScreen<?> screen) {
+        return strip(screen.getTitle().getString()).contains(TITLE_CONFIRM);
+    }
+
+    public static int confirmSlot(AbstractContainerMenu handler) {
+        return findSlot(handler, ITEM_CONFIRM);
+    }
+
+    public static int mainSlot(AbstractContainerMenu handler) {
+        int slot = findSlot(handler, ITEM_SPECIALIST);
+        return slot >= 0 ? slot : findSlot(handler, ITEM_BALLISTA);
+    }
+
+    public static int cannonSlot(AbstractContainerMenu handler) {
+        return findSlot(handler, ITEM_CANNONBALL);
+    }
+
+    private static int findSlot(AbstractContainerMenu handler, String fragment) {
         List<Slot> slots = handler.slots;
         String target = fragment.toLowerCase();
-
         for (int i = 0; i < slots.size(); i++) {
             ItemStack stack = slots.get(i).getItem();
             if (stack.isEmpty()) continue;
-            if (!strip(stack.getHoverName().getString()).toLowerCase().contains(target)) continue;
-
-            if (mc.gameMode == null || mc.player == null) return false;
-            mc.gameMode.handleContainerInput(
-                    handler.containerId, i, 2, ContainerInput.CLONE, mc.player);
-            PhantomAddons.LOGGER.info("[ShopKeybinds] Clicked {}", logName);
-            return true;
+            if (strip(stack.getHoverName().getString()).toLowerCase().contains(target)) return i;
         }
-        return false;
+        return -1;
+    }
+
+    private static boolean clickSlot(Minecraft mc, AbstractContainerScreen<?> screen,
+                                     String fragment, String logName) {
+        AbstractContainerMenu handler = screen.getMenu();
+        int i = findSlot(handler, fragment);
+        if (i < 0) return false;
+
+        if (mc.gameMode == null || mc.player == null) return false;
+        mc.gameMode.handleContainerInput(
+                handler.containerId, i, 2, ContainerInput.CLONE, mc.player);
+        PhantomAddons.LOGGER.info("[ShopKeybinds] Clicked {}", logName);
+        return true;
     }
 
     private static String strip(String s) {

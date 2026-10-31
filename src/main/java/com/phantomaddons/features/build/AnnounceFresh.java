@@ -32,8 +32,7 @@ public final class AnnounceFresh {
     private static final String FRESH_SERVER_MSG =
             "Your Fresh Tools Perk bonus doubles your building speed for the next 10 seconds!";
 
-    private static final Pattern FRESH_PARTY_PATTERN = Pattern.compile(
-            "Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH(?:.*?\\((\\d+)%\\))?.*");
+    private static final Pattern FRESH_BODY = Pattern.compile("^FRESH(?:.*?\\((\\d+)%\\))?.*");
 
     private static final long FRESH_DURATION_MS = 10_000L;
 
@@ -57,7 +56,7 @@ public final class AnnounceFresh {
 
         String clean = TextUtil.stripColor(raw).trim();
 
-        if (clean.equals(FRESH_SERVER_MSG)) {
+        if (clean.equals(FRESH_SERVER_MSG) && TextUtil.hasNoColon(clean)) {
             if (!buildActive) return;
             Minecraft mc = Minecraft.getInstance();
             if (mc.getConnection() == null) return;
@@ -74,10 +73,9 @@ public final class AnnounceFresh {
             return;
         }
 
-        Matcher m = FRESH_PARTY_PATTERN.matcher(clean);
-        if (m.find()) {
-            String playerName = m.group(1);
-            activeTimers.put(playerName, System.currentTimeMillis() + FRESH_DURATION_MS);
+        com.phantomaddons.utils.ChatLine.Party party = com.phantomaddons.utils.ChatLine.party(clean);
+        if (party != null && FRESH_BODY.matcher(party.body()).matches()) {
+            activeTimers.put(party.sender(), System.currentTimeMillis() + FRESH_DURATION_MS);
         }
     }
 

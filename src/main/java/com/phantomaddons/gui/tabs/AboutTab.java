@@ -101,6 +101,7 @@ public final class AboutTab {
                 m.add(new Toggle("Tentacle Spot Beacons",
                         PhantomConfig::isTentacleSpotBeaconsEnabled, PhantomConfig::setTentacleSpotBeaconsEnabled)
                         .withTooltip("Debug visual: draws a beacon beam from the bottom to the top of the world at every x/z position where a tentacle's invisible cube has come to rest. While it is on, new spots are saved as you play (phantomaddons_tentacle_spots.jsonl in the config folder) and drawn along with the ones saved by earlier developer builds. Purely visual, no gameplay effect."));
+
             }
         }
     }

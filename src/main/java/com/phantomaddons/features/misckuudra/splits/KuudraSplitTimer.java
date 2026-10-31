@@ -59,10 +59,7 @@ public final class KuudraSplitTimer {
 
     private static boolean pendingAnnounce = false;
 
-    private static final Pattern FRESH_PAT =
-            Pattern.compile("Party > (?:\\[.*?\\] )?([A-Za-z0-9_]+): FRESH(?:.*?\\((\\d+)%\\))?.*");
-    private static final Pattern RECOVERED =
-            Pattern.compile("(\\S+)\\s+recovered (?:a supply|one of Elle's supplies)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FRESH_BODY = Pattern.compile("^FRESH(?:.*?\\((\\d+)%\\))?.*");
 
     private KuudraSplitTimer() {}
 
@@ -80,9 +77,9 @@ public final class KuudraSplitTimer {
             String text = TextUtil.stripColor(msg.getString()).trim();
 
             if (activeSplit == Split.SUPPLIES && !com.phantomaddons.PhantomConfig.isSupplyRecoveryMsgEnabled()) {
-                Matcher rm = RECOVERED.matcher(text);
-                if (rm.find()) {
-                    String player = rm.group(1).trim();
+                com.phantomaddons.utils.ChatLine.Recovery recovery = com.phantomaddons.utils.ChatLine.recovered(text);
+                if (recovery != null) {
+                    String player = recovery.name();
                     double elapsed = (System.currentTimeMillis() - runStartMs) / 1000.0;
                     supplyTimes.add(new SupplyTime(player, elapsed));
                     runSupplyTimes.add(new PhantomConfig.PlayerTime(player, elapsed));
@@ -114,9 +111,10 @@ public final class KuudraSplitTimer {
     }
 
     private static void handleFreshMessage(String text) {
-        if (!text.contains("Party > ") || !text.contains(": FRESH")) return;
-        Matcher fm = FRESH_PAT.matcher(text);
-        if (!fm.find()) return;
+        com.phantomaddons.utils.ChatLine.Party party = com.phantomaddons.utils.ChatLine.party(text);
+        if (party == null) return;
+        Matcher fm = FRESH_BODY.matcher(party.body());
+        if (!fm.matches()) return;
 
         boolean inBuild  = activeSplit == Split.BUILD && phaseStartMs >= 0;
         boolean inGrace  = !inBuild && buildPhaseStartMs >= 0 && buildPhaseEndMs > 0
@@ -125,10 +123,10 @@ public final class KuudraSplitTimer {
 
         long   refStartMs = inBuild ? phaseStartMs : buildPhaseStartMs;
         double elapsed    = (System.currentTimeMillis() - refStartMs) / 1000.0;
-        int pct = fm.group(2) != null
-                ? Integer.parseInt(fm.group(2))
+        int pct = fm.group(1) != null
+                ? Integer.parseInt(fm.group(1))
                 : com.phantomaddons.features.build.buildprogress.BuildProgressHud.getCurrentProgress();
-        runFreshTimes.add(new PhantomConfig.PlayerTime(fm.group(1), elapsed, pct));
+        runFreshTimes.add(new PhantomConfig.PlayerTime(party.sender(), elapsed, pct));
     }
 
     public static void reset() {

@@ -1,5 +1,29 @@
 [
   {
+    "version": "1.7.4",
+    "title": "Tentacle Reach Highlight and Better Commands",
+    "sections": [
+      {
+        "name": "Additions",
+        "items": [
+          "Added Tentacle Reach Highlight",
+          "Added Right Peak Block Highlight",
+          "Added Custom Shop Menu",
+          "Added player name suggestions to /pv and /kuudra from your friend list, your last 2 lobbies and anyone whose profile you viewed in the last 5 minutes",
+          "Added Case-Insensitive Commands"
+        ]
+      },
+      {
+        "name": "Other Changes",
+        "items": [
+          "All PhantomAddons commands now work if capitalised",
+          "Party chat commands and party announcements (No Shop, pearl coordinates, FRESH, Ichor Pool) now only work from party chat, so guild, public and private chat can no longer fake them",
+          "Features that react to server messages (phase changes, supplies, chests, requeue, solo detector and others) now ignore player chat that imitates those messages"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.3",
     "title": "Minecraft 26.3 support, Stun Reminder and Tentacle Grab Warning",
     "sections": [

@@ -42,9 +42,7 @@ public final class CratePriority {
             "X", "X Cannon", "Square", "Slash", "Equals", "Triangle", "Shop"
     );
 
-    private static final Pattern NO_PRE_PARTY = Pattern.compile(
-            "Party > (?:\\[.*?\\] )?\\w+: No ([A-Za-z ]+)!"
-    );
+    private static final Pattern NO_PRE_BODY = Pattern.compile("^No ([A-Za-z ]+)!.*$");
 
     private static String destination = null;
     private static long expiresAt = 0;
@@ -63,8 +61,10 @@ public final class CratePriority {
 
     public static void onChat(String clean) {
         if (KuudraPhaseTracker.isBallistaSupplyPhase()) return;
-        Matcher m = NO_PRE_PARTY.matcher(clean);
-        if (!m.find()) return;
+        com.phantomaddons.utils.ChatLine.Party party = com.phantomaddons.utils.ChatLine.party(clean);
+        if (party == null) return;
+        Matcher m = NO_PRE_BODY.matcher(party.body());
+        if (!m.matches()) return;
 
         String missingSpot = m.group(1).trim();
         if (!VALID_SPOTS.contains(missingSpot)) return;

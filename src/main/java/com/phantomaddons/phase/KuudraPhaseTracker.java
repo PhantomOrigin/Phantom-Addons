@@ -90,14 +90,15 @@ public final class KuudraPhaseTracker {
         }
 
         // ── STUN ─────────────────────────────────────────────────────────────────
-        if (msg.contains("has been eaten by Kuudra!") && !msg.startsWith("Elle ") && currentPhase == Phase.EATEN) {
+        if (com.phantomaddons.utils.TextUtil.hasNoColon(msg)
+                && msg.contains("has been eaten by Kuudra!") && !msg.startsWith("Elle ") && currentPhase == Phase.EATEN) {
             runActive = true;
             setPhase(Phase.STUN);
             return;
         }
 
         // ── DPS ──────────────────────────────────────────────────────────────────
-        if (msg.contains("destroyed one of Kuudra's pods!")) {
+        if (com.phantomaddons.utils.TextUtil.hasNoColon(msg) && msg.contains("destroyed one of Kuudra's pods!")) {
             runActive = true;
             setPhase(Phase.DPS);
             return;

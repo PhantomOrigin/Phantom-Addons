@@ -7,12 +7,9 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.loader.api.FabricLoader;
 import com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 public final class PvCommand {
@@ -37,23 +34,12 @@ public final class PvCommand {
                 ClientCommands.literal("pv")
                         .executes(ctx -> { if (!intercept("pv")) open(null); return 1; })
                         .then(ClientCommands.argument("player", StringArgumentType.word())
-                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(onlineNames(), builder))
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(PvNameBook.suggestions(), builder))
                                 .executes(ctx -> {
                                     String player = StringArgumentType.getString(ctx, "player");
                                     if (!intercept("pv " + player)) open(player);
                                     return 1;
                                 }))));
-    }
-
-    private static List<String> onlineNames() {
-        List<String> names = new ArrayList<>();
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.getConnection() == null) return names;
-        for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
-            String n = info.getProfile().name();
-            if (n != null && n.matches("[A-Za-z0-9_]{3,16}")) names.add(n);
-        }
-        return names;
     }
 
     public static boolean intercept(String command) {
@@ -95,6 +81,7 @@ public final class PvCommand {
         }
         String target = name;
         UUID targetUuid = uuid;
+        PvNameBook.noteViewed(target);
         PhantomConfig.markPvOpened();
         mc.execute(() -> mc.gui.setScreen(new PvScreen(target, targetUuid)));
     }

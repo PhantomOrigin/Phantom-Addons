@@ -4,6 +4,7 @@ import com.phantomaddons.PhantomAddons;
 import com.phantomaddons.data.GameplayDataLogger;
 import com.phantomaddons.data.SupplyDataStore;
 import com.phantomaddons.data.SupplyShare;
+import com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarning;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 //? if <26.2 {
@@ -27,17 +28,17 @@ import java.util.UUID;
 public final class TentacleCubeTracker {
 
     private static final double MOVE_EPS = 1.0e-3;
-    private static final int STATIONARY_TICKS = 3;          // still for MORE than this many ticks
+    private static final int STATIONARY_TICKS = 3;
     private static final double TRACK_DISTANCE = 60.0;
-    private static final int KUUDRA_SIZE = 30;              // Kuudra's own body
-    private static final double CHAIN_RADIUS = 1.5;         // horizontal distance that counts as part of the same chain
+    private static final int KUUDRA_SIZE = 30;
+    private static final double CHAIN_RADIUS = 1.5;
     private static final double REACH_DISTANCE = 1.0;
-    private static final double NEAR_DISTANCE = 2.0;        // where the player is noted if the cube never reaches them
-    private static final int REACH_WINDOW_TICKS = 20;       // one second after the cube reaches the player
-    private static final int CANCEL_PEARLS = 4;             // more than this many downward pearls
-    private static final float DOWN_PITCH_MIN = 65.0f;      // within 25 degrees of straight down
-    private static final long GRAB_TIMEOUT_TICKS = 200;     // a grab attempt that never reaches the player
-    private static final long OUTCOME_TIMEOUT_TICKS = 200;  // waiting to learn whether the supply was picked up
+    private static final double NEAR_DISTANCE = 2.0;
+    private static final int REACH_WINDOW_TICKS = 20;
+    private static final int CANCEL_PEARLS = 4;
+    private static final float DOWN_PITCH_MIN = 65.0f;
+    private static final long GRAB_TIMEOUT_TICKS = 200;
+    private static final long OUTCOME_TIMEOUT_TICKS = 200;
     private static final long STALE_CUBE_TICKS = 40;
 
     private static final class Cube {
@@ -48,6 +49,7 @@ public final class TentacleCubeTracker {
         double riseSum;
         int riseSamples;
         boolean stationary, grabbed, pickupAtStationary;
+        boolean lunged;
         Vec3 stationaryPos;
         long stationaryTick;
         double riseVelocity;
@@ -237,14 +239,30 @@ public final class TentacleCubeTracker {
             double dx = (p.x - c.changePos.x) / dt, dy = (p.y - c.changePos.y) / dt, dz = (p.z - c.changePos.z) / dt;
             double horizontal = Math.hypot(dx, dz);
 
+            if (!c.stationary && horizontal >= 0.02 && !c.lunged) {
+                c.lunged = true;
+                double rest = restHeightOf(c);
+                if (!Double.isNaN(rest)) {
+                    if (Math.abs(c.pos.y - rest) > 0.5) {
+                        PhantomAddons.LOGGER.info("[TentacleData] cube lunged at y {} but its predicted top is {}", c.pos.y, rest);
+                    }
+                    c.stationaryPos = new Vec3(c.pos.x, Math.round(rest), c.pos.z);
+                    c.stationaryTick = c.streakStart;
+                    c.pickupAtStationary = wasPickingUpAt(c.stationaryTick);
+                    c.riseVelocity = c.riseSamples > 0 ? c.riseSum / c.riseSamples : 0;
+                    if (!c.spawnLogged && c.riseStartTick >= 0) recordSpawn(c);
+                    c.stationary = true;
+                }
+            }
             if (c.stationary) {
+                if (horizontal > MOVE_EPS) c.lunged = true;
                 if (horizontal > MOVE_EPS && !c.grabbed && pickupActive) {
                     c.grabbed = true;
                     onGrabAttempt(c, tick, dx, dz, horizontal);
                 }
-                c.stationary = false;           // it has moved on, whatever it was doing
+                c.stationary = false;
                 c.grabbed = false;
-                c.riseStartTick = -1;           // it has to rise again before it can count as stopped somewhere new
+                c.riseStartTick = -1;
                 c.riseSum = 0;
                 c.riseSamples = 0;
             } else if (dy > MOVE_EPS && horizontal < 0.02) {
@@ -258,6 +276,7 @@ public final class TentacleCubeTracker {
         } else if (!c.stationary && c.riseStartTick >= 0 && tick - c.streakStart > STATIONARY_TICKS) {
             c.stationary = true;
             c.grabbed = false;
+            c.lunged = false;
             c.stationaryPos = p;
             c.stationaryTick = c.streakStart;
             c.pickupAtStationary = wasPickingUpAt(c.stationaryTick);
@@ -420,7 +439,13 @@ public final class TentacleCubeTracker {
 
     // ── For the debug highlight ───────────────────────────────────────────────
 
-    /** 0 = rising or unknown, 1 = at rest, 2 = grabbing; for colouring the tracked cubes. */
+    private static double restHeightOf(Cube c) {
+        double rest = TentacleGrabWarning.restHeightFor(c.spawnPos.y);
+        if (Double.isNaN(rest) && c.riseStartTick >= 0) rest = TentacleGrabWarning.restHeightAbove(c.pos.y);
+        if (Double.isNaN(rest) && TentacleGrabWarning.isRestOnlyHeight(c.pos.y)) rest = c.pos.y;
+        return rest;
+    }
+
     public static int stateOf(UUID entity) {
         Cube c = cubes.get(entity);
         if (c == null) return -1;

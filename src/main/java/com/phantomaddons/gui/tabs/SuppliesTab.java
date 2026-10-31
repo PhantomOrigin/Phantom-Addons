@@ -105,6 +105,16 @@ public final class SuppliesTab {
                 PhantomConfig::isTentacleGrabHudEnabled, PhantomConfig::setTentacleGrabHudEnabled));
         m.add(grabWarning);
 
+        Group reach = m.group("Tentacle Reach Highlight", PhantomConfig::isTentacleReachEnabled, PhantomConfig::setTentacleReachEnabled);
+        reach.add(new Cycle("Highlight Type",
+                () -> PhantomConfig.isTentacleReachGround() ? "Ground" : "Sphere",
+                () -> PhantomConfig.setTentacleReachGround(!PhantomConfig.isTentacleReachGround())));
+        reach.add(new Toggle("Highlight Lava",
+                PhantomConfig::isTentacleReachLava, PhantomConfig::setTentacleReachLava));
+        reach.add(new Slider("Opacity",
+                PhantomConfig::getTentacleReachOpacity, PhantomConfig::setTentacleReachOpacity, "%"));
+        m.add(reach);
+
         m.add(new Cycle("Kuudra Talisman",
                 () -> switch (PhantomConfig.getKuudraTalisman()) {
                     case NONE   -> "None";   case KIDNEY -> "Kidney";

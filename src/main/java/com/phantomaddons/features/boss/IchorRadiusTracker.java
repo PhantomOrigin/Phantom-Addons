@@ -18,9 +18,6 @@ public final class IchorRadiusTracker {
             Pattern.compile("\\[Phantom] Ichor Pool @ \\((-?\\d+(?:\\.\\d+)?), (-?\\d+(?:\\.\\d+)?), (-?\\d+(?:\\.\\d+)?)\\)"),
             Pattern.compile("\\[KIC] Casting Ichor Pool at (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?)")
     };
-    private static final Pattern PARTY_SENDER_PATTERN =
-            Pattern.compile("Party > (?:\\[[^\\]]+] )?([A-Za-z0-9_]+): (.+)");
-
     private static final long POOL_LIFETIME_MS = 20_000L;
 
     private static boolean poolActive  = false;
@@ -45,7 +42,7 @@ public final class IchorRadiusTracker {
 
         String clean = TextUtil.stripColor(raw).trim();
 
-        if (clean.contains(CAST_MESSAGE)) {
+        if (clean.startsWith(CAST_MESSAGE)) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null) return;
             poolCenter = new Vec3(mc.player.getX(), mc.player.getY(), mc.player.getZ());
@@ -54,10 +51,12 @@ public final class IchorRadiusTracker {
             return;
         }
 
-        if (isSelfSentPartyMessage(clean)) return;
+        com.phantomaddons.utils.ChatLine.Party party = com.phantomaddons.utils.ChatLine.party(clean);
+        if (party == null) return;
+        if (isSelf(party.sender())) return;
 
         for (Pattern pattern : BROADCAST_PATTERNS) {
-            Matcher m = pattern.matcher(clean);
+            Matcher m = pattern.matcher(party.body());
             if (!m.find()) continue;
 
             double x = Double.parseDouble(m.group(1));
@@ -70,13 +69,10 @@ public final class IchorRadiusTracker {
         }
     }
 
-    private static boolean isSelfSentPartyMessage(String clean) {
-        Matcher sender = PARTY_SENDER_PATTERN.matcher(clean);
-        if (!sender.find()) return false;
-
+    private static boolean isSelf(String sender) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return false;
-        return sender.group(1).equalsIgnoreCase(mc.player.getName().getString());
+        return sender.equalsIgnoreCase(mc.player.getName().getString());
     }
 
     public static void reset() {

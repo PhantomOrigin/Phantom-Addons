@@ -14,6 +14,7 @@ public final class KuudraTierDetector {
 
     private static int     kuudraTier       = 0;
     private static int     lastKnownTier    = 0; // persists when leaving Hollow
+    private static int     forcedTier       = 0; // dev override, cleared on world change
     private static int     tickCounter      = 0;
     private static boolean inKuudraHollow   = false;
     private static boolean inDungeonHub     = false;
@@ -58,8 +59,27 @@ public final class KuudraTierDetector {
                 else if (clean.contains("(T5)")) kuudraTier = 5;
             }
         }
+        applyForced();
         if (kuudraTier > 0) lastKnownTier = kuudraTier;
     }
+
+    private static void applyForced() {
+        if (forcedTier <= 0) return;
+        inKuudraHollow = true;
+        kuudraTier     = forcedTier;
+    }
+
+    public static void forceTier(int tier) {
+        forcedTier = tier;
+        applyForced();
+        if (kuudraTier > 0) lastKnownTier = kuudraTier;
+    }
+
+    public static void clearForcedTier() {
+        forcedTier = 0;
+    }
+
+    public static int getForcedTier() { return forcedTier; }
 
     private static List<String> getSidebarLines(Minecraft client) {
         List<String> lines = new ArrayList<>();
@@ -89,6 +109,7 @@ public final class KuudraTierDetector {
     public static boolean isInDungeon()           { return inDungeon; }
 
     public static void reset() {
+        forcedTier       = 0;
         kuudraTier       = 0;
         tickCounter      = 0;
         inKuudraHollow   = false;

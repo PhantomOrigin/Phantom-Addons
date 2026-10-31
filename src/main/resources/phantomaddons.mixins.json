@@ -6,6 +6,8 @@
   "client": [
     "UseItemMixin",
     "ClientCommandInternalsMixin",
+    "CommandSuggestionsMixin",
+    "ContainerScreenMixin",
     "TitleMixin",
     "FontDrawMixin",
     "ClientWorldExplosionMixin",

@@ -23,7 +23,7 @@ public final class InputCompat {
 
     public static boolean isMouseDown(int button) {
         //? if <26.3 {
-        long handle = GLFW.glfwGetCurrentContext();
+        long handle = Minecraft.getInstance().getWindow().handle();
         return handle != 0 && GLFW.glfwGetMouseButton(handle, button) == GLFW.GLFW_PRESS;
         //?} else {
         /*if (button < 1 || button > 31) return false;

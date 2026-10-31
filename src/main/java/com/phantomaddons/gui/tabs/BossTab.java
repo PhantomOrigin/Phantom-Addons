@@ -67,6 +67,9 @@ public final class BossTab {
                 PhantomConfig::isBoneTimingHitboxHighlightInRangeEnabled, PhantomConfig::setBoneTimingHitboxHighlightInRange));
         m.add(hitboxOutline);
 
+        m.add(new Toggle("Right Peak Block Highlight",
+                PhantomConfig::isRightPeakBlockHighlightEnabled, PhantomConfig::setRightPeakBlockHighlightEnabled));
+
         m.heading("Highlights and blockers");
         Group hl = m.group("Kuudra Highlight", PhantomConfig::isKuudraHighlightEnabled, PhantomConfig::setKuudraHighlightEnabled);
         hl.add(new Toggle("Filled Highlight",

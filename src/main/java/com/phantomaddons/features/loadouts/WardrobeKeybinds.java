@@ -156,6 +156,13 @@ public final class WardrobeKeybinds {
         pendingCloseTimeoutTicks = CLOSE_TIMEOUT_TICKS;
     }
 
+    public static void onMouseReleased(int button) {
+        if (pendingCloseKeyCode != PhantomScreen.MOUSE_OFFSET + button) return;
+        pendingCloseKeyCode = -1;
+        pendingCloseTimeoutTicks = -1;
+        closeInTicks = CLOSE_DELAY_TICKS;
+    }
+
     public static boolean handleMouseButton(AbstractContainerScreen<?> screen, int button, Minecraft mc) {
         return handleKey(screen, PhantomScreen.MOUSE_OFFSET + button, mc);
     }

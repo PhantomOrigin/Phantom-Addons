@@ -29,6 +29,9 @@ public final class MiscKuudraTab {
         shop.add(new KeyCapture("Cannon Key", PhantomConfig::getShopCannonKey, PhantomConfig::setShopCannonKey));
         m.add(shop);
 
+        m.add(new Toggle("Custom Shop Menu",
+                PhantomConfig::isShopMenuGuiEnabled, PhantomConfig::setShopMenuGuiEnabled));
+
         m.add(new Toggle("Middle Click Perk Menu",
                 PhantomConfig::isMiddleClickShopGuiEnabled, PhantomConfig::setMiddleClickShopGuiEnabled));
 

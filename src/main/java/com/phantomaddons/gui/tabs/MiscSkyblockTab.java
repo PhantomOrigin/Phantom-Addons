@@ -53,5 +53,9 @@ public final class MiscSkyblockTab {
                 PhantomConfig::isSlotBindsShowOnHover, PhantomConfig::setSlotBindsShowOnHover)
                 .withTooltip("Draws a line to the bound hotbar/inventory slot while hovering either end of the pair"));
         m.add(slot);
+
+        m.heading("Commands");
+        m.add(new Toggle("Case-Insensitive Commands",
+                PhantomConfig::isCaseInsensitiveCommands, PhantomConfig::setCaseInsensitiveCommands));
     }
 }

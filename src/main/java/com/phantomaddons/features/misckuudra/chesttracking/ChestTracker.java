@@ -79,6 +79,8 @@ public final class ChestTracker {
             return;
         }
 
+        if (!TextUtil.hasNoColon(clean)) return;
+
         if (clean.contains(DEFEAT)) {
             fail++;
             total = Math.min(total + 1, 60);

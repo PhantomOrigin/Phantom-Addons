@@ -126,7 +126,7 @@ public final class NoPreAnnounce {
         if (!PhantomConfig.isNoPreAnnounceEnabled()) return;
         String clean = TextUtil.stripColor(raw);
 
-        if (clean.contains(ELLE_NOT_AGAIN) && TextUtil.countColons(clean) == 1) {
+        if (clean.strip().startsWith(ELLE_NOT_AGAIN) && TextUtil.isElleLine(clean)) {
             if (prePos == null) return;
             Minecraft mc = Minecraft.getInstance();
             if (mc.player == null || mc.level == null || mc.getConnection() == null) return;

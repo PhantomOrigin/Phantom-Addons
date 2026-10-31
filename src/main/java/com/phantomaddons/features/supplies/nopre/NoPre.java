@@ -27,7 +27,12 @@ public final class NoPre {
     public static PearlLocation getMissingLocation() { return missingLocation; }
     public static double[]      getDoubleCoords()    { return doubleCoords; }
 
-    public static boolean onChat(String message) {
+    public static boolean onChat(String raw) {
+        com.phantomaddons.utils.ChatLine.Party party =
+                com.phantomaddons.utils.ChatLine.party(com.phantomaddons.utils.TextUtil.stripColor(raw));
+        if (party == null) return false;
+        String message = party.body();
+
         Matcher noPre = NO_PRE_PATTERN.matcher(message);
         if (noPre.find()) {
             String name = noPre.group(1).trim();

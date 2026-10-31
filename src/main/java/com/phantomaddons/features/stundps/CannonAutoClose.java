@@ -26,7 +26,7 @@ public final class CannonAutoClose {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay || !PhantomConfig.isCannonAutoCloseEnabled()) return;
             String text = TextUtil.stripColor(message.getString());
-            if (text.contains(TRIGGER)) arm();
+            if (TextUtil.hasNoColon(text) && text.contains(TRIGGER)) arm();
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

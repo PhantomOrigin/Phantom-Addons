@@ -62,6 +62,8 @@
 - Etherwarp Waypoints
 - Smooth Crate Pickup HUD
 - Waypoint Line
+- Tentacle Grab Prediction
+- Tentacle Reach Highlight
 </details>
 
 <details>
@@ -105,6 +107,7 @@
 - Atomsplit Blocker
 - Boss Jump Blocker
 - Rend Pull Attribution (BETA)
+- Right Peak Block Highlight
 </details>
 
 <details>
@@ -156,6 +159,7 @@
 - Block Close Items in Menus
 - Legacy Rod Physics
 - Lava Bobber Fix
+- Fix Capitalised Commands
 </details>
 
 ---

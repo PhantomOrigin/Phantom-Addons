@@ -4,6 +4,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.phantomaddons.utils.TextUtil;
 import com.phantomaddons.PhantomConfig;
 import com.phantomaddons.features.misckuudra.ShopKeybinds;
+import com.phantomaddons.features.misckuudra.ShopMenu;
+import com.phantomaddons.gui.PhantomScreen;
 import com.phantomaddons.features.miscskyblock.BlockCloseItem;
 import com.phantomaddons.features.miscskyblock.SlotBinds;
 import com.phantomaddons.features.loadouts.WardrobeKeybinds;
@@ -40,6 +42,46 @@ public class HandledScreenMixin {
     @Final @Shadow protected int imageWidth;
 
     @Shadow protected void slotClicked(Slot slot, int slotId, int mouseButton, ContainerInput type) {}
+    @Shadow protected void extractTooltip(GuiGraphicsExtractor ctx, int mouseX, int mouseY) {}
+
+    @Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)
+    private void kuudrahelper$shopMenuRender(GuiGraphicsExtractor ctx, int mx, int my, float delta, CallbackInfo ci) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        ShopMenu.Layout layout = ShopMenu.layout(self);
+        if (layout == null) return;
+
+        ShopMenu.Entry hovered = ShopMenu.render(ctx, self, layout, mx, my);
+        hoveredSlot = hovered == null ? null : self.getMenu().slots.get(hovered.slotIndex());
+        extractTooltip(ctx, mx, my);
+        ci.cancel();
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void kuudrahelper$shopMenuClick(MouseButtonEvent event, boolean isDoubleClick,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+        ShopMenu.Layout layout = ShopMenu.layout(self);
+        if (layout == null) return;
+
+        int button = event.button();
+        int code = PhantomScreen.MOUSE_OFFSET + button;
+        if (PhantomConfig.isShopKeybindsEnabled()
+                && (code == PhantomConfig.getShopMainKey() || code == PhantomConfig.getShopCannonKey())) return;
+
+        ShopMenu.Entry hit = layout.at(event.x(), event.y());
+        if (hit != null && hit.clickable()) {
+            ContainerInput type = button == 2 ? ContainerInput.CLONE
+                    : com.phantomaddons.utils.InputCompat.isShiftDown() ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP;
+            slotClicked(self.getMenu().slots.get(hit.slotIndex()), hit.slotIndex(), button, type);
+        }
+        cir.setReturnValue(true);
+    }
+
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true, require = 0)
+    private void kuudrahelper$shopMenuRelease(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        WardrobeKeybinds.onMouseReleased(event.button());
+        if (ShopMenu.layout((AbstractContainerScreen<?>) (Object) this) != null) cir.setReturnValue(true);
+    }
 
     private int kuudrahelper$getMenuSlotId(AbstractContainerScreen<?> screen, Slot slot) {
         return slot == null ? -1 : screen.getMenu().slots.indexOf(slot);

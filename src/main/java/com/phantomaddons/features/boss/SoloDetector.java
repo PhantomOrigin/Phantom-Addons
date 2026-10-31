@@ -36,7 +36,7 @@ public final class SoloDetector {
 
         String clean = TextUtil.stripColor(raw).toLowerCase();
 
-        if (clean.contains(TRIGGER)) {
+        if (TextUtil.hasNoColon(clean) && clean.contains(TRIGGER)) {
             finalKills++;
             PhantomAddons.LOGGER.info("[SoloDetector] Final kill detected ({}/{})",
                     finalKills, SOLO_THRESHOLD);

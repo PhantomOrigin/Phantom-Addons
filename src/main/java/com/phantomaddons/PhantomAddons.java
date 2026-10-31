@@ -112,7 +112,9 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraSplitTimer.register();
         SplitHud.register();
         PhantomCommands.register();
+        com.phantomaddons.utils.CommandCase.register();
         com.phantomaddons.features.pv.PvCommand.register();
+        com.phantomaddons.features.pv.PvNameBook.register();
         com.phantomaddons.features.pv.ChatCards.register();
         com.phantomaddons.features.pv.ChatNameLinks.register();
         AutoGFS.register();
@@ -180,8 +182,9 @@ public class PhantomAddons implements ClientModInitializer {
             if (!overlay) CratePriority.onChat(clean);
             if (!overlay) handleSupplyNotifications(clean);
             if (overlay) com.phantomaddons.features.boss.mana.ManaTracker.onChat(clean);
-            com.phantomaddons.features.misckuudra.HollowWandAnnouncer.onChat(clean);
-            if (!overlay && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
+            com.phantomaddons.features.misckuudra.HollowWandAnnouncer.onChat(clean, overlay);
+            if (!overlay && TextUtil.hasNoColon(clean)
+                    && clean.contains("A kick occurred in your connection, so you were put in the SkyBlock lobby!")
                     && PhantomConfig.isKickedNotificationEnabled()) {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
                 com.phantomaddons.features.misckuudra.KickedTimerHud.onKicked();
@@ -197,6 +200,7 @@ public class PhantomAddons implements ClientModInitializer {
     }
 
     private static boolean isNpreElleLine(String msg) {
+        if (!TextUtil.isElleLine(msg)) return false;
         String lc = msg.toLowerCase();
         return lc.contains("head over to the main platform")
                 || lc.contains("not again!");
@@ -232,8 +236,6 @@ public class PhantomAddons implements ClientModInitializer {
         return sb.toString();
     }
 
-    private static final java.util.regex.Pattern SUPPLY_RECOVERY_PATTERN =
-            java.util.regex.Pattern.compile("(\\S+)\\s+recovered one of Elle's supplies! \\((\\d+/\\d+)\\)");
     private static final java.util.regex.Pattern RANK_NAME_PATTERN =
             java.util.regex.Pattern.compile("^(.*?)\\s+recovered one of Elle's supplies!");
 
@@ -246,15 +248,13 @@ public class PhantomAddons implements ClientModInitializer {
 
             if (isNpreElleLine(clean)) return true;
 
-            if (PhantomConfig.isHideElleDialogueEnabled()
-                    && clean.toLowerCase().contains("[npc] elle:")
-                    && TextUtil.countColons(clean) == 1) return false;
+            if (PhantomConfig.isHideElleDialogueEnabled() && TextUtil.isElleLine(clean)) return false;
 
             if (PhantomConfig.isSupplyRecoveryMsgEnabled()) {
-                java.util.regex.Matcher m = SUPPLY_RECOVERY_PATTERN.matcher(clean);
-                if (m.find()) {
-                    String playerName = m.group(1);
-                    String countStr   = m.group(2);
+                com.phantomaddons.utils.ChatLine.Recovery recovery = com.phantomaddons.utils.ChatLine.recovered(clean);
+                if (recovery != null && recovery.count() != null && clean.contains("one of Elle's supplies")) {
+                    String playerName = recovery.name();
+                    String countStr   = recovery.count();
 
                     String raw = toLegacyString(text);
                     java.util.regex.Matcher rm = RANK_NAME_PATTERN.matcher(raw);
@@ -293,9 +293,7 @@ public class PhantomAddons implements ClientModInitializer {
         ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signed, sender, params, ts) -> {
             String msg = TextUtil.stripColor(message.getString());
             if (isNpreElleLine(msg)) return true;
-            return !(PhantomConfig.isHideElleDialogueEnabled()
-                    && msg.toLowerCase().contains("[npc] elle:")
-                    && TextUtil.countColons(msg) == 1);
+            return !(PhantomConfig.isHideElleDialogueEnabled() && TextUtil.isElleLine(msg));
         });
     }
 
@@ -383,7 +381,34 @@ public class PhantomAddons implements ClientModInitializer {
                         if (counts.isEmpty())
                             ctx.getSource().sendFeedback(Component.literal("  (no entities within 15 blocks of any cluster)"));
                         return 1;
-                    }));
+                    })
+                    .then(ClientCommands.literal("peak")
+                            .executes(ctx -> {
+                                if (!PhantomConfig.isDeveloperFeaturesEnabled()) {
+                                    ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                                    return 0;
+                                }
+                                ctx.getSource().sendFeedback(Component.literal("[Peak] " + com.phantomaddons.features.boss.RightPeakBlockHighlight.debugStatus()));
+                                return 1;
+                            }))
+                    .then(ClientCommands.literal("tier")
+                            .then(ClientCommands.argument("tier", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 5))
+                                    .executes(ctx -> {
+                                        if (!PhantomConfig.isDeveloperFeaturesEnabled()) {
+                                            ctx.getSource().sendFeedback(Component.literal("Developer Features is disabled (About tab)."));
+                                            return 0;
+                                        }
+                                        int tier = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "tier");
+                                        KuudraTierDetector.forceTier(tier);
+                                        ctx.getSource().sendFeedback(Component.literal("Forced Kuudra tier T" + tier + " until you change world."));
+                                        return 1;
+                                    }))
+                            .then(ClientCommands.literal("off")
+                                    .executes(ctx -> {
+                                        KuudraTierDetector.clearForcedTier();
+                                        ctx.getSource().sendFeedback(Component.literal("Forced Kuudra tier cleared."));
+                                        return 1;
+                                    }))));
         });
     }
 
@@ -410,6 +435,7 @@ public class PhantomAddons implements ClientModInitializer {
         RoleManager.reset();
         PearlWaypointManager.reset();
         com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarning.reset();
+        com.phantomaddons.features.supplies.tentaclereach.TentacleReach.reset();
         PearlTitleListener.reset();
         SoloDetector.onPhaseEnd();
         KuudraTierDetector.reset();
@@ -496,6 +522,7 @@ public class PhantomAddons implements ClientModInitializer {
             com.phantomaddons.features.supplies.giant.SupplyGiantHitbox.tick(client);
             com.phantomaddons.features.supplies.giant.GiantHitboxOutline.tick(client);
             com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarning.tick(client);
+            com.phantomaddons.features.supplies.tentaclereach.TentacleReach.tick(client);
             GiantYLogger.tick(client);
             KuudraStationaryLogger.tick(client);
             DataFeatures.tick(client);
@@ -511,6 +538,7 @@ public class PhantomAddons implements ClientModInitializer {
     }
 
     private static void handleSupplyNotifications(String clean) {
+        if (!TextUtil.hasNoColon(clean)) return;
         if (PhantomConfig.isSupplyGrabbedNotifyEnabled()
                 && clean.contains("Someone else is currently trying to pick up these supplies")) {
             com.phantomaddons.features.misckuudra.NotificationHud.show("§cSupply already taken!", 3000);

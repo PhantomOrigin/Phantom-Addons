@@ -5,6 +5,7 @@ import com.phantomaddons.features.misckuudra.chesttracking.ChestTracker;
 import com.phantomaddons.features.misckuudra.profile.KuudraProfileScreen;
 import com.phantomaddons.features.misckuudra.profittracker.ProfitHud;
 import com.phantomaddons.features.misckuudra.profittracker.ProfitStore;
+import com.phantomaddons.features.pv.PvNameBook;
 import com.phantomaddons.phase.KuudraPhaseTracker;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -15,6 +16,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
@@ -67,8 +69,7 @@ public final class PhantomCommands {
 
     private static final String[] SLASH_CMD_HELP = {
             "§e/phantom pb §7— show all your Kuudra tier PBs",
-            "§e/phantom chests §7— show current chest count",
-            "§e/phantom tracker reset §7— reset the all-time profit tracker",
+            "§e/phantom chests §7— show current chest count",            "§e/phantom tracker reset §7— reset the all-time profit tracker",
             "§e/phantom shitter add|remove|list §7<name> — manage the shitter list",
             "§e/phantom setpb §7[tier] [data] — open the PB editor / set a PB manually",
             "§e/phantom phase §7<0-10>|reset — §c[dev]§7 dev tool to view features for a specific phase",
@@ -222,6 +223,7 @@ public final class PhantomCommands {
                                     return 1;
                                 })
                                 .then(ClientCommands.argument("name", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(PvNameBook.suggestions(), builder))
                                         .executes(ctx -> {
                                             openProfile(StringArgumentType.getString(ctx, "name"));
                                             return 1;
@@ -409,6 +411,7 @@ public final class PhantomCommands {
     private static void openProfile(String name) {
         if (!PhantomConfig.isProfileViewerEnabled()) return;
         Minecraft mc = Minecraft.getInstance();
+        PvNameBook.noteViewed(name);
         if (PhantomConfig.isPvEnabled()) {
             java.util.UUID uuid = mc.player != null && name.equalsIgnoreCase(mc.player.getGameProfile().name())
                     ? mc.player.getUUID() : null;

@@ -52,7 +52,7 @@ public final class PearlRefill {
             if (now - lastAttemptMs > REPLY_WINDOW_MS) return;
 
             String text = TextUtil.stripColor(message.getString());
-            if (text.startsWith(MOVED_PREFIX) && text.endsWith(MOVED_SUFFIX)) {
+            if (TextUtil.hasNoColon(text) && text.startsWith(MOVED_PREFIX) && text.endsWith(MOVED_SUFFIX)) {
                 resetWaiting();
                 state = State.IDLE;
             } else if (text.equals(COOLDOWN_MSG)) {
