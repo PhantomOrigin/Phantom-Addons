@@ -117,9 +117,9 @@ public final class CratePriority {
                     matrices.translate(cx, cy);
                     matrices.scale(scale, scale);
 
-                    String text = "§eGo " + destination + "!";
+                    String text = "Go " + destination + "!";
                     int tw = mc.font.width(text);
-                    ctx.text(mc.font, text, -tw / 2, -mc.font.lineHeight / 2, 0xFFFFFFFF, true);
+                    ctx.text(mc.font, text, -tw / 2, -mc.font.lineHeight / 2, 0xFFFFFF55, true);
 
                     matrices.popMatrix();
                 });

@@ -217,6 +217,33 @@ public final class PvFetcher {
         }, PvItems.EXECUTOR);
     }
 
+    private static final long STATUS_TTL_MS = 60_000L;
+    private static final Map<String, Cached> STATUSES = new ConcurrentHashMap<>();
+
+    public static CompletableFuture<JsonObject> fetchStatus(UUID uuid) {
+        String member = uuid.toString().replace("-", "");
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (Files.exists(testFile())) {
+                    JsonObject o = new JsonObject();
+                    o.addProperty("online", true);
+                    o.addProperty("gameType", "SKYBLOCK");
+                    o.addProperty("mode", "garden");
+                    return o;
+                }
+                Cached c = STATUSES.get(member);
+                if (c != null && System.currentTimeMillis() - c.savedAt() < STATUS_TTL_MS) return c.body();
+                JsonObject status = PhantomApi.authed(base -> get(base + "/pv/status?uuid=" + member));
+                STATUSES.put(member, new Cached(System.currentTimeMillis(), status));
+                return status;
+            } catch (IOException e) {
+                Cached stale = STATUSES.get(member);
+                if (stale != null) return stale.body();
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        }, PvItems.EXECUTOR);
+    }
+
     public static CompletableFuture<JsonObject> fetchMuseum(String profileId, UUID uuid) {
         String member = uuid.toString().replace("-", "");
         String key = profileId + ":" + member;

@@ -22,10 +22,8 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -117,12 +115,7 @@ public final class PearlWaypointRenderer {
 
         boolean frameShouldThrow = anyAimed ? aimedThrow : targetThrow;
         if (frameShouldThrow && !prevShouldThrow) {
-            PhantomConfig.NotificationSound ns = PhantomConfig.getNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
-            if (ns.enabled) {
-                PhantomConfig.playNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
-            } else {
-                mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 2.0f));
-            }
+            PhantomConfig.playNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
         }
         prevShouldThrow = frameShouldThrow;
 
@@ -215,12 +208,7 @@ public final class PearlWaypointRenderer {
 
         boolean frameShouldThrow = anyAimed ? aimedThrow : targetThrow;
         if (frameShouldThrow && !prevShouldThrow) {
-            PhantomConfig.NotificationSound ns = PhantomConfig.getNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
-            if (ns.enabled) {
-                PhantomConfig.playNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
-            } else {
-                mc.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 2.0f));
-            }
+            PhantomConfig.playNotificationSound(PhantomConfig.SOUND_PEARL_NOW);
         }
         prevShouldThrow = frameShouldThrow;
         //?}

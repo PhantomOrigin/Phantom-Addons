@@ -41,21 +41,24 @@ public final class PartyCommands {
         lastAnnounceMs = 0L;
     }
 
+    public static void onWorldChange() {
+        lastAnnounceMs = 0L;
+    }
+
     public static boolean isPartyLeader() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || partyLeader == null) return false;
         return partyLeader.equalsIgnoreCase(mc.player.getScoreboardName());
     }
 
-    private static long lastLeaderQueryMs = 0L;
-    private static final long LEADER_QUERY_COOLDOWN_MS = 3_000L;
+    private static String selfName() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player == null ? null : mc.player.getScoreboardName();
+    }
 
-    private static void queryLeaderIfUnknown() {
-        if (partyLeader != null) return;
-        long now = System.currentTimeMillis();
-        if (now - lastLeaderQueryMs < LEADER_QUERY_COOLDOWN_MS) return;
-        lastLeaderQueryMs = now;
-        com.phantomaddons.features.supplies.PartyChatQueue.sendCommand("party list");
+    private static void setLeader(String name) {
+        partyLeader = name;
+        if (name != null) partyMembers.add(name);
     }
 
     public static void register() {
@@ -84,13 +87,11 @@ public final class PartyCommands {
             }
             case JOINED -> {
                 partyMembers.add(event.name());
-                queryLeaderIfUnknown();
                 ShitterList.checkAutoKick(event.name());
                 return;
             }
             case FINDER_JOINED -> {
                 partyMembers.add(event.name());
-                queryLeaderIfUnknown();
                 ShitterList.checkAutoKick(event.name());
                 onPartyFinderJoin(event.name());
                 return;
@@ -100,7 +101,33 @@ public final class PartyCommands {
                 return;
             }
             case TRANSFER -> {
-                partyLeader = event.name();
+                setLeader(event.name());
+                return;
+            }
+            case TRANSFER_LEFT -> {
+                setLeader(event.name());
+                partyMembers.removeAll(event.names());
+                return;
+            }
+            case YOU_INVITED -> {
+                if (partyLeader == null) setLeader(selfName());
+                return;
+            }
+            case SELF_LEADER -> {
+                setLeader(selfName());
+                return;
+            }
+            case LEADER_NAMED -> {
+                setLeader(event.name());
+                return;
+            }
+            case NOT_LEADER -> {
+                String self = selfName();
+                if (partyLeader != null && partyLeader.equalsIgnoreCase(self)) partyLeader = null;
+                return;
+            }
+            case MEMBERS -> {
+                partyMembers.addAll(event.names());
                 return;
             }
             case INVITE -> {

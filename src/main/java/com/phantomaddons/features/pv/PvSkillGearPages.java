@@ -24,7 +24,7 @@ final class PvSkillGearPages {
             return repoPet.skill();
         }
         int idx = PvProfileView.rarityIndex(pet.rarity());
-        for (int r : new int[] { idx, 4, 3, 5, 2, 1, 0 }) {
+        for (int r : new int[] { idx, 4, 3, 5, 7, 8, 2, 1, 0 }) {
             String id = pet.type() + ";" + r;
             PvItems.RepoItem item = PvItems.repoItem(id);
             if (item != null) {
@@ -166,7 +166,82 @@ final class PvSkillGearPages {
     private static final String[][] FISHING_PETS = {
             { "FLYING_FISH", "Flying Fish" }, { "AMMONITE", "Ammonite" }, { "SQUID", "Squid" }, { "BABY_YETI", "Baby Yeti" } };
 
+    private static final String[][] TROPHY_FROGS = {
+            { "COMMON_FROG", "Common Frog", "§f" }, { "LEAP_FROG", "Leap Frog", "§a" },
+            { "WETLANDS_FROG", "Wetlands Frog", "§a" }, { "REALITY_HOPPER", "Reality Hopper", "§a" },
+            { "EXPLODING_FROG", "Exploding Frog", "§a" }, { "BLESSED_FROG", "Blessed Frog", "§9" },
+            { "SEA_FROG", "Sea Frog", "§9" }, { "BULLFROG", "Bullfrog", "§9" },
+            { "TREE_FROG", "Tree Frog", "§5" }, { "CAVE_FROG", "Cave Frog", "§5" },
+            { "HIGHLANDS_FROG", "Highlands Frog", "§5" }, { "PUDDLE_JUMPER", "Puddle Jumper", "§6" },
+    };
+
+    private static int frogs(PvPages.Ctx c) {
+        PvScreen s = c.s();
+        float es = c.es();
+        int pad = PvPages.PAD, gap = 6;
+        int x0 = c.x() + pad, y0 = c.y() + pad - c.scroll(), avail = c.w() - 2 * pad;
+        int availH = c.h() - 2 * pad;
+        float ss = 0.8f * es;
+
+        java.util.Set<String> done = new java.util.HashSet<>();
+        com.google.gson.JsonElement tasks = PvJson.path(c.m(), "leveling", "completed_tasks");
+        if (tasks != null && tasks.isJsonArray()) {
+            for (var e : tasks.getAsJsonArray()) if (e.isJsonPrimitive()) done.add(e.getAsString());
+        }
+        int tiersDone = 0;
+        for (String[] frog : TROPHY_FROGS)
+            for (String tier : TIERS) if (done.contains("TROPHY_" + frog[0] + "_" + tier.toUpperCase(java.util.Locale.ROOT))) tiersDone++;
+
+        int ry = y0;
+        s.title(c.g(), "Trophy Frogs", x0, ry);
+        String progress = "§7Tiers §r" + tiersDone + "/" + TROPHY_FROGS.length * TIERS.length;
+        s.text(c.g(), progress, x0 + avail - s.textW(progress, ss), ry + (c.lh(es) - c.lh(ss)) / 2, PvTheme.text(), ss);
+        ry += c.lh(es) + 6;
+        long caught = (long) PvJson.num(c.m(), 0, "player_stats", "items_fished", "trophy_frog");
+        s.text(c.g(), "§7Caught §r" + PvPages.num(caught), x0, ry, PvTheme.text(), ss);
+        ry += c.lh(ss) + 6;
+
+        int cols = 2, rows = (TROPHY_FROGS.length + cols - 1) / cols;
+        float grow = (float) Math.sqrt(c.room());
+        float ns = 0.8f * es * grow, ts = 0.7f * es * grow;
+        int rowH = Math.max(c.lh(ns) + c.lh(ts) + 3, Math.min(Math.round(28 * es * c.room()), (y0 + availH - ry) / rows));
+        int icon = Math.max(10, Math.min(rowH - 3, Math.round(20 * es * c.room())));
+        int cw = (avail - gap) / cols;
+
+        for (int i = 0; i < TROPHY_FROGS.length; i++) {
+            String[] frog = TROPHY_FROGS[i];
+            int cx = x0 + (i / rows) * (cw + gap), cy = ry + (i % rows) * rowH;
+            boolean[] has = new boolean[4];
+            int best = -1, n = 0;
+            for (int t = 0; t < 4; t++) {
+                has[t] = done.contains("TROPHY_" + frog[0] + "_" + TIERS[t].toUpperCase(java.util.Locale.ROOT));
+                if (has[t]) { best = t; n++; }
+            }
+            String iconId = frog[0] + "_" + TIERS[Math.max(0, best)].toUpperCase(java.util.Locale.ROOT);
+            s.slotNoTooltip(c.g(), cx, cy + (rowH - icon) / 2 - 1, icon, s.repoIcon(iconId, net.minecraft.world.item.Items.LILY_PAD));
+            int tx = cx + icon + 4;
+            s.text(c.g(), (n > 0 ? frog[2] : "§8") + frog[1], tx, cy, PvTheme.text(), ns);
+            String count = "§7" + n + "/4";
+            s.text(c.g(), count, cx + cw - s.textW(count, ns) - 2, cy, PvTheme.text(), ns);
+            StringBuilder marks = new StringBuilder();
+            for (int t = 0; t < 4; t++) {
+                if (t > 0) marks.append("  ");
+                marks.append(has[t] ? TIER_COLORS[t] + "● §r" + TIER_NAMES[t] : "§8● " + TIER_NAMES[t]);
+            }
+            s.text(c.g(), marks.toString(), tx, cy + c.lh(ns) + 1, PvTheme.text(), ts);
+            if (s.hovered(c.mx(), c.my(), cx, cy, cw, rowH)) {
+                List<String> lines = new ArrayList<>();
+                lines.add(frog[2] + frog[1]);
+                for (int t = 0; t < 4; t++) lines.add(TIER_COLORS[t] + TIER_NAMES[t] + "§7: " + (has[t] ? "§aCaught" : "§8Not caught"));
+                s.tooltipLines(lines);
+            }
+        }
+        ry += rows * rowH;
+        return ry - y0;
+    }
+
     static int fishing(PvPages.Ctx c) {
+        if (c.sub() == 1) return frogs(c);
         PvScreen s = c.s();
         PvAnalysis a = c.v().analysis;
         float es = c.es(), ls = 0.75f * es;

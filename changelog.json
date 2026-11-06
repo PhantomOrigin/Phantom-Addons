@@ -1,5 +1,43 @@
 [
   {
+    "version": "1.7.5",
+    "title": "Custom Sounds, Profile Viewer Updates and Auto GFS Refills",
+    "sections": [
+      {
+        "name": "Additions",
+        "items": [
+          "Added a sound selector and repeat settings with a preview button to every notification sound",
+          "Added sounds for Stun Reminder and Tentacle Grab Warning",
+          "Added Auto GFS for Inflatable Jerry, Spirit Leap and Superboom TNT",
+          "Added a colour picker and thickness slider to Waypoint Lines",
+          "Added a colour picker to Kuudra Highlight",
+          "Added player status (online and location) to the profile viewer",
+          "Added Blood Mob kills and the Murkbat, Prince and Folf shards to the Dungeons tab in the profile viewer",
+          "Added Power Stone and Tuning Points to each loadout on the Dungeons tab in the profile viewer",
+          "Added runs needed for the next Catacombs and class level when hovering the bars in the profile viewer",
+          "Added Trophy Frogs to the Fishing tab and Composter upgrades to the Garden tab in the profile viewer"
+        ]
+      },
+      {
+        "name": "Other Changes",
+        "items": [
+          "The profile viewer now shows a single bank on solo profiles",
+          "Combined Best Floor and Best Master into one stat on the Dungeons tab",
+          "Split the Misc tab in the profile viewer into sub-tabs",
+          "DPS Terror now shows unless both an Elegant Tuxedo and a Reaper set are found",
+          "Special and Very Special pets, like Phoenix, now show the right icon and level",
+          "Fixed the profile viewer's top bar not reaching the edge",
+          "Fixed new versions of the mod not deleting the old ones from the mods folder",
+          "Fixed Auto Kick missing a Tuxedo or Reaper set that the player was wearing",
+          "Fixed several Profit Tracker item prices and added Tentacle Dye and Travel Scroll",
+          "Improved party leader and member detection",
+          "Ichor Pool tracking now also works with the IQ mod",
+          "Added menu descriptions for most items"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.4",
     "title": "Tentacle Reach Highlight and Better Commands",
     "sections": [

@@ -20,7 +20,6 @@ import org.joml.Matrix4f;
 
 public final class WaypointLinesRenderer {
 
-    private static final int R = 255, G = 235, B = 60;
     private static final int ALPHA = 200;
 
     private WaypointLinesRenderer() {}
@@ -84,7 +83,10 @@ public final class WaypointLinesRenderer {
         float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len == 0) return;
         float nx = dx / len, ny = dy / len, nz = dz / len;
-        vc.addVertex(m, x1, y1, z1).setColor(R, G, B, ALPHA).setNormal(nx, ny, nz).setLineWidth(3.5f);
-        vc.addVertex(m, x2, y2, z2).setColor(R, G, B, ALPHA).setNormal(nx, ny, nz).setLineWidth(3.5f);
+        int col = PhantomConfig.getWaypointLinesColor();
+        int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+        float w = PhantomConfig.getWaypointLinesWidth();
+        vc.addVertex(m, x1, y1, z1).setColor(r, g, b, ALPHA).setNormal(nx, ny, nz).setLineWidth(w);
+        vc.addVertex(m, x2, y2, z2).setColor(r, g, b, ALPHA).setNormal(nx, ny, nz).setLineWidth(w);
     }
 }

@@ -50,7 +50,7 @@ public final class SoloDetector {
 
     private static void triggerSoloAlert() {
         if (PhantomConfig.isSoloNotifyEnabled()) {
-            NotificationHud.show("§cSOLO!", 3000);
+            NotificationHud.show("SOLO!", 3000, 0xFFFF5555);
             PhantomConfig.playNotificationSound(PhantomConfig.SOUND_SOLO);
         }
 

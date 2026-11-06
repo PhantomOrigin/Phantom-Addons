@@ -14,28 +14,28 @@ public final class ProfileViewerTab {
         m.heading("General");
         m.add(new Toggle("Profile Viewer (/pv)",
                 PhantomConfig::isPvEnabled, PhantomConfig::setPvEnabled)
-                .withTooltip("/pv <player> opens a SkyBlock profile viewer. /pv on its own views your own profile."));
+                .withTooltip("Turns on the /pv profile viewer."));
 
         m.add(new Toggle("Click Names To Open Profile",
                 PhantomConfig::isPvClickNames, PhantomConfig::setPvClickNames)
-                .withTooltip("Clicking a player's name in chat opens their profile viewer instead of starting a message to them. Holding Shift still inserts the name into the chat box."));
+                .withTooltip("Clicking a name in chat opens that player's profile."));
 
         m.add(new Toggle("Party Finder Shift Preview",
                 PhantomConfig::isPvPartyFinderPreview, PhantomConfig::setPvPartyFinderPreview)
-                .withTooltip("Hold Shift over a Kuudra party in the Party Finder to preview its members' profiles. This looks each member up on our server, and signs you in to it the first time you use it. Off by default."));
+                .withTooltip("Hold Shift over a party to preview its members' profiles."));
 
         m.add(new Toggle("Preserve Last Open Page",
                 PhantomConfig::isPvRememberPage, PhantomConfig::setPvRememberPage)
-                .withTooltip("Opening the profile viewer on someone you looked at in the last 10 minutes puts you back on the page and sub-tab you left it on, instead of the first page."));
+                .withTooltip("Reopens the profile viewer on the page you left it on."));
 
         m.add(new Toggle("Player Name Suggestions",
                 PhantomConfig::isPvNameSuggestions, PhantomConfig::setPvNameSuggestions)
-                .withTooltip("Tab-completes /pv and /kuudra with your friends, players from your last 2 lobbies and anyone whose profile you opened in the last 5 minutes. Friends are learned from the messages Hypixel sends when you view your friend list, add or remove a friend, or a friend joins or leaves."));
+                .withTooltip("Suggests player names when you type /pv or /kuudra."));
 
         m.heading("Window");
         m.add(new RangeSlider("GUI Size", 0.6f, 2.5f, "%.2fx",
                 PhantomConfig::getPvGuiScale, PhantomConfig::setPvGuiScale)
-                .withTooltip("Size of the profile viewer window. Everything inside it, text included, grows with it."));
+                .withTooltip("Changes how big the profile viewer is."));
 
         m.add(new Cycle("Content Size",
                 () -> switch (PhantomConfig.getPvContent()) {
@@ -47,7 +47,8 @@ public final class ProfileViewerTab {
                     case SMALL  -> PhantomConfig.PvContent.MEDIUM;
                     case MEDIUM -> PhantomConfig.PvContent.LARGE;
                     case LARGE  -> PhantomConfig.PvContent.SMALL;
-                })));
+                }))
+                .withTooltip("Changes how big the text and items inside it are."));
 
         m.add(new Cycle("Theme",
                 () -> switch (PhantomConfig.getPvTheme()) {
@@ -59,19 +60,21 @@ public final class ProfileViewerTab {
                     case MATCH -> PhantomConfig.PvTheme.DARK;
                     case DARK  -> PhantomConfig.PvTheme.LIGHT;
                     case LIGHT -> PhantomConfig.PvTheme.MATCH;
-                })));
+                }))
+                .withTooltip("Chooses a dark, light or menu-matching look."));
 
         m.add(new Cycle("Tab Style",
                 () -> PhantomConfig.isPvTabIcons() ? "Icons" : "Text",
-                () -> PhantomConfig.setPvTabIcons(!PhantomConfig.isPvTabIcons())));
+                () -> PhantomConfig.setPvTabIcons(!PhantomConfig.isPvTabIcons()))
+                .withTooltip("Shows the tabs as icons or as text."));
 
         m.heading("Numbers");
         m.add(new Toggle("Replace Roman Numerals",
                 PhantomConfig::isPvArabicNumerals, PhantomConfig::setPvArabicNumerals)
-                .withTooltip("Shows numbers instead of Roman numerals in the profile viewer, e.g. Sharpness 7 instead of Sharpness VII."));
+                .withTooltip("Shows normal numbers instead of Roman numerals."));
 
         m.add(new Toggle("Overflow Skill Levels",
                 PhantomConfig::isPvOverflowSkills, PhantomConfig::setPvOverflowSkills)
-                .withTooltip("Keeps counting skill levels and the Catacombs level past their max using the XP earned beyond it, the same way as SkyHanni's overflow levels."));
+                .withTooltip("Keeps counting levels past the maximum."));
     }
 }

@@ -58,7 +58,7 @@ final class PvDungeonsPage {
         float is = 0.75f * es;
         int statLine = c.lh(is) + 4;
         int immSlot = Math.max(12, Math.round(18 * es));
-        int stripH = Math.max(2 * statLine, immSlot);
+        int stripH = Math.max(3 * statLine, immSlot);
         int topH = Math.max(availH - floorsH - stripH - 2 * gap, Math.round(110 * es));
 
         PvLeveling.Level cata = catacombs(PvJson.num(d, 0, "dungeon_types", "catacombs", "experience"));
@@ -80,12 +80,12 @@ final class PvDungeonsPage {
         int minRow = c.lh(bs) + barH + 4;
         int rowH = Math.max(minRow, Math.min(Math.round((minRow + 10) * c.room()), topH / 6));
         int by = y0;
-        bar(c, "Catacombs", cata, x0, by, leftW, barH, bs, PvTheme.text());
+        bar(c, "Catacombs", cata, PvJson.num(d, 0, "dungeon_types", "catacombs", "experience"), null, d, x0, by, leftW, barH, bs, PvTheme.text());
         by += rowH;
         for (int i = 0; i < CLASSES.length; i++) {
             boolean isSelected = CLASSES[i].equals(selected);
             String name = (i == viewed ? "▶ " : "") + PvProfileView.prettify(CLASSES[i]);
-            bar(c, name, classes.get(i), x0, by, leftW, barH, bs, isSelected ? PvTheme.accent() : PvTheme.text());
+            bar(c, name, classes.get(i), PvJson.num(d, 0, "player_classes", CLASSES[i], "experience"), CLASSES[i], d, x0, by, leftW, barH, bs, isSelected ? PvTheme.accent() : PvTheme.text());
             final int idx = i;
             s.addHit(x0, by, x0 + leftW, by + rowH - 2, () -> s.setInnerTab(viewKey, idx + 1));
             by += rowH;
@@ -102,18 +102,39 @@ final class PvDungeonsPage {
         int immW = 3 * (immSlot + 3);
         int statsW = avail - immW - 12;
         int statW = (statsW - 2 * 10) / 3;
+        long normalBlood = (long) PvJson.num(c.m(), 0, "player_stats", "kills", "watcher_summon_undead");
+        long masterBlood = (long) PvJson.num(c.m(), 0, "player_stats", "kills", "master_watcher_summon_undead");
         String[][] stats = {
                 { "Class Avg", String.format(Locale.ROOT, "%.2f", classSum / CLASSES.length) },
                 { "Secrets", secrets(d) },
                 { "Magical Power", c.v().magicalPower >= 0 ? String.valueOf(c.v().magicalPower) : "?" },
-                { "Best Floor", floorName(false, (int) PvJson.num(d, -1, "dungeon_types", "catacombs", "highest_tier_completed")) },
-                { "Best Master", floorName(true, (int) PvJson.num(d, -1, "dungeon_types", "master_catacombs", "highest_tier_completed")) },
-                { "Bank", c.v().bank >= 0 ? PvPages.shortNum(c.v().bank) : "API off" },
+                { "Best Floor", bestFloors(
+                        (int) PvJson.num(d, -1, "dungeon_types", "catacombs", "highest_tier_completed"),
+                        (int) PvJson.num(d, -1, "dungeon_types", "master_catacombs", "highest_tier_completed")) },
+                { "Blood Mobs", PvPages.num(normalBlood + masterBlood) },
+                { "Bank", c.v().totalBank() >= 0 ? PvPages.shortNum(c.v().totalBank()) : "API off" },
         };
-        int textTop = iy + (stripH - 2 * statLine) / 2;
+        int textTop = iy + (stripH - 3 * statLine) / 2;
         for (int i = 0; i < stats.length; i++) {
-            int sx = x0 + (i % 3) * (statW + 10), sy = textTop + (i / 3) * statLine;
+            int sx = x0 + (i / 3) * (statW + 10), sy = textTop + (i % 3) * statLine;
             s.statRow(c.g(), stats[i][0], stats[i][1], sx, sy, statW, is);
+            if (stats[i][0].equals("Blood Mobs") && s.hovered(c.mx(), c.my(), sx, sy, statW, statLine))
+                s.tooltip("§cBlood Mobs Killed",
+                        "§7Normal: §f" + PvPages.num(normalBlood),
+                        "§7Master Mode: §f" + PvPages.num(masterBlood));
+        }
+        PvHuntingPage.ShardLevel[] shards = PvHuntingPage.dungeonShards(c.m());
+        int shx = x0 + 2 * (statW + 10);
+        for (int i = 0; i < shards.length; i++) {
+            PvHuntingPage.ShardLevel sh = shards[i];
+            int sy = textTop + i * statLine;
+            String value = sh == null ? "—" : (sh.maxed() ? "§6" : "") + sh.level();
+            s.statRow(c.g(), PvHuntingPage.DUNGEON_SHARDS[i], value, shx, sy, statW, is);
+            if (sh != null && s.hovered(c.mx(), c.my(), shx, sy, statW, statLine))
+                s.tooltip("§a" + sh.name() + " §7(" + PvProfileView.prettify(sh.rarity()) + ")",
+                        "§7Ability: §f" + sh.ability(),
+                        "§7Level: §f" + sh.level(),
+                        "§7Syphoned: §f" + PvPages.num(sh.syphoned()) + (sh.maxSyphon() > 0 ? " §8/ §f" + PvPages.num(sh.maxSyphon()) : ""));
         }
         PvDungeonGear gear = c.v().analysis.dungeonGear;
         int gx = x0 + avail - immW + 3;
@@ -147,7 +168,11 @@ final class PvDungeonsPage {
         if (item.isEmpty() && c.s().hovered(c.mx(), c.my(), x, y, slot, slot)) c.s().tooltip("§7" + what, "§8Not found");
     }
 
-    private record SetupCard(String title, String subtitle, List<ItemStack> items, List<String> labels, List<PvProfileView.Pet> pets) {
+    private record SetupCard(String title, String subtitle, List<ItemStack> items, List<String> labels, List<PvProfileView.Pet> pets,
+                             PvProfileView.Loadout loadout) {
+        SetupCard(String title, String subtitle, List<ItemStack> items, List<String> labels, List<PvProfileView.Pet> pets) {
+            this(title, subtitle, items, labels, pets, null);
+        }
         int count() { return items.size() + pets.size(); }
         int columns() { return Math.max(1, (count() + 3) / 4); }
     }
@@ -179,7 +204,7 @@ final class PvDungeonsPage {
                 List<String> labels = new ArrayList<>();
                 for (int i = 0; i < 4; i++) labels.add(g.label());
                 for (int i = 0; i < 4; i++) labels.add(g.label() + " equipment");
-                out.add(new SetupCard(shortLabel(g.label()), g.source() != null ? g.source() : "Not found", slots, labels, List.of()));
+                out.add(new SetupCard(shortLabel(g.label()), g.source() != null ? g.source() : "Not found", slots, labels, List.of(), g.loadout()));
             } else {
                 boolean owned = false;
                 for (ItemStack it : g.items()) {
@@ -218,9 +243,12 @@ final class PvDungeonsPage {
         float subS = 0.6f * es;
         int titleH = c.lh(ts) + c.lh(subS) + 6;
         int totalCols = 0;
-        for (SetupCard card : cards) totalCols += card.columns();
+        boolean anyInfo = false;
+        for (SetupCard card : cards) { totalCols += card.columns(); anyInfo |= card.loadout() != null; }
+        float infoS = 0.65f * es;
+        int infoH = anyInfo ? 2 * (c.lh(infoS) + 2) + 2 : 0;
 
-        int byH = (int) ((h - titleH - 2 * ip) / 4.25);
+        int byH = (int) ((h - titleH - 2 * ip - infoH) / 4.25);
         int byW = (int) ((w - (cards.size() - 1) * gap - cards.size() * 2 * ip) / (totalCols * 1.12));
         int slot = Math.max(10, Math.min(Math.min(byH, byW), Math.round(30 * es * c.room())));
         int g = PvScreen.gapFor(slot);
@@ -228,7 +256,7 @@ final class PvDungeonsPage {
         int used = 0;
         for (SetupCard card : cards) used += card.columns() * (slot + g) - g + 2 * ip;
         int extra = Math.max(0, (w - used - (cards.size() - 1) * gap) / cards.size());
-        int cardH = titleH + 2 * ip + 4 * slot + 3 * g;
+        int cardH = titleH + 2 * ip + 4 * slot + 3 * g + infoH;
 
         int cx = x;
         for (SetupCard card : cards) {
@@ -261,8 +289,37 @@ final class PvDungeonsPage {
                 s.slot(c.g(), sx0, sy0, slot, ItemStack.EMPTY, c.mx(), c.my());
                 if (s.hovered(c.mx(), c.my(), sx0, sy0, slot, slot)) s.tooltip("§7No matching pet", "§8Not found");
             }
+            if (card.loadout() != null) {
+                PvProfileView.Loadout lo = card.loadout();
+                String power = lo.powerStone() != null ? PvProfileView.prettify(lo.powerStone()) : "No Power";
+                String tuning = lo.tuning().isEmpty() ? "§8No Tuning" : PvScreen.tuningString(lo.tuning());
+                int infoY = sy0 + 4 * slot + 3 * g + 3;
+                String powerLine = fit(s, "§7" + power, cw - 2 * ip, infoS);
+                String tuningLine = fit(s, tuning, cw - 2 * ip, infoS);
+                s.text(c.g(), powerLine, cx + (cw - s.textW(powerLine, infoS)) / 2, infoY, PvTheme.text(), infoS);
+                int tuningY = infoY + c.lh(infoS) + 2;
+                s.text(c.g(), tuningLine, cx + (cw - s.textW(tuningLine, infoS)) / 2, tuningY, PvTheme.text(), infoS);
+                if (s.hovered(c.mx(), c.my(), cx, infoY - 2, cw, infoH))
+                    s.tooltip("§e" + lo.name(), "§7Power Stone: §r" + power,
+                            "§7Tuning: §r" + (lo.tuning().isEmpty() ? "None" : PvScreen.tuningString(lo.tuning())));
+            }
             cx += cw + gap;
         }
+    }
+
+    private static String fit(PvScreen s, String text, int w, float scale) {
+        if (s.textW(text, scale) <= w) return text;
+        String t = text;
+        while (t.length() > 2 && s.textW(t + "…", scale) > w) t = t.substring(0, t.length() - 1);
+        if (t.endsWith("§")) t = t.substring(0, t.length() - 1);
+        return t + "…";
+    }
+
+    private static String bestFloors(int normalTier, int masterTier) {
+        if (normalTier < 0 && masterTier < 0) return "None";
+        if (masterTier < 0) return floorName(false, normalTier);
+        if (normalTier < 0) return floorName(true, masterTier);
+        return floorName(false, normalTier) + " / " + floorName(true, masterTier);
     }
 
     private static String floorName(boolean master, int tier) {
@@ -270,7 +327,8 @@ final class PvDungeonsPage {
         return master ? "M" + tier : tier == 0 ? "E" : "F" + tier;
     }
 
-    private static void bar(PvPages.Ctx c, String name, PvLeveling.Level l, int x, int y, int w, int barH, float scale, int nameColor) {
+    private static void bar(PvPages.Ctx c, String name, PvLeveling.Level l, double xp, String cls, JsonObject dungeons,
+                            int x, int y, int w, int barH, float scale, int nameColor) {
         PvScreen s = c.s();
         s.text(c.g(), name, x, y, nameColor, scale);
         String lv = String.valueOf(l.level());
@@ -284,9 +342,15 @@ final class PvDungeonsPage {
             String clean = name.replace("▶ ", "");
             String progress = "§7Progress: §e" + PvPages.shortNum(l.into()) + "§6/§e" + PvPages.shortNum(l.needed())
                     + " §8(" + String.format(Locale.ROOT, "%.1f", l.progress() * 100) + "%)";
-            s.tooltip("§a" + clean + " " + l.level(), over ? "§7Overflow Level: §6" + l.level() + "  " + progress
-                    : max ? "§6MAX LEVEL (50)" : progress,
-                    clean.equals("Catacombs") ? "" : "§eClick to view this class's setup");
+            List<String> lines = new ArrayList<>();
+            lines.add("§a" + clean + " " + l.level());
+            lines.add(over ? "§7Overflow Level: §6" + l.level() + "  " + progress : max ? "§6MAX LEVEL (50)" : progress);
+            lines.addAll(PvDungeonXp.runLines(c.v(), dungeons, xp, l, cls));
+            if (cls != null) {
+                lines.add("");
+                lines.add("§eClick to view this class's setup");
+            }
+            s.tooltipLines(lines);
         }
     }
 

@@ -1,14 +1,13 @@
 package com.phantomaddons.features.misckuudra;
 
+import com.phantomaddons.PhantomConfig;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.sounds.SoundEvents;
 
 public final class KickedTimerHud {
 
@@ -60,8 +59,7 @@ public final class KickedTimerHud {
                     } else {
                         if (!dinged) {
                             dinged = true;
-                            mc.getSoundManager().play(
-                                    SimpleSoundInstance.forUI(SoundEvents.NOTE_BLOCK_PLING, 2.0f));
+                            PhantomConfig.playNotificationSound(PhantomConfig.SOUND_KICKED);
                         }
                         line1  = "§eRejoin Skyblock Now";
                         line2  = null;

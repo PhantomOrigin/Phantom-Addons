@@ -95,6 +95,11 @@ public class PhantomScreen extends Screen {
         for (Feature f : allLeaves) f.cancel();
     }
 
+    private SoundPicker openPicker() {
+        for (Feature f : allLeaves) if (f instanceof SoundPicker sp && sp.hasPopup()) return sp;
+        return null;
+    }
+
     private void buildFeatures() {
         roots.clear();
         allLeaves.clear();
@@ -400,6 +405,9 @@ public class PhantomScreen extends Screen {
             if (f instanceof KeyCapture kc && kc.capturing) { kc.onMouseButton(click.button()); return true; }
         }
 
+        SoundPicker picker = openPicker();
+        if (picker != null && click.button() == InputConstants.MOUSE_BUTTON_LEFT) return picker.popupClick(click.x(), click.y());
+
         if (super.mouseClicked(click, isDoubleClick)) return true;
         if (searchField != null) searchField.setFocused(false);
         this.setFocused(null);
@@ -514,6 +522,8 @@ public class PhantomScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hScroll, double vScroll) {
+        SoundPicker picker = openPicker();
+        if (picker != null && picker.popupScroll(mx, my, vScroll)) return true;
         if (mx >= px() && mx <= px() + SIDEBAR_W && my >= py() + HEADER_H && my <= py() + PANEL_H) {
             tabScroll -= (int)(vScroll * 12); return true;
         }
@@ -620,6 +630,11 @@ public class PhantomScreen extends Screen {
         renderTabs(ctx, px, py, mx, my);
         renderSidebarBar(ctx, px, py, mx, my);
         renderContent(ctx, mx, my);
+        SoundPicker picker = openPicker();
+        if (picker != null) {
+            picker.setArea(cx(), cy(), cw(), ch());
+            picker.renderPopup(ctx, this, mx, my);
+        }
         if (barHoverLabel != null) drawTooltip(ctx, barHoverLabel, mx, my);
         ctx.disableScissor();
 
@@ -873,7 +888,7 @@ public class PhantomScreen extends Screen {
         }
         ctx.disableScissor();
 
-        if (hoverTooltip != null || hoverWarning != null) {
+        if ((hoverTooltip != null || hoverWarning != null) && openPicker() == null) {
             drawTooltip(ctx, hoverTooltip, hoverWarning, mx, my);
         }
 
@@ -937,8 +952,11 @@ public class PhantomScreen extends Screen {
         int boxH = textH + 2 * padY;
         int bx = mx < px() + PANEL_W / 2 ? mx + 12 : mx - boxW - 12;
         bx = Mth.clamp(bx, px() + 4, px() + PANEL_W - boxW - 4);
+        // the panel clips everything drawn inside it, so keep the box inside the panel instead of just the screen
+        int minY = py() + 2, maxY = py() + PANEL_H - boxH - 2;
         int by = my - boxH - 3;
-        if (by < 0) by = my + 16;
+        if (by < minY) by = my + 16;
+        by = Math.max(minY, Math.min(by, maxY));
 
         roundedFill(ctx, bx, by, bx + boxW, by + boxH, darkMode ? 0xEC0A0A0E : 0xF0FFFBEF, 4);
 

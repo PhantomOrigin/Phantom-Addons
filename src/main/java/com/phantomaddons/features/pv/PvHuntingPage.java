@@ -82,6 +82,52 @@ final class PvHuntingPage {
         return false;
     }
 
+    private static final int[] EPIC_SYPHON_FALLBACK = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 7 };
+
+    static int attributeLevel(JsonObject m, String key) {
+        int syphoned = (int) PvJson.num(m, 0, "attributes", "stacks", key);
+        JsonObject consts = PvConstants.attributeShards();
+        if (consts != null) {
+            for (Shard sh : shards(m, consts)) {
+                String k = sh.icon().replaceFirst("^ATTRIBUTE_SHARD_", "").replaceFirst(";\\d+$", "").toLowerCase(Locale.ROOT);
+                if (k.equals(key)) return sh.level();
+            }
+        }
+        int need = 0, level = 0;
+        for (int step : EPIC_SYPHON_FALLBACK) {
+            need += step;
+            if (syphoned >= need) level++; else break;
+        }
+        return level;
+    }
+
+    record ShardLevel(String name, String ability, String rarity, int level, int syphoned, int maxSyphon) {
+        boolean maxed() { return maxSyphon > 0 && syphoned >= maxSyphon; }
+    }
+
+    static final String[] DUNGEON_SHARDS = { "Murkbat", "Prince", "Folf" };
+
+    private static JsonObject dungeonMember, dungeonConsts;
+    private static ShardLevel[] dungeonCache = new ShardLevel[DUNGEON_SHARDS.length];
+
+    static synchronized ShardLevel[] dungeonShards(JsonObject m) {
+        JsonObject consts = PvConstants.attributeShards();
+        if (consts == null) return new ShardLevel[DUNGEON_SHARDS.length];
+        if (m != dungeonMember || consts != dungeonConsts) {
+            ShardLevel[] out = new ShardLevel[DUNGEON_SHARDS.length];
+            for (Shard sh : shards(m, consts)) {
+                for (int i = 0; i < DUNGEON_SHARDS.length; i++) {
+                    if (sh.name().equalsIgnoreCase(DUNGEON_SHARDS[i]))
+                        out[i] = new ShardLevel(sh.name(), sh.ability(), sh.rarity(), sh.level(), sh.syphoned(), sh.maxSyphon());
+                }
+            }
+            dungeonMember = m;
+            dungeonConsts = consts;
+            dungeonCache = out;
+        }
+        return dungeonCache;
+    }
+
     private static List<Shard> shards(JsonObject m, JsonObject consts) {
         JsonObject stacks = PvJson.obj(m, "attributes", "stacks");
         Map<String, JsonObject> owned = new HashMap<>();

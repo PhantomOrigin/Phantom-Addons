@@ -113,6 +113,13 @@ public final class PvProfileView {
     public final String selectedPower;
     public final Map<String, Integer> tuning;
 
+    public boolean solo() { return profile.coop().isEmpty(); }
+
+    public double totalBank() {
+        if (bank < 0 && personalBank < 0) return -1;
+        return Math.max(0, bank) + Math.max(0, personalBank);
+    }
+
     private static final String[][] SKILLS = {
             { "Farming", "SKILL_FARMING" }, { "Mining", "SKILL_MINING" }, { "Combat", "SKILL_COMBAT" },
             { "Foraging", "SKILL_FORAGING" }, { "Fishing", "SKILL_FISHING" }, { "Enchanting", "SKILL_ENCHANTING" },
@@ -446,8 +453,11 @@ public final class PvProfileView {
         return type.equals("GOLDEN_DRAGON") || type.equals("JADE_DRAGON") || type.equals("ROSE_DRAGON") ? 200 : 100;
     }
 
+    private static final String[] RANKS = { "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "DIVINE",
+            "SPECIAL", "VERY_SPECIAL" };
+
     static int rarityIndex(String rarity) {
-        for (int i = 0; i < RARITIES.length; i++) if (RARITIES[i].equals(rarity)) return i;
+        for (int i = 0; i < RANKS.length; i++) if (RANKS[i].equals(rarity)) return i;
         return 0;
     }
 

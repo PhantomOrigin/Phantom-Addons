@@ -244,9 +244,9 @@ public final class PvAnalysis {
         if (rcm != null) kuudraSets.add(new KuudraSet(rcmLabel, rcm.slotNumber()));
 
         addFirstMatching(sets, "Hollow Set", it -> PvGear.id(it).contains("INFERNAL_HOLLOW"));
-        if (addFirstMatching(sets, "Elegant Tuxedo", it -> PvGear.id(it).contains("ELEGANT"))) {
-            addFirstMatching(sets, "Reaper Set", it -> PvGear.id(it).contains("REAPER"));
-        } else {
+        boolean tux = addFirstMatching(sets, "Elegant Tuxedo", it -> PvGear.id(it).contains("ELEGANT"));
+        boolean reaper = tux && addFirstMatching(sets, "Reaper Set", it -> PvGear.id(it).contains("REAPER"));
+        if (!(tux && reaper)) {
             addFirstMatching(sets, "DPS Terror", it -> PvGear.id(it).contains("TERROR")
                     && PvGear.reforge(it).equals("ancient")
                     && !enchants(it).contains("ultimate_wisdom") && !enchants(it).contains("ultimate_refrigerate"));

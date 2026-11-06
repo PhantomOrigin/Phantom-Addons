@@ -253,6 +253,18 @@ public final class CroesusListener {
                 if (price > 0) itemsValue += val;
                 continue;
             }
+
+            if (name.contains("tentacle dye")) {
+                double price = PriceCache.getBin(KuudraDrops.TENTACLE_DYE);
+                if (price > 0) itemsValue += (long) price;
+                continue;
+            }
+
+            if (name.contains("travel scroll")) {
+                double price = PriceCache.getBin(KuudraDrops.DUSTY_TRAVEL_SCROLL);
+                if (price > 0) itemsValue += (long) price;
+                continue;
+            }
         }
 
         long totalValue = itemsValue + attributeValue + essenceValue;
@@ -330,6 +342,12 @@ public final class CroesusListener {
         return qty > 0 ? qty : 1;
     }
 
+    private static final java.util.Map<String, String> BOOK_NAME_ALIASES = java.util.Map.of(
+            "strong vitality", "STRONG_MANA",
+            "hardened vitality", "HARDENED_MANA",
+            "vivacious vitality", "FEROCIOUS_MANA",
+            "vampiric vitality", "MANA_VAMPIRE");
+
     private static long enchantedBookValue(List<String> lore) {
         boolean isUltimate = false;
         for (String line : lore) {
@@ -352,11 +370,11 @@ public final class CroesusListener {
                 try { level = Integer.parseInt(levelStr); } catch (NumberFormatException ignored) {}
             }
             if (level <= 0) continue;
-            String namePart = enchName.toUpperCase().replace(' ', '_');
-            String apiId = isUltimate
-                    ? "ENCHANTMENT_ULTIMATE_" + namePart + "_" + level
-                    : "ENCHANTMENT_" + namePart + "_" + level;
-            double price = bazaarSellPrice(apiId);
+            String namePart = BOOK_NAME_ALIASES.getOrDefault(enchName.toLowerCase(), enchName.toUpperCase().replace(' ', '_'));
+            String ultimateId = "ENCHANTMENT_ULTIMATE_" + namePart + "_" + level;
+            String normalId = "ENCHANTMENT_" + namePart + "_" + level;
+            double price = bazaarSellPrice(isUltimate ? ultimateId : normalId);
+            if (price <= 0) price = bazaarSellPrice(isUltimate ? normalId : ultimateId);
             if (price > 0) return (long) price;
         }
         return 0;

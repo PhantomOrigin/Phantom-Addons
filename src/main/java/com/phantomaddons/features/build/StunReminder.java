@@ -36,6 +36,12 @@ public final class StunReminder {
         active    = true;
     }
 
+    private static void trigger() {
+        if (triggered) return;
+        triggered = true;
+        PhantomConfig.playNotificationSound(PhantomConfig.SOUND_STUN_REMINDER);
+    }
+
     public static void reset() {
         active    = false;
         triggered = false;
@@ -56,7 +62,7 @@ public final class StunReminder {
             while (!samples.isEmpty() && now - samples.peekFirst().timeMs() > WINDOW_MS) samples.removeFirst();
 
             if (progress >= PhantomConfig.getStunReminderMaxPercent()) {
-                triggered = true;
+                trigger();
                 return;
             }
 
@@ -69,7 +75,7 @@ public final class StunReminder {
             if (perMs <= 0) return;
 
             double etaMs = (100 - progress) / perMs;
-            if (etaMs <= PhantomConfig.getStunReminderTravelMs()) triggered = true;
+            if (etaMs <= PhantomConfig.getStunReminderTravelMs()) trigger();
         });
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,

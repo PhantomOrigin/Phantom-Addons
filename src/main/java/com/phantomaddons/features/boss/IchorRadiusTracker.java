@@ -16,7 +16,8 @@ public final class IchorRadiusTracker {
     private static final Pattern[] BROADCAST_PATTERNS = {
             Pattern.compile("\\[Phantom] Ichor Pool at (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?)"),
             Pattern.compile("\\[Phantom] Ichor Pool @ \\((-?\\d+(?:\\.\\d+)?), (-?\\d+(?:\\.\\d+)?), (-?\\d+(?:\\.\\d+)?)\\)"),
-            Pattern.compile("\\[KIC] Casting Ichor Pool at (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?)")
+            Pattern.compile("\\[KIC] Casting Ichor Pool at (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?) (-?\\d+(?:\\.\\d+)?)"),
+            Pattern.compile("\\[IQ] Ichor Pool Casted at (-?\\d+(?:\\.\\d+)?),? (-?\\d+(?:\\.\\d+)?),? (-?\\d+(?:\\.\\d+)?)")
     };
     private static final long POOL_LIFETIME_MS = 20_000L;
 

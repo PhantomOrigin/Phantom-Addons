@@ -28,14 +28,22 @@ import org.joml.Matrix4f;
 public final class KuudraHighlightRenderer {
 
     private static final int KUUDRA_SIZE = 30;
-    private static final int R = 255, G = 0, B = 0;
+    private static int R = 255, G = 0, B = 0;
     private static final int OUTLINE_A = 255;
     private static final int FILL_A    = 13; // ~5% opacity
 
     private KuudraHighlightRenderer() {}
 
+    private static void loadColor() {
+        int rgb = PhantomConfig.getKuudraHighlightColor();
+        R = (rgb >> 16) & 0xFF;
+        G = (rgb >> 8) & 0xFF;
+        B = rgb & 0xFF;
+    }
+
     public static void render(PoseStack matrices, Camera camera, float tickDelta) {
         if (!PhantomConfig.isKuudraHighlightEnabled()) return;
+        loadColor();
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
@@ -96,6 +104,7 @@ public final class KuudraHighlightRenderer {
     *///?} else {
     public static void renderAlwaysOnTop(PoseStack matrices, Camera camera, float tickDelta) {
         if (!PhantomConfig.isKuudraHighlightEnabled()) return;
+        loadColor();
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;

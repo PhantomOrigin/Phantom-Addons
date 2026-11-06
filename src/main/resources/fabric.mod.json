@@ -6,7 +6,7 @@
   "description": "Kuudra QOL features",
   "icon": "assets/phantomaddons/icon.png",
   "authors": ["PhantomOrigin"],
-  "license": "MIT",
+  "license": "All-Rights-Reserved",
   "environment": "client",
   "entrypoints": {
     "client": [

@@ -17,11 +17,13 @@ public final class VisualWordsTab {
 
     public static void build(MenuBuilder m) {
         m.add(new Toggle("Visual Words", VisualWords::isEnabled, VisualWords::setEnabled)
-                .withTooltip("Replaces words everywhere text is drawn. The replacement can use colour and format codes: &c colours, &l bold, &o italic, &n underline, &m strikethrough, &k obfuscated, &#RRGGBB for any colour, &r to reset. Formatting only applies to the replacement itself, the text after it is untouched."));
-        m.add(new Button("Add Word", "+ Add", () -> { VisualWords.addRule(); m.screen().rebuild(); }));
+                .withTooltip("Replaces chosen words with your own text everywhere they appear."));
+        m.add(new Button("Add Word", "+ Add", () -> { VisualWords.addRule(); m.screen().rebuild(); })
+                .withTooltip("Adds a new word to replace."));
         int vwCount = VisualWords.getRules().size();
         for (int i = 0; i < vwCount; i++) {
-            m.add(new VisualWordEntry(i, () -> m.screen().rebuild()));
+            m.add(new VisualWordEntry(i, () -> m.screen().rebuild())
+                    .withTooltip("Type the word to find and the text to show instead."));
             if (DataFeatures.hasHighlight()) addGradientRows(m, i);
         }
     }
@@ -31,13 +33,16 @@ public final class VisualWordsTab {
         m.add(new RawTextInput("  Gradient Colors",
                 () -> rule(idx, r -> r.gradient, ""), v -> edit(idx, r -> r.gradient = v == null ? "" : v)));
         m.add(new IntInput("  Gradient Length",
-                () -> rule(idx, r -> r.gradientLength, 0), v -> edit(idx, r -> r.gradientLength = Math.max(0, v))));
+                () -> rule(idx, r -> r.gradientLength, 0), v -> edit(idx, r -> r.gradientLength = Math.max(0, v)))
+                .withTooltip("How long the gradient is."));
         m.add(new Cycle("  Gradient Direction",
                 () -> NameGradient.normalise(rule(idx, r -> r.gradientDirection, "right")),
-                () -> edit(idx, r -> r.gradientDirection = NameGradient.nextDirection(r.gradientDirection))));
+                () -> edit(idx, r -> r.gradientDirection = NameGradient.nextDirection(r.gradientDirection)))
+                .withTooltip("Which way the gradient moves."));
         m.add(new IntInput("  Gradient Speed",
                 () -> Math.round(rule(idx, r -> r.gradientSpeed, NameGradient.DEFAULT_SPEED)),
-                v -> edit(idx, r -> r.gradientSpeed = Math.max(0, v))));
+                v -> edit(idx, r -> r.gradientSpeed = Math.max(0, v)))
+                .withTooltip("How fast the gradient moves."));
     }
 
     private static <T> T rule(int idx, java.util.function.Function<VisualWords.Rule, T> get, T fallback) {

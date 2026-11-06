@@ -14,7 +14,11 @@ import java.util.function.ToDoubleFunction;
 
 final class PvDungeonGear {
 
-    record Group(String label, ItemStack[] items, List<PvProfileView.Pet> pets, ItemStack[] equipment, String source) {
+    record Group(String label, ItemStack[] items, List<PvProfileView.Pet> pets, ItemStack[] equipment, String source,
+                 PvProfileView.Loadout loadout) {
+        Group(String label, ItemStack[] items, List<PvProfileView.Pet> pets, ItemStack[] equipment, String source) {
+            this(label, items, pets, equipment, source, null);
+        }
         static Group items(String label, ItemStack... items) { return new Group(label, items, List.of(), null, null); }
         static Group pets(String label, List<PvProfileView.Pet> pets) { return new Group(label, new ItemStack[0], pets, null, null); }
         boolean isArmorSet() { return equipment != null; }
@@ -190,7 +194,7 @@ final class PvDungeonGear {
             PvProfileView.WardrobeSet ws = v.armorSet(lo.armorSet());
             if (ws == null || !rule.set().test(ws.items())) continue;
             PvProfileView.WardrobeSet eq = v.equipmentSet(lo.equipmentSet());
-            return new Group(rule.label(), ws.items(), List.of(), eq != null ? eq.items() : bestDungeonEquipment, lo.name());
+            return new Group(rule.label(), ws.items(), List.of(), eq != null ? eq.items() : bestDungeonEquipment, lo.name(), lo);
         }
         for (PvProfileView.WardrobeSet ws : v.wardrobe) {
             if (rule.set().test(ws.items()))

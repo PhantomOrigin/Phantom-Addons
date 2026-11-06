@@ -58,7 +58,7 @@ final class PvKuudraPage {
         int yy = y + ip;
         s.text(c.g(), "§eStats", x + ip, yy, PvTheme.text(), 0.9f * es);
         yy += head;
-        s.statRow(c.g(), "Bank", v.bank >= 0 ? PvPages.shortNum(v.bank) : "?", x + ip, yy + textOff, rw, ss);
+        s.statRow(c.g(), "Bank", v.totalBank() >= 0 ? PvPages.shortNum(v.totalBank()) : "?", x + ip, yy + textOff, rw, ss);
         yy += lh;
         s.statRow(c.g(), "Magical Power", v.magicalPower >= 0 ? String.valueOf(v.magicalPower) : "?", x + ip, yy + textOff, rw, ss);
         yy += lh;
@@ -123,9 +123,14 @@ final class PvKuudraPage {
         PvProfileView v = c.v();
         float es = c.es();
         List<Entry> entries = new ArrayList<>();
-        for (PvAnalysis.KuudraSet ks : v.analysis.kuudraSets)
-            for (PvProfileView.Loadout lo : v.loadouts)
-                if (lo.armorSet() == ks.slotNumber()) entries.add(new Entry(lo, ks.label()));
+        for (PvAnalysis.KuudraSet ks : v.analysis.kuudraSets) {
+            PvProfileView.Loadout pick = null;
+            for (PvProfileView.Loadout lo : v.loadouts) {
+                if (lo.armorSet() != ks.slotNumber()) continue;
+                if (pick == null || (lo.active() && !pick.active())) pick = lo;
+            }
+            if (pick != null) entries.add(new Entry(pick, ks.label()));
+        }
 
         int titleH = s.title(c.g(), "Kuudra Loadouts §7(" + entries.size() + ")", x, y);
         if (entries.isEmpty()) {

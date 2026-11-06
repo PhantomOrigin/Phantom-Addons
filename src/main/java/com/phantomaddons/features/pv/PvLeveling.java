@@ -83,8 +83,8 @@ public final class PvLeveling {
         return switch (rarity) {
             case "UNCOMMON" -> 6;
             case "RARE" -> 11;
-            case "EPIC" -> 16;
-            case "LEGENDARY", "MYTHIC" -> 20;
+            case "EPIC", "SPECIAL" -> 16;
+            case "LEGENDARY", "MYTHIC", "VERY_SPECIAL" -> 20;
             default -> 0;
         };
     }

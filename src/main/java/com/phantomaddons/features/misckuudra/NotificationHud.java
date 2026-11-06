@@ -11,7 +11,7 @@ import java.util.List;
 
 public final class NotificationHud {
 
-    private record Notification(String text, long expiresAt) {}
+    private record Notification(String text, long expiresAt, int color) {}
 
     private static final List<Notification> notifications = new ArrayList<>();
     private static volatile String countdown = null;
@@ -19,11 +19,15 @@ public final class NotificationHud {
     private NotificationHud() {}
 
     public static void show(String text, long durationMs) {
+        show(text, durationMs, 0xFFFFFFFF);
+    }
+
+    public static void show(String text, long durationMs, int color) {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             long now = System.currentTimeMillis();
             notifications.removeIf(n -> n.expiresAt() <= now);
-            notifications.add(new Notification(text, now + durationMs));
+            notifications.add(new Notification(text, now + durationMs, color));
         });
     }
 
@@ -72,7 +76,7 @@ public final class NotificationHud {
                     for (Notification n : notifications) {
                         String text = n.text();
                         int tw = mc.font.width(text);
-                        ctx.text(mc.font, text, -tw / 2, startY + row * lineH, 0xFFFFFFFF, true);
+                        ctx.text(mc.font, text, -tw / 2, startY + row * lineH, n.color(), true);
                         row++;
                     }
 

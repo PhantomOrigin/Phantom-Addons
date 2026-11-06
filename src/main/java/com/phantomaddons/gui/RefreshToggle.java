@@ -19,14 +19,12 @@ public class RefreshToggle extends Toggle {
 
     private final Runnable onRefresh;
     private final LongSupplier cooldownLeftMs;
-    private final String baseTooltip;
 
     public RefreshToggle(String name, Supplier<Boolean> get, Consumer<Boolean> set,
                          Runnable onRefresh, LongSupplier cooldownLeftMs, String baseTooltip) {
         super(name, get, set);
         this.onRefresh = onRefresh;
         this.cooldownLeftMs = cooldownLeftMs;
-        this.baseTooltip = baseTooltip;
         this.tooltip = baseTooltip;
     }
 
@@ -43,12 +41,6 @@ public class RefreshToggle extends Toggle {
         long left = cooldownLeftMs.getAsLong();
         int ix = iconX(x, w), iy = iconY(y);
         ctx.blit(left > 0 ? ICON_DIM : ICON, ix, iy, ix + ICON_SIZE, iy + ICON_SIZE, 0f, 1f, 0f, 1f);
-        if (left > 0) {
-            long minutes = (left + 59_999) / 60_000;
-            tooltip = (baseTooltip + " You can refresh again in " + minutes + (minutes == 1 ? " minute." : " minutes.")).trim();
-        } else {
-            tooltip = (baseTooltip + " Click the arrow to refresh the list.").trim();
-        }
     }
 
     @Override boolean onDown(double mx, double my, int x, int y, int w) {

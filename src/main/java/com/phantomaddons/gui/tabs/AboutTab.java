@@ -26,23 +26,26 @@ public final class AboutTab {
     public static void build(MenuBuilder m) {
         m.heading("Version");
         m.add(new UpdateRow("Version", com.phantomaddons.gui.ChangelogManager::openFromAbout)
-                .withTooltip("Click to see what's new in your version, or everything you've missed if an update is available."));
+                .withTooltip("Opens the list of changes in your version."));
 
         if (Edition.CURRENT.autoDownloadCapable) {
             m.add(new Toggle("Auto Updates",
-                    PhantomConfig::isAutoUpdatesEnabled, PhantomConfig::setAutoUpdatesEnabled));
+                    PhantomConfig::isAutoUpdatesEnabled, PhantomConfig::setAutoUpdatesEnabled)
+                    .withTooltip("Downloads new versions of the mod for you."));
         }
         m.add(new Button("Updates", "Update", UpdateChecker::downloadManually)
+                .withTooltip("Downloads the newest version of the mod.")
                 .withVisible(UpdateChecker::hasUpdate));
 
         m.heading("Menu");
         m.add(new KeyCapture("Menu Open Key",
                 PhantomConfig::getOpenGuiKey, PhantomConfig::setOpenGuiKey)
-                .withLabelColor(0xFFFFFFFF));
+                .withLabelColor(0xFFFFFFFF)
+                .withTooltip("The key that opens this menu."));
 
         m.add(new IntInput("Ping (ms) - Lowest normal ping",
                 PhantomConfig::getLowPing, PhantomConfig::setLowPing)
-                .withTooltip("Should be set to the lowest ping that you would get under normal conditions")
+                .withTooltip("Set this to the lowest ping you normally get.")
                 .withWarning(PingWarning::active, PingWarning.SETTING_TEXT));
 
         m.heading("Appearance");
@@ -57,21 +60,25 @@ public final class AboutTab {
                         case LIGHT -> PhantomConfig.UiTheme.DARK;
                     });
                     m.screen().onThemeChanged();
-                }));
+                })
+                .withTooltip("Switches the menu between dark and light."));
         m.add(new Toggle("Transparency Effects",
                 PhantomConfig::isUiTransparencyEnabled,
-                v -> { PhantomConfig.setUiTransparencyEnabled(v); m.screen().onThemeChanged(); }));
+                v -> { PhantomConfig.setUiTransparencyEnabled(v); m.screen().onThemeChanged(); })
+                .withTooltip("Makes parts of the menu see-through."));
         m.add(new RangeSlider("GUI Scale", 0.7f, 1.6f, "%.2fx",
                 PhantomConfig::getUiGuiScale,
-                v -> { PhantomConfig.setUiGuiScale(v); m.screen().onGuiScaleChanged(); }));
+                v -> { PhantomConfig.setUiGuiScale(v); m.screen().onGuiScaleChanged(); })
+                .withTooltip("Changes how big this menu is."));
         m.heading("Information and data");
         m.add(new Toggle("Show Changelog on Update",
-                PhantomConfig::isChangelogEnabled, PhantomConfig::setChangelogEnabled));
+                PhantomConfig::isChangelogEnabled, PhantomConfig::setChangelogEnabled)
+                .withTooltip("Shows what's new when the mod updates."));
         m.add(new RefreshToggle("Donator Names",
                 PhantomConfig::isDonatorNamesEnabled, PhantomConfig::setDonatorNamesEnabled,
                 com.phantomaddons.features.customisation.DonatorNames::refreshNow,
                 com.phantomaddons.features.customisation.DonatorNames::cooldownLeftMs,
-                ""));
+                "Shows special names for people who supported the mod."));
 
         m.add(new Toggle("Share Pearl Cancel Data",
                 PhantomConfig::isShareSupplyData,
@@ -85,22 +92,23 @@ public final class AboutTab {
                                 : "§ePearl cancel data sharing is off. §7Anything not yet sent has been discarded."));
                     }
                 })
-                .withTooltip("Sends anonymous information about tentacles and cancel attempts to the PhantomAddons server for an upcoming feature"));
+                .withTooltip("Sends anonymous pearl and tentacle data to help build a future feature."));
         m.heading("Advanced");
         m.add(new DisableAllButton(() -> m.screen().disableAllFeatures())
-                .withTooltip("Turns off every feature toggle in the mod (not About-tab settings). Click, wait for the 3 second countdown, then click again to confirm."));
+                .withTooltip("Turns off every feature in the mod."));
         m.add(new Toggle("Developer Features",
-                PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled));
+                PhantomConfig::isDeveloperFeaturesEnabled, PhantomConfig::setDeveloperFeaturesEnabled)
+                .withTooltip("Shows extra tools meant for mod developers."));
 
         if (PhantomConfig.isDeveloperFeaturesEnabled() && DataFeatures.isPresent()) {
             if (DataFeatures.hasHighlight()) {
                 m.add(new Toggle("Highlight Tentacles",
                         PhantomConfig::isTentacleHighlightEnabled, PhantomConfig::setTentacleHighlightEnabled)
-                        .withTooltip("Debug visual for the tentacle data-gathering tool — outlines the invisible cube at the top of each tracked tentacle: yellow while rising, green once it has stopped, red during a grab attempt. Purely visual, no gameplay effect."));
+                        .withTooltip("Outlines tracked tentacles, for testing."));
 
                 m.add(new Toggle("Tentacle Spot Beacons",
                         PhantomConfig::isTentacleSpotBeaconsEnabled, PhantomConfig::setTentacleSpotBeaconsEnabled)
-                        .withTooltip("Debug visual: draws a beacon beam from the bottom to the top of the world at every x/z position where a tentacle's invisible cube has come to rest. While it is on, new spots are saved as you play (phantomaddons_tentacle_spots.jsonl in the config folder) and drawn along with the ones saved by earlier developer builds. Purely visual, no gameplay effect."));
+                        .withTooltip("Shows a beam where tentacles stop, for testing."));
 
             }
         }

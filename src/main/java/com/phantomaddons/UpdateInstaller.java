@@ -139,12 +139,15 @@ public final class UpdateInstaller {
         String runningVersion = container == null ? null
                 : container.getMetadata().getVersion().getFriendlyString();
 
+        String runningMc = currentJar == null ? null : mcPrefix(currentJar.getFileName().toString());
+
         try (var stream = Files.walk(modsDir, MAX_SCAN_DEPTH)) {
             stream.filter(Files::isRegularFile).forEach(p -> {
                 String name = p.getFileName().toString();
-                if (!name.startsWith("PhantomAddons-") || !name.endsWith(".jar")) return;
+                if (!JAR_NAME.matcher(name).matches()) return;
                 if (currentJar != null && p.toAbsolutePath().normalize().equals(currentJar)) return;
-                
+                if (runningMc != null && !runningMc.equals(mcPrefix(name))) return;
+
                 String candidateVersion = parseVersionFromJarName(name);
                 if (runningVersion == null || candidateVersion == null
                         || !isOlderVersion(candidateVersion, runningVersion)) {
@@ -161,31 +164,41 @@ public final class UpdateInstaller {
         } catch (Exception ignored) {}
     }
 
+    private static final java.util.regex.Pattern JAR_NAME = java.util.regex.Pattern.compile(
+            "^(?:(\\d+\\.\\d+(?:\\.\\d+|\\.x)?)-)?PhantomAddons-(.+?)(-full-noautoupdate|-full)?\\.jar$");
+
+    private static String mcPrefix(String fileName) {
+        var m = JAR_NAME.matcher(fileName);
+        return m.matches() && m.group(1) != null ? m.group(1) : "";
+    }
+
     private static String parseVersionFromJarName(String fileName) {
-        if (!fileName.startsWith("PhantomAddons-") || !fileName.endsWith(".jar")) return null;
-        String base = fileName.substring("PhantomAddons-".length(), fileName.length() - ".jar".length());
-        if (base.endsWith("-full-noautoupdate")) {
-            base = base.substring(0, base.length() - "-full-noautoupdate".length());
-        } else if (base.endsWith("-full")) {
-            base = base.substring(0, base.length() - "-full".length());
-        }
-        return base.isEmpty() ? null : base;
+        var m = JAR_NAME.matcher(fileName);
+        return m.matches() && !m.group(2).isEmpty() ? m.group(2) : null;
     }
 
     private static boolean isOlderVersion(String candidate, String running) {
         try {
-            String[] a = candidate.split("[.\\-]");
-            String[] b = running.split("[.\\-]");
+            int[] a = numericParts(candidate);
+            int[] b = numericParts(running);
             int len = Math.max(a.length, b.length);
             for (int i = 0; i < len; i++) {
-                int av = i < a.length ? Integer.parseInt(a[i]) : 0;
-                int bv = i < b.length ? Integer.parseInt(b[i]) : 0;
+                int av = i < a.length ? a[i] : 0;
+                int bv = i < b.length ? b[i] : 0;
                 if (av != bv) return av < bv;
             }
             return false;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static int[] numericParts(String version) {
+        String core = version.split("[+\\-]", 2)[0];
+        String[] parts = core.split("\\.");
+        int[] out = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) out[i] = Integer.parseInt(parts[i]);
+        return out;
     }
 
     private static void removePendingJars() {

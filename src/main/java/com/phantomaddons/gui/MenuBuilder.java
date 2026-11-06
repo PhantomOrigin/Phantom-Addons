@@ -41,15 +41,25 @@ public final class MenuBuilder {
         Group g = group("Sound", parent,
                 () -> PhantomConfig.isNotificationSoundEnabled(soundKey),
                 v  -> PhantomConfig.setNotificationSoundEnabled(soundKey, v));
-        g.add(new TextInput("Sound ID",
+        g.add(new SoundPicker("Selected Sound",
                 () -> PhantomConfig.getNotificationSoundId(soundKey),
                 v  -> PhantomConfig.setNotificationSoundId(soundKey, v)));
-        g.add(new RangeSlider("Volume", 0f, 2f, "%.2f",
-                () -> PhantomConfig.getNotificationSoundVolume(soundKey),
-                v  -> PhantomConfig.setNotificationSoundVolume(soundKey, v)));
+        g.add(new RangeSlider("Volume", 0f, 100f, "%.0f%%",
+                () -> Math.min(1f, PhantomConfig.getNotificationSoundVolume(soundKey)) * 100f,
+                v  -> PhantomConfig.setNotificationSoundVolume(soundKey, v / 100f)));
         g.add(new RangeSlider("Pitch", 0.1f, 4f, "%.2f",
                 () -> PhantomConfig.getNotificationSoundPitch(soundKey),
                 v  -> PhantomConfig.setNotificationSoundPitch(soundKey, v)));
+        g.add(new RangeSlider("Repeat Count", 1f, 10f, "%.0f",
+                () -> (float) PhantomConfig.getNotificationSoundRepeats(soundKey),
+                v  -> PhantomConfig.setNotificationSoundRepeats(soundKey, Math.round(v)))
+                .withTooltip("How many times the sound plays."));
+        g.add(new RangeSlider("Repeat Delay (ticks)", 1f, 20f, "%.0f",
+                () -> (float) PhantomConfig.getNotificationSoundRepeatTicks(soundKey),
+                v  -> PhantomConfig.setNotificationSoundRepeatTicks(soundKey, Math.round(v)))
+                .withTooltip("How many ticks to wait between each repeat."));
+        g.add(new Button("Preview", "Play", () -> PhantomConfig.previewNotificationSound(soundKey))
+                .withTooltip("Plays the sound with your current settings."));
         parent.add(g);
     }
 }

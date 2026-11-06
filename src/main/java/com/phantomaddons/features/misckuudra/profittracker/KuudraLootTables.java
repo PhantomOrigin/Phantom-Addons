@@ -211,14 +211,14 @@ public final class KuudraLootTables {
             );
             List<Entry> s1 = new ArrayList<>();
             s1.add(new Entry("Ananke Shard", 0.05, S, "SHARD_ANANKE"));
-            s1.add(new Entry("Hellstorm Wand", 0.1, B, "HELLSTORM_WAND"));
+            s1.add(new Entry("Hellstorm Wand", 0.1, B, "HELLSTORM_STAFF"));
             s1.add(new Entry("Tormentor", 0.1, B, "TORMENTOR"));
             s1.add(new Entry("Ananke Feather", 0.43, S, "ANANKE_FEATHER"));
             s1.add(new Entry("Burning Kuudra Core", 0.51, B, "BURNING_KUUDRA_CORE"));
             s1.add(new Entry("Daemon Shard", 0.51, S, "SHARD_DAEMON"));
             s1.add(new Entry("Lord Jawbus Shard", 0.51, S, "SHARD_LORD_JAWBUS"));
             s1.add(new Entry("Moltenfish Shard", 0.51, S, "SHARD_MOLTENFISH"));
-            s1.add(new Entry("Cinderbat Shard", 0.67, S, "SHARD_CINDERBAT"));
+            s1.add(new Entry("Cinderbat Shard", 0.67, S, "SHARD_CINDER_BAT"));
             s1.add(new Entry("Taurus Shard", 0.67, S, "SHARD_TAURUS"));
             s1.add(new Entry("Hollow Wand", 0.72, B, "HOLLOW_WAND"));
             s1.add(new Entry("Aurora Staff", 0.72, A, "AURORA_STAFF"));
@@ -253,7 +253,7 @@ public final class KuudraLootTables {
             s2.add(new Entry("Daemon Shard", 0.58, S, "SHARD_DAEMON"));
             s2.add(new Entry("Moltenfish Shard", 0.58, S, "SHARD_MOLTENFISH"));
             s2.add(new Entry("Taurus Shard", 0.76, S, "SHARD_TAURUS"));
-            s2.add(new Entry("Cinderbat Shard", 0.76, S, "SHARD_CINDERBAT"));
+            s2.add(new Entry("Cinderbat Shard", 0.76, S, "SHARD_CINDER_BAT"));
             s2.add(new Entry("Dusty Travel Scroll", 0.87, B, KuudraDrops.DUSTY_TRAVEL_SCROLL));
             s2.add(new Entry("XYZ Shard", 1.46, S, "SHARD_XYZ"));
             s2.add(new Entry("Kuudra Mandible", 1.75, S, "KUUDRA_MANDIBLE"));
@@ -280,7 +280,7 @@ public final class KuudraLootTables {
         "SHARD_BEZAL", "SHARD_MAGMA_SLUG", "SHARD_KADA_KNIGHT", "SHARD_WITHER_SPECTER",
         "SHARD_MATCHO", "SHARD_LAVA_FLAME", "SHARD_FIRE_EEL", "SHARD_FLARE",
         "SHARD_BARBARIAN_DUKE_X", "SHARD_HELLWISP", "SHARD_XYZ", "SHARD_DAEMON",
-        "SHARD_LORD_JAWBUS", "SHARD_MOLTENFISH", "SHARD_CINDERBAT", "SHARD_TAURUS", "SHARD_ANANKE"
+        "SHARD_LORD_JAWBUS", "SHARD_MOLTENFISH", "SHARD_CINDER_BAT", "SHARD_TAURUS", "SHARD_ANANKE"
     ));
 
     private static double priceOf(PriceType type, String id) {

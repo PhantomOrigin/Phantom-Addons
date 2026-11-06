@@ -56,10 +56,10 @@ public final class PvScreen extends Screen {
             { "Collections", "Minions", "Bestiary" },
             { "Gear", "HotM", "Commissions" },
             { "Gear", "Contests", "Garden", "Milestones", "Greenhouse" },
-            {}, {}, {},
+            {}, { "Fishing", "Trophy Frogs" }, {},
             { "Overview", "Inventory", "Ender Chest" },
             { "Combat", "Farming", "Mining", "Fishing", "Foraging", "Dungeoneering", "Hunting", "Special", "Upgrades" },
-            {},
+            { "Consumables", "Gifts", "Faction", "Mythological", "Auctions", "Dojo", "Hoppity" },
     };
     private static final int PAGE_FARMING = 7, PAGE_MUSEUM = 12, FARMING_GARDEN = 2, FARMING_MILESTONES = 3;
 
@@ -449,7 +449,11 @@ public final class PvScreen extends Screen {
                 px + panelW * 0.3, py + tabH + 20, Math.hypot(panelW, panelH) * 0.85,
                 shade(C_BG, bgShade), shade(C_BG, -bgShade), RADIUS, true, true, true, true);
 
-        ctx.enableScissor(px, py, px + panelW, py + panelH);
+        // The panel is drawn at a fractional scale and the clip rectangle gets rounded to whole units, which shaved
+        // the right end off the header bar and its underline. They are drawn before the clip so they always run the
+        // full width, and the clip has one extra unit on every side so the other full-width edges aren't cut either.
+        if (party == null) renderTabBarChrome(ctx, px, py);
+        ctx.enableScissor(px - 1, py - 1, px + panelW + 1, py + panelH + 1);
         if (party != null) {
             renderParty(ctx, px, py, mx, my, now);
             ctx.disableScissor();
@@ -611,7 +615,7 @@ public final class PvScreen extends Screen {
         for (PvProfileView.Skill sk : v.skills) if (sk.name().equals("Foraging")) foraging = sk.level().level();
         String cata = String.valueOf(PvDungeonsPage.level(PvJson.num(v.member, 0, "dungeons", "dungeon_types", "catacombs", "experience")).level());
         String[][] stats = {
-                { "Bank", v.bank >= 0 ? PvPages.shortNum(v.bank) : "?" },
+                { "Bank", v.totalBank() >= 0 ? PvPages.shortNum(v.totalBank()) : "?" },
                 { "MP", v.magicalPower >= 0 ? String.valueOf(v.magicalPower) : "?" },
                 { "Cata", cata },
                 { "Foraging", String.valueOf(foraging) } };
@@ -693,15 +697,16 @@ public final class PvScreen extends Screen {
 
     // ── Chrome ────────────────────────────────────────────────────────────────
 
-    private void renderTabBar(GuiGraphicsExtractor ctx, int px, int py, int mx, int my) {
+    private void renderTabBarChrome(GuiGraphicsExtractor ctx, int px, int py) {
         roundedFill(ctx, px, py, px + panelW, py + tabH, C_HEADER, RADIUS, true, true, false, false);
         ctx.fill(px, py + tabH - 1, px + panelW, py + tabH, C_ACCENT);
+    }
 
+    private void renderTabBar(GuiGraphicsExtractor ctx, int px, int py, int mx, int my) {
         int areaX0 = px, areaX1 = px + panelW, inset = 6;
         boolean icons = PhantomConfig.isPvTabIcons();
         int shown = 0;
         for (int i = 0; i < TABS.length; i++) if (!hidden(i, -1)) shown++;
-        // Icon tabs share the bar equally, so they all fit on one screen; text tabs are as wide as their names.
         int iconW = Math.max(ICON_TAB_MIN_W, Math.min(ICON_TAB_MAX_W, (panelW - 2 * inset) / Math.max(1, shown)));
         int total = 0;
         for (int i = 0; i < TABS.length; i++) if (!hidden(i, -1)) total += icons ? iconW : font.width(TABS[i]) + 22;
@@ -1189,6 +1194,16 @@ public final class PvScreen extends Screen {
         return null;
     }
 
+    private CompletableFuture<com.google.gson.JsonObject> statusFuture;
+
+    private String statusLine(PvData data) {
+        if (data.uuid == null) return "";
+        if (statusFuture == null) statusFuture = PvFetcher.fetchStatus(data.uuid);
+        if (!statusFuture.isDone()) return "§7Status: §8Loading…";
+        if (statusFuture.isCompletedExceptionally()) return "§7Status: §8Unavailable";
+        return PvStatus.line(statusFuture.join());
+    }
+
     com.google.gson.JsonObject garden(PvProfileView v) {
         CompletableFuture<com.google.gson.JsonObject> f = gardens.computeIfAbsent(v.profile.id(), id -> PvFetcher.fetchGarden(id));
         return f.isDone() && !f.isCompletedExceptionally() ? f.join() : null;
@@ -1330,7 +1345,10 @@ public final class PvScreen extends Screen {
         ctx.enableScissor(rx, y, x + w, y + h);
         int yy = y + pad - scroll;
 
-        String bankStr = v.bank >= 0 ? fmt(v.bank) : "API off";
+        boolean soloBank = v.solo();
+        String bankStr = soloBank
+                ? (v.totalBank() >= 0 ? fmt(v.totalBank()) : "API off")
+                : (v.personalBank >= 0 ? fmt(v.personalBank) : "API off") + " / " + (v.bank >= 0 ? fmt(v.bank) : "API off");
         String[][] cards = {
                 { "Purse", v.purse >= 0 ? fmt(v.purse) : "—" },
                 { "Bank", bankStr },
@@ -1351,8 +1369,12 @@ public final class PvScreen extends Screen {
             if (i == 1 && hovered(mx, my, cx, cy, cardW, cardH)) {
                 List<Component> lines = new ArrayList<>();
                 lines.add(Component.literal("§6Bank"));
-                lines.add(Component.literal("§7Profile bank: §6" + (v.bank >= 0 ? fmtFull(v.bank) : "API off")));
-                if (v.personalBank >= 0) lines.add(Component.literal("§7Personal bank: §6" + fmtFull(v.personalBank)));
+                if (soloBank) {
+                    lines.add(Component.literal("§7Balance: §6" + (v.totalBank() >= 0 ? fmtFull(v.totalBank()) : "API off")));
+                } else {
+                    lines.add(Component.literal("§7Personal bank: §6" + (v.personalBank >= 0 ? fmtFull(v.personalBank) : "API off")));
+                    lines.add(Component.literal("§7Coop bank: §6" + (v.bank >= 0 ? fmtFull(v.bank) : "API off")));
+                }
                 hoverLines = lines;
             }
         }
@@ -1399,6 +1421,13 @@ public final class PvScreen extends Screen {
                 }
             }
             yy += ((v.skills.size() + 1) / 2) * rowH;
+        }
+
+        String statusText = statusLine(data);
+        if (!statusText.isEmpty()) {
+            yy += 4;
+            text(ctx, statusText, rx, yy, C_TEXT, 0.9f * es);
+            yy += lineH(0.9f * es) + 4;
         }
         ctx.disableScissor();
         return yy + scroll - (y + pad);
@@ -1878,7 +1907,7 @@ public final class PvScreen extends Screen {
         ItemStack cached = petIcons.get(pet);
         if (cached != null) return cached;
         int idx = PvProfileView.rarityIndex(pet.rarity());
-        for (int r : new int[] { idx, 4, 3, 5, 2, 1, 0 }) {
+        for (int r : new int[] { idx, 4, 3, 5, 7, 8, 2, 1, 0 }) {
             String id = pet.type() + ";" + r;
             PvItems.RepoItem item = PvItems.repoItem(id);
             if (item != null) {

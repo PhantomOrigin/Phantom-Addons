@@ -301,6 +301,8 @@ public class PhantomConfig {
     public static boolean        isDropLocationsEnabled()  { return cfg.dropLocationsEnabled; }
     public static boolean        isWaypointLinesEnabled()            { return cfg.waypointLinesEnabled; }
     public static boolean        isWaypointLinesSuppliesEnabled()    { return cfg.waypointLinesSuppliesEnabled; }
+    public static int            getWaypointLinesColor()             { return cfg.waypointLinesColor; }
+    public static float          getWaypointLinesWidth()             { return cfg.waypointLinesWidth; }
     public static boolean        isWaypointLinesFlatPearlsEnabled()  { return cfg.waypointLinesFlatPearlsEnabled; }
     public static SecondSupplyPreference getSecondSupplyPreference() { return secondSupplyPreference; }
     public static boolean        isPearlTimerEnabled()     { return cfg.pearlTimerEnabled; }
@@ -343,6 +345,7 @@ public class PhantomConfig {
     public static float          getBackboneProgressBarHudScale() { return cfg.backboneProgressBarHudScale; }
     public static boolean        isKuudraHighlightEnabled()      { return cfg.kuudraHighlightEnabled; }
     public static boolean        isKuudraHighlightFilled()       { return cfg.kuudraHighlightFilled; }
+    public static int            getKuudraHighlightColor()       { return cfg.kuudraHighlightColor; }
     public static boolean        isEtherwarpSlotBlockerEnabled()  { return cfg.etherwarpSlotBlockerEnabled; }
     public static boolean        isSupplyWaypointsEnabled()        { return cfg.supplyWaypointsEnabled; }
     public static boolean        isSupplyBeaconsEnabled()          { return cfg.supplyBeaconsEnabled; }
@@ -391,6 +394,9 @@ public class PhantomConfig {
     public static boolean isAutoGfsTwilightEnabled() { return cfg.autoGfsTwilight; }
     public static int     getToxicAmount()           { return cfg.toxicAmount; }
     public static int     getTwilightAmount()        { return cfg.twilightAmount; }
+    public static boolean isAutoGfsJerryEnabled()      { return cfg.autoGfsJerry; }
+    public static boolean isAutoGfsSpiritLeapEnabled() { return cfg.autoGfsSpiritLeap; }
+    public static boolean isAutoGfsSuperboomEnabled()  { return cfg.autoGfsSuperboom; }
 
     // Chest tracker
     public static int getChestTotal()   { return cfg.chestTotal; }
@@ -592,6 +598,8 @@ public class PhantomConfig {
     public static void setDropLocationsEnabled(boolean v)    { cfg.dropLocationsEnabled = v;     save(); }
     public static void setWaypointLinesEnabled(boolean v)           { cfg.waypointLinesEnabled = v;           save(); }
     public static void setWaypointLinesSuppliesEnabled(boolean v)   { cfg.waypointLinesSuppliesEnabled = v;   save(); }
+    public static void setWaypointLinesColor(int v)                 { cfg.waypointLinesColor = v & 0xFFFFFF;  save(); }
+    public static void setWaypointLinesWidth(float v)               { cfg.waypointLinesWidth = Math.max(1f, Math.min(10f, v)); save(); }
     public static void setWaypointLinesFlatPearlsEnabled(boolean v) { cfg.waypointLinesFlatPearlsEnabled = v; save(); }
     public static void setSecondSupplyPreference(SecondSupplyPreference p) { secondSupplyPreference = p; save(); }
     public static void setPearlTimerEnabled(boolean v)       { cfg.pearlTimerEnabled = v;        save(); }
@@ -637,6 +645,7 @@ public class PhantomConfig {
     public static void setStunReminderHudScale(float v)           { cfg.stunReminderHudScale = clampHudScale(v); }
     public static void setKuudraHighlightEnabled(boolean v)     { cfg.kuudraHighlightEnabled = v;        save(); }
     public static void setKuudraHighlightFilled(boolean v)      { cfg.kuudraHighlightFilled = v;         save(); }
+    public static void setKuudraHighlightColor(int v)           { cfg.kuudraHighlightColor = v & 0xFFFFFF; save(); }
     public static void setEtherwarpSlotBlockerEnabled(boolean v) { cfg.etherwarpSlotBlockerEnabled = v; save(); }
     public static void setSupplyWaypointsEnabled(boolean v)          { cfg.supplyWaypointsEnabled = v;              save(); }
     public static void setSupplyBeaconsEnabled(boolean v)            { cfg.supplyBeaconsEnabled = v;                save(); }
@@ -849,6 +858,9 @@ public class PhantomConfig {
     public static void setAutoGfsTwilight(boolean v) { cfg.autoGfsTwilight = v; save(); }
     public static void setToxicAmount(int v)         { cfg.toxicAmount = v;     save(); }
     public static void setTwilightAmount(int v)      { cfg.twilightAmount = v;  save(); }
+    public static void setAutoGfsJerry(boolean v)      { cfg.autoGfsJerry = v;      save(); }
+    public static void setAutoGfsSpiritLeap(boolean v) { cfg.autoGfsSpiritLeap = v; save(); }
+    public static void setAutoGfsSuperboom(boolean v)  { cfg.autoGfsSuperboom = v;  save(); }
 
     // Chest tracker
     public static void setChestCounts(int t, int s, int f) { cfg.chestTotal = t; cfg.chestSuccess = s; cfg.chestFail = f; save(); }
@@ -944,6 +956,8 @@ public class PhantomConfig {
             d.stunReminderTravelMs   = Math.max(0, Math.min(20000, d.stunReminderTravelMs));
             d.stunReminderMaxPercent = Math.max(1, Math.min(100, d.stunReminderMaxPercent));
             d.elleOutlineColor &= 0xFFFFFF;
+            d.waypointLinesColor &= 0xFFFFFF;
+            d.waypointLinesWidth = Math.max(1f, Math.min(10f, d.waypointLinesWidth > 0 ? d.waypointLinesWidth : 3.5f));
             d.elleBeaconColor  &= 0xFFFFFF;
             if (d.kuudraApiKey == null) d.kuudraApiKey = "";
             if (d.stunPreviewLeftEnabled  == null) d.stunPreviewLeftEnabled  = false;
@@ -954,7 +968,8 @@ public class PhantomConfig {
             d.giantHitboxFillOpacity        = clamp01(d.giantHitboxFillOpacity);
             d.tentacleGrabWarningMinConfidence = clamp01(d.tentacleGrabWarningMinConfidence);
             d.giantHitboxColor             &= 0xFFFFFF;
-            d.boneTimingAssistOffset        = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
+            d.kuudraHighlightColor         &= 0xFFFFFF;
+            d.boneTimingAssistOffset       = Math.clamp(d.boneTimingAssistOffset, -3.0f, 1.0f);
             d.boneTimingHitboxOutlineColor &= 0xFFFFFF;
 
             if (d.loadoutsEnabled == null) d.loadoutsEnabled = d.wardrobeEnabled;
@@ -1128,12 +1143,16 @@ public class PhantomConfig {
     public static final String SOUND_WARDROBE_SWAP   = "wardrobe_swap";
     public static final String SOUND_BACKBONE_DONE   = "backbone_done";
     public static final String SOUND_BONE_THROW_NOW  = "bone_throw_now";
+    public static final String SOUND_TENTACLE_GRAB   = "tentacle_grab";
+    public static final String SOUND_STUN_REMINDER   = "stun_reminder";
 
     public static class NotificationSound {
         public boolean enabled = false;
         public String  soundId = "minecraft:entity.experience_orb.pickup";
         public float   volume  = 1.0f;
         public float   pitch   = 1.0f;
+        public int     repeats = 1;
+        public int     repeatTicks = 5;
         public NotificationSound() {}
         public NotificationSound(String id, float pitch) {
             this.soundId = id; this.pitch = pitch;
@@ -1148,6 +1167,8 @@ public class PhantomConfig {
             return new NotificationSound("minecraft:block.note_block.pling", 2.0f);
         if (SOUND_FAST_DPS.equals(key))
             return new NotificationSound("minecraft:entity.experience_orb.pickup", 2.0f);
+        if (SOUND_TENTACLE_GRAB.equals(key))
+            return new NotificationSound("minecraft:block.note_block.pling", 1.5f);
         if (SOUND_WARDROBE_SWAP.equals(key))
             return new NotificationSound("minecraft:ui.button.click", 1.5f);
         if (SOUND_BACKBONE_DONE.equals(key))
@@ -1173,18 +1194,24 @@ public class PhantomConfig {
     public static float   getNotificationSoundPitch(String key)           { return getNotificationSound(key).pitch; }
     public static void    setNotificationSoundPitch(String key, float v)  { getNotificationSound(key).pitch = v; save(); }
 
+    public static int  getNotificationSoundRepeats(String key)            { return Math.max(1, Math.min(10, getNotificationSound(key).repeats)); }
+    public static void setNotificationSoundRepeats(String key, int v)     { getNotificationSound(key).repeats = Math.max(1, Math.min(10, v)); save(); }
+    public static int  getNotificationSoundRepeatTicks(String key)        { return Math.max(1, Math.min(20, getNotificationSound(key).repeatTicks)); }
+    public static void setNotificationSoundRepeatTicks(String key, int v) { getNotificationSound(key).repeatTicks = Math.max(1, Math.min(20, v)); save(); }
+
     public static void playNotificationSound(String key) {
         NotificationSound ns = getNotificationSound(key);
-        if (!ns.enabled || ns.soundId == null || ns.soundId.isBlank()) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        net.minecraft.resources.Identifier id =
-                net.minecraft.resources.Identifier.tryParse(ns.soundId);
-        if (id == null) return;
-        net.minecraft.sounds.SoundEvent ev =
-                net.minecraft.sounds.SoundEvent.createVariableRangeEvent(id);
-        mc.getSoundManager().play(
-                net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, ns.pitch, ns.volume));
+        if (!ns.enabled) return;
+        if (Minecraft.getInstance().player == null) return;
+        previewNotificationSound(key);
+    }
+
+    /** Plays the sound as configured, even when it is switched off, so the menu can preview it. */
+    public static void previewNotificationSound(String key) {
+        NotificationSound ns = getNotificationSound(key);
+        if (ns.soundId == null || ns.soundId.isBlank()) return;
+        com.phantomaddons.utils.SoundRepeater.play(ns.soundId, ns.volume, ns.pitch,
+                getNotificationSoundRepeats(key), getNotificationSoundRepeatTicks(key));
     }
 
     // ── JSON model ────────────────────────────────────────────────────────────
@@ -1288,6 +1315,8 @@ public class PhantomConfig {
         boolean dropLocationsEnabled  = true;
         boolean waypointLinesEnabled           = false;
         boolean waypointLinesSuppliesEnabled   = true;
+        int     waypointLinesColor             = 0xFF00FF;
+        float   waypointLinesWidth             = 3.5f;
         boolean waypointLinesFlatPearlsEnabled = true;
         String  secondSupplyPreference = "DOUBLE_PEARL";
         boolean pearlTimerEnabled     = true;
@@ -1330,6 +1359,7 @@ public class PhantomConfig {
         float backboneProgressBarHudScale = 1.0f;
         boolean kuudraHighlightEnabled     = false;
         boolean kuudraHighlightFilled      = false;
+        int     kuudraHighlightColor       = 0xFF0000;
         boolean etherwarpSlotBlockerEnabled = false;
         boolean supplyWaypointsEnabled           = false;
         boolean supplyBeaconsEnabled         = false;
@@ -1467,6 +1497,9 @@ public class PhantomConfig {
         boolean autoGfsTwilight = false;
         int     toxicAmount     = 10;
         int     twilightAmount  = 10;
+        boolean autoGfsJerry      = false;
+        boolean autoGfsSpiritLeap = false;
+        boolean autoGfsSuperboom  = false;
 
         int chestTotal   = 0;
         int chestSuccess = 0;

@@ -104,6 +104,7 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraTierDetector.init();
         ShopKeybinds.register();
         WardrobeKeybinds.register();
+        com.phantomaddons.utils.SoundRepeater.register();
         com.phantomaddons.features.miscskyblock.SlotBinds.register();
         FastDpsWarning.register();
         com.phantomaddons.features.stundps.DpsWaypoint.register();
@@ -413,7 +414,10 @@ public class PhantomAddons implements ClientModInitializer {
     }
 
     private void registerConnectionEvents() {
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> resetAll());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            resetAll();
+            PartyCommands.reset();
+        });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             resetAll();
             if (ChestTracker.isPendingPc()) {
@@ -441,7 +445,7 @@ public class PhantomAddons implements ClientModInitializer {
         KuudraTierDetector.reset();
         KuudraSplitTimer.reset();
         CannonAutoClose.reset();
-        PartyCommands.reset();
+        PartyCommands.onWorldChange();
         com.phantomaddons.features.misckuudra.profile.AutoKickManager.reset();
         com.phantomaddons.features.misckuudra.ShitterList.reset();
         com.phantomaddons.features.misckuudra.AutoKickCoordinator.reset();
@@ -458,6 +462,7 @@ public class PhantomAddons implements ClientModInitializer {
         SupplyProgressHud.reset();
         AnnounceFresh.reset();
         PearlRefill.reset();
+        com.phantomaddons.features.dungeons.DungeonsSupplyRefill.reset();
         RendDamage.reset();
         com.phantomaddons.features.boss.rend.RendTracker.reset();
         com.phantomaddons.features.boss.rend.RendPullAttribution.reset();
@@ -506,6 +511,7 @@ public class PhantomAddons implements ClientModInitializer {
             AutoGFS.flushCommands(client);
             AutoGFS.tick(client);
             PearlRefill.tick(client);
+            com.phantomaddons.features.dungeons.DungeonsSupplyRefill.tick(client);
             if (PhantomConfig.isHideSelfieEnabled()
                     && client.options.getCameraType() == net.minecraft.client.CameraType.THIRD_PERSON_FRONT) {
                 client.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);

@@ -177,6 +177,12 @@ final class PvFarmingPage {
 
     // ── Garden ────────────────────────────────────────────────────────────────
 
+    private static final String[][] COMPOSTER_UPGRADES = {
+            { "speed", "Composter Speed" }, { "multi_drop", "Multi Drop" }, { "fuel_cap", "Fuel Cap" },
+            { "organic_matter_cap", "Organic Matter Cap" }, { "cost_reduction", "Cost Reduction" },
+    };
+    private static final int COMPOSTER_MAX = 25;
+
     private static int garden(PvPages.Ctx c) {
         PvScreen s = c.s();
         float es = c.es(), ss = 0.85f * es;
@@ -222,6 +228,13 @@ final class PvFarmingPage {
                     }
                     if (of > 0) yy += s.statRow(c.g(), PvProfileView.rarityColor(r) + PvProfileView.prettify(r), have + "/" + of, x0, yy, colW, ss);
                 }
+            }
+            yy += 6;
+            yy += s.title(c.g(), "Composter", x0, yy);
+            JsonObject composter = PvJson.obj(garden, "composter_data", "upgrades");
+            for (String[] up : COMPOSTER_UPGRADES) {
+                int lvl = (int) PvJson.num(composter, 0, up[0]);
+                yy += s.statRow(c.g(), up[1], (lvl >= COMPOSTER_MAX ? "§6" : "") + lvl + "/" + COMPOSTER_MAX, x0, yy, colW, ss);
             }
         }
 

@@ -69,6 +69,7 @@ public final class TentacleGrabWarning {
     private static final Map<UUID, AbstractCubeMob> live = new HashMap<>();
     private static volatile List<Target> targets = List.of();
     private static long tickCount;
+    private static boolean wasLikely;
 
     private TentacleGrabWarning() {}
 
@@ -80,6 +81,7 @@ public final class TentacleGrabWarning {
         cubes.clear();
         live.clear();
         targets = List.of();
+        wasLikely = false;
     }
 
     public static void tick(Minecraft client) {
@@ -88,6 +90,7 @@ public final class TentacleGrabWarning {
                 || !KuudraPhaseTracker.isSupplyCollectionPhase()) {
             if (!cubes.isEmpty()) cubes.clear();
             targets = List.of();
+            wasLikely = false;
             return;
         }
 
@@ -118,7 +121,7 @@ public final class TentacleGrabWarning {
         while (it.hasNext()) if (tickCount - it.next().lastSeenTick > STALE_TICKS) it.remove();
 
         long elapsedMs = PearlWaypointManager.getPickupElapsedMs();
-        if (elapsedMs < 0) { targets = List.of(); return; }
+        if (elapsedMs < 0) { targets = List.of(); wasLikely = false; return; }
         float elapsedTicks = elapsedMs / 50f;
         float remainingTicks = Math.max(0L, PhantomConfig.getPickupDurationMs() - elapsedMs) / 50f;
         float timing = timingFactor(elapsedTicks, remainingTicks);
@@ -173,6 +176,9 @@ public final class TentacleGrabWarning {
             out.add(new Target(tentacleBoxes(s.mob(), cubes.get(s.mob().getUUID())), s.mob().position(), i == 0, s.confidence()));
         }
         targets = out;
+        boolean likely = !out.isEmpty();
+        if (likely && !wasLikely) PhantomConfig.playNotificationSound(PhantomConfig.SOUND_TENTACLE_GRAB);
+        wasLikely = likely;
     }
 
     private static void updateCube(AbstractCubeMob mob, Vec3 player) {

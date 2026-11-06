@@ -74,12 +74,11 @@ public final class PriceFetcher {
         CompletableFuture.runAsync(() -> {
             try {
                 int ok = 0, fail = 0;
-                for (String id : KuudraDrops.AH_ITEM_IDS) {
-                    double price = fetchBinPriceWithRetry(COFLNET_URL + id, "min");
-                    if (price > 0) { PriceCache.putBin(id, price); ok++; } else fail++;
-                }
-                for (String id : KuudraDrops.AH_LOWEST_BIN_ITEM_IDS) {
+                java.util.Set<String> ids = new java.util.LinkedHashSet<>(KuudraDrops.AH_ITEM_IDS);
+                ids.addAll(KuudraDrops.AH_LOWEST_BIN_ITEM_IDS);
+                for (String id : ids) {
                     double price = fetchBinPriceWithRetry(COFLNET_URL + id + "/bin", "lowest");
+                    if (price <= 0) price = fetchBinPriceWithRetry(COFLNET_URL + id, "median");
                     if (price > 0) { PriceCache.putBin(id, price); ok++; } else fail++;
                 }
                 if (ok > 0) PriceCache.markBinsFetched();
@@ -97,6 +96,9 @@ public final class PriceFetcher {
                 JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
                 double price = obj.has(priceField) ? obj.get(priceField).getAsDouble() : -1;
                 if (price > 0) return price;
+            } catch (ClientError e) {
+                PhantomAddons.LOGGER.warn("[PriceFetcher] No price for {}: {}", url, e.getMessage());
+                return -1;
             } catch (Exception e) {
                 PhantomAddons.LOGGER.warn("[PriceFetcher] BIN fetch attempt {}/{} failed for {}: {}",
                         attempt, MAX_ATTEMPTS, url, e.getMessage());
@@ -116,12 +118,18 @@ public final class PriceFetcher {
         }
     }
 
+    private static final class ClientError extends IOException {
+        ClientError(String message) { super(message); }
+    }
+
     private static String get(String urlStr) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("User-Agent", "PhantomAddons-ProfitTracker");
         conn.setConnectTimeout(8_000);
         conn.setReadTimeout(15_000);
+        int code = conn.getResponseCode();
+        if (code >= 400 && code < 500 && code != 429) throw new ClientError("HTTP " + code);
         try (InputStream is = conn.getInputStream();
              BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             return br.lines().collect(Collectors.joining());
