@@ -27,10 +27,10 @@
     {
       "name": "Phobo_S_",
       "replace": "&l{name}",
-      "colors": ["#4a1814", "#424242", "#7d0900"],
+      "colors": ["#b0f6ff", "#b0f6ff", "#b0f6ff", "#ffffff"],
       "length": 50,
       "direction": "right",
-      "speed": 9
+      "speed": 12
     },
     {
       "name": "HoeEnthusiast",
