@@ -20,13 +20,28 @@ final class PvHuntingPage {
     private PvHuntingPage() {}
 
     private static final String[] RARITIES = { "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY" };
-    private static final String[] LABELS = { "§fCommon", "§aUncommon", "§9Rare", "§5Epic", "§6Legendary" };
+    private static final String[] LABELS = { "§fCommon", "§aUncommon", "§9Rare", "§5Epic", "§6Legendary", "§cMissing" };
+
+    private static boolean pricesReady;
     private static final DateTimeFormatter CAPTURED =
             DateTimeFormatter.ofPattern("dd MMMM yyyy 'at' HH:mm", Locale.ENGLISH).withZone(ZoneId.systemDefault());
 
     private record Shard(String name, String ability, String icon, String rarity, List<String> family,
-                         int syphoned, int maxSyphon, int owned, long captured, int level, boolean consumable) {
+                         int syphoned, int maxSyphon, int owned, long captured, int level, boolean consumable,
+                         String code, int toNext, int toMax, double unit) {
         boolean obtained() { return syphoned > 0 || owned > 0 || captured > 0; }
+
+        boolean missing() { return consumable && maxSyphon > 0 && syphoned < maxSyphon; }
+
+
+        int toBuyNext() { return Math.max(0, toNext - owned); }
+        int toBuyMax() { return Math.max(0, toMax - owned); }
+
+        double costNext() { return cost(toBuyNext()); }
+
+        double costMax() { return cost(toBuyMax()); }
+
+        private double cost(int toBuy) { return toBuy == 0 ? 0 : unit > 0 ? toBuy * unit : -1; }
     }
 
     static int render(PvPages.Ctx c) {
@@ -39,11 +54,19 @@ final class PvHuntingPage {
             s.text(c.g(), "Loading shard data...", x0, y0, PvTheme.dim(), ss);
             return c.lh(es);
         }
+        pricesReady = PvConstants.pricesSettled();
         List<Shard> all = shards(c.m(), consts);
 
         int yy = y0;
-        yy += s.searchBox(c.g(), c.key(), "Search shards, abilities, or families", x0, yy, avail, c.mx(), c.my()) + 6;
+        yy += s.searchBox(c.g(), c.key(), "Search shards, abilities, families, or descriptions", x0, yy, avail, c.mx(), c.my()) + 6;
         String query = s.search(c.key()).trim().toLowerCase(Locale.ROOT);
+        List<String> descriptionIds = new ArrayList<>();
+        boolean loadingDescriptions = false;
+        if (!query.isEmpty()) {
+            for (Shard sh : all) descriptionIds.add(sh.icon);
+            PvShardText.loadAll(descriptionIds);
+            loadingDescriptions = !PvShardText.allLoaded();
+        }
         yy += s.innerTabsRow(c.g(), c.key(), LABELS, x0, yy, avail, c.mx(), c.my()) + 4;
 
         int attributes = 0, unlocked = 0, maxed = 0;
@@ -61,15 +84,47 @@ final class PvHuntingPage {
                 + "   §7Maxed Shards: §f" + maxed;
         s.text(c.g(), summary, x0 + (avail - s.textW(summary, 0.75f * es)) / 2, yy, PvTheme.text(), 0.75f * es);
         yy += c.lh(0.75f * es) + 6;
+        if (loadingDescriptions) {
+            String note = "§8Loading descriptions to search... " + PvShardText.loaded(descriptionIds) + " / " + descriptionIds.size();
+            s.text(c.g(), note, x0 + (avail - s.textW(note, 0.75f * es)) / 2, yy - 3, PvTheme.dim(), 0.75f * es);
+            yy += c.lh(0.75f * es) + 3;
+        }
 
-        String rarity = RARITIES[Math.min(s.innerTab(c.key()), RARITIES.length - 1)];
+        int tab = Math.min(s.innerTab(c.key()), LABELS.length - 1);
+        boolean missingTab = tab == RARITIES.length;
+        String rarity = RARITIES[Math.min(tab, RARITIES.length - 1)];
+
+        if (missingTab) {
+            int count = 0, unpriced = 0;
+            double nextTotal = 0, maxTotalCost = 0;
+            for (Shard sh : all) {
+                if (!sh.missing()) continue;
+                count++;
+                if (sh.costNext() < 0 || sh.costMax() < 0) unpriced++;
+                nextTotal += Math.max(0, sh.costNext());
+                maxTotalCost += Math.max(0, sh.costMax());
+            }
+            String totals = "§7Not maxed: §f" + count + "   §7Next level for all: §6" + PvPages.shortNum(nextTotal)
+                    + "   §7Max for all: §6" + PvPages.shortNum(maxTotalCost)
+                    + (unpriced > 0 ? "   §8(" + unpriced + " without a price)" : "")
+                    + (!pricesReady ? "   §8loading prices..." : "");
+            s.text(c.g(), totals, x0 + (avail - s.textW(totals, 0.75f * es)) / 2, yy, PvTheme.text(), 0.75f * es);
+            yy += c.lh(0.75f * es) + 6;
+        }
+
         List<Shard> shown = new ArrayList<>();
         for (Shard sh : all) {
-            if (query.isEmpty() ? sh.rarity.equals(rarity) : matches(sh, query)) shown.add(sh);
+            if (query.isEmpty() ? (missingTab ? sh.missing() : sh.rarity.equals(rarity))
+                    : matches(sh, query) && (!missingTab || sh.missing())) shown.add(sh);
         }
-        shown.sort(Comparator.comparing(Shard::name));
+        if (missingTab) {
+            shown.sort(Comparator.comparingDouble((Shard sh) -> sh.costNext() < 0 ? Double.MAX_VALUE : sh.costNext())
+                    .thenComparing(Shard::name));
+        } else {
+            shown.sort(Comparator.comparing(Shard::name));
+        }
         if (shown.isEmpty()) {
-            s.text(c.g(), "No shards match \"" + query + "\".", x0, yy, PvTheme.dim(), ss);
+            s.text(c.g(), "No shards match \"" + query + "\"" + (loadingDescriptions ? " yet." : "."), x0, yy, PvTheme.dim(), ss);
             return yy - y0 + c.lh(ss);
         }
         yy += grid(c, shown, x0, yy, avail);
@@ -79,7 +134,7 @@ final class PvHuntingPage {
     private static boolean matches(Shard sh, String q) {
         if (sh.name.toLowerCase(Locale.ROOT).contains(q) || sh.ability.toLowerCase(Locale.ROOT).contains(q)) return true;
         for (String f : sh.family) if (f.toLowerCase(Locale.ROOT).contains(q)) return true;
-        return false;
+        return PvShardText.searchText(sh.icon).contains(q);
     }
 
     private static final int[] EPIC_SYPHON_FALLBACK = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 7 };
@@ -159,11 +214,17 @@ final class PvHuntingPage {
             List<String> family = new ArrayList<>();
             JsonElement fam = a.get("family");
             if (fam != null && fam.isJsonArray()) for (JsonElement f : fam.getAsJsonArray()) family.add(f.getAsString());
+            boolean consumable = !unconsumable.contains(PvJson.str(a, "", "bazaarName"));
+            int maxSyph = maxSyphon(levelling, rarity), nextAt = nextLevelAt(syph, levelling, rarity);
             out.add(new Shard(PvJson.str(a, PvProfileView.prettify(type), "displayName"), PvJson.str(a, "", "abilityName"),
-                    internal, rarity, family, syph, maxSyphon(levelling, rarity),
+                    internal, rarity, family, syph, maxSyph,
                     own != null ? (int) PvJson.num(own, 0, "amount_owned") : 0,
                     own != null ? (long) PvJson.num(own, 0, "captured") : 0,
-                    level(syph, levelling, rarity), !unconsumable.contains(PvJson.str(a, "", "bazaarName"))));
+                    level(syph, levelling, rarity), consumable,
+                    PvJson.str(a, "", "shardId"),
+                    consumable && nextAt >= 0 ? nextAt - syph : 0,
+                    consumable ? Math.max(0, maxSyph - syph) : 0,
+                    consumable ? PvConstants.price(PvJson.str(a, "", "bazaarName")) : -1));
         }
         return out;
     }
@@ -173,6 +234,17 @@ final class PvHuntingPage {
         int total = 0;
         if (arr != null && arr.isJsonArray()) for (JsonElement e : arr.getAsJsonArray()) total += e.getAsInt();
         return total;
+    }
+
+    private static int nextLevelAt(int syphoned, JsonObject levelling, String rarity) {
+        JsonElement arr = levelling != null ? levelling.get(rarity) : null;
+        if (arr == null || !arr.isJsonArray()) return -1;
+        int need = 0;
+        for (JsonElement e : arr.getAsJsonArray()) {
+            need += e.getAsInt();
+            if (syphoned < need) return need;
+        }
+        return -1;
     }
 
     private static int level(int syphoned, JsonObject levelling, String rarity) {
@@ -193,9 +265,10 @@ final class PvHuntingPage {
         int cols = Math.max(1, Math.min(3, (w + gap) / (Math.round(150 * es) + gap)));
         int cw = (w - (cols - 1) * gap) / cols;
         int lineH = c.lh(ls) + 2;
-        int ch = ip + c.lh(ns) + 2 + 5 * lineH + ip - 2;
+        int ch = ip + c.lh(ns) + 2 + 6 * lineH + ip - 2; // up to 6 lines: syphoned, prices, owned, ability, family, captured
         int icon = Math.max(14, Math.min(Math.round(24 * es), ch - 2 * ip));
 
+        boolean scrolling = scrolling(c.scroll());
         for (int i = 0; i < shards.size(); i++) {
             Shard sh = shards.get(i);
             int cx = x + (i % cols) * (cw + gap), cy = y + (i / cols) * (ch + gap);
@@ -216,7 +289,24 @@ final class PvHuntingPage {
             if (hov) {
                 List<String> tip = new ArrayList<>();
                 tip.add(color + sh.name);
+                List<String> description = scrolling ? List.of() : PvShardText.description(sh.icon);
+                if (description == null) {
+                    tip.add("§8Loading description...");
+                    tip.add("");
+                } else if (!description.isEmpty()) {
+                    List<String> withMax = PvShardText.withMaxLevel(sh.code, description);
+                    tip.addAll(withMax);
+                    tip.add(withMax != description ? "§8Brackets show the value at level 10" : "§8Values shown for level I");
+                    tip.add("");
+                }
                 tip.addAll(lines);
+                if (sh.missing()) {
+                    tip.add("");
+                    tip.add("§7Shards needed: §f" + sh.toNext + " §7for the next level, §f" + sh.toMax + " §7to max");
+                    if (sh.owned > 0) tip.add("§7You already have §f" + sh.owned + " §7in your Hunting Box");
+                    tip.add(sh.unit > 0 ? "§7Shard price: §6" + PvPages.shortNum(sh.unit) + " §8(bazaar insta-buy)"
+                            : pricesReady ? "§8No bazaar price" : "§8Loading prices...");
+                }
                 s.tooltipLines(tip);
             }
         }
@@ -224,16 +314,31 @@ final class PvHuntingPage {
         return rows * (ch + gap) - gap;
     }
 
+    private static int lastScroll;
+    private static long scrolledAt;
+
+    private static boolean scrolling(int scroll) {
+        long now = System.currentTimeMillis();
+        if (scroll != lastScroll) { lastScroll = scroll; scrolledAt = now; }
+        return now - scrolledAt < 250;
+    }
+
     private static List<String> lines(Shard sh) {
         List<String> out = new ArrayList<>();
         boolean maxed = sh.maxSyphon > 0 && sh.syphoned >= sh.maxSyphon;
         out.add(!sh.consumable ? "§7Syphoned: §8Can't be syphoned"
                 : (maxed ? "§6Syphoned: " : "§7Syphoned: §f") + sh.syphoned + " / " + sh.maxSyphon);
+        if (sh.missing()) out.add("§7Next: " + price(sh.costNext()) + " §7Max: " + price(sh.costMax()));
         out.add("§7Owned: §f" + PvPages.num(sh.owned));
         if (!sh.ability.isEmpty()) out.add("§7Ability: §f" + sh.ability + " §7(" + sh.level + "/10)");
         if (!sh.family.isEmpty()) out.add("§7Family: §f" + String.join(", ", sh.family));
         if (sh.captured > 0) out.add("§7Captured: §f" + CAPTURED.format(Instant.ofEpochMilli(sh.captured)));
         return out;
+    }
+
+    private static String price(double cost) {
+        if (cost < 0) return pricesReady ? "§8none" : "§8...";
+        return cost == 0 ? "§aowned" : "§6" + PvPages.shortNum(cost);
     }
 
     private static String fit(PvScreen s, String text, int w, float scale) {

@@ -16,7 +16,7 @@ import static com.phantomaddons.gui.Theme.*;
 import static com.phantomaddons.gui.GuiDraw.*;
 import static com.phantomaddons.gui.TextEditing.*;
 
-public class SoundPicker extends Feature {
+public class SoundPicker extends Popup {
     private static final int FIELD_MAX_W = 150, POPUP_W = 220;
     private static final int SEARCH_H = 16, ITEM_H = 11, MAX_ROWS = 9, MIN_ROWS = 3, PAD = 3;
 
@@ -104,10 +104,9 @@ public class SoundPicker extends Feature {
 
     // ── Popup ─────────────────────────────────────────────────────────────────
 
-    boolean hasPopup() { return open; }
+    @Override boolean hasPopup() { return open; }
 
-    /** Called by the screen so the popup can stay inside the scrolling content area. */
-    void setArea(int x, int y, int w, int h) { areaX = x; areaY = y; areaW = w; areaH = h; }
+    @Override void setArea(int x, int y, int w, int h) { areaX = x; areaY = y; areaW = w; areaH = h; }
 
     private void layoutPopup() {
         popW = Math.min(POPUP_W, areaW - 12);
@@ -123,7 +122,7 @@ public class SoundPicker extends Feature {
         popY = Math.max(areaY + 2, Math.min(popY, areaY + areaH - popH - 2));
     }
 
-    void renderPopup(GuiGraphicsExtractor ctx, PhantomScreen s, int mx, int my) {
+    @Override void renderPopup(GuiGraphicsExtractor ctx, PhantomScreen s, int mx, int my) {
         if (!open) return;
         Font font = s.font();
         layoutPopup();
@@ -175,8 +174,7 @@ public class SoundPicker extends Feature {
         }
     }
 
-    /** Returns true when the click was consumed; a click outside closes the popup. */
-    boolean popupClick(double mx, double my) {
+    @Override boolean popupClick(double mx, double my) {
         if (!open) return false;
         boolean inside = mx >= popX && mx <= popX + popW && my >= popY && my <= popY + popH;
         if (!inside) { open = false; return true; }
@@ -188,7 +186,7 @@ public class SoundPicker extends Feature {
         return true;
     }
 
-    boolean popupScroll(double mx, double my, double amount) {
+    @Override boolean popupScroll(double mx, double my, double amount) {
         if (!open) return false;
         if (!(mx >= popX && mx <= popX + popW && my >= popY && my <= popY + popH)) { open = false; return false; }
         listScroll -= (int) Math.signum(amount) * 3;

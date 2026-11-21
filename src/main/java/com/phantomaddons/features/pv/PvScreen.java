@@ -1725,40 +1725,8 @@ public final class PvScreen extends Screen {
         }
         int rows = (v.accessories.size() + cols - 1) / cols;
         int yy = gy + rows * (s + g) + 10;
-        yy += renderInactiveAccessories(ctx, v, x + pad, x0, cols, yy, s, mx, my);
         yy += renderMissingAccessories(ctx, v, x + pad, x0, cols, yy, w - 2 * pad, s, mx, my);
         return yy - y0;
-    }
-
-    private int renderInactiveAccessories(GuiGraphicsExtractor ctx, PvProfileView v, int x, int gridX, int cols, int y,
-                                          int s, int mx, int my) {
-        List<PvInactiveAccessories.Entry> list = PvInactiveAccessories.get(v);
-        if (list == null) return 0;
-        text(ctx, "Not Active §7(" + list.size() + ")", x, y, C_ACCENT, es);
-        float ls = 0.8f * es;
-        int gy = y + lineH(es) + 4, g = gapFor(s);
-        if (list.isEmpty()) {
-            text(ctx, "§8None", x, gy, C_TEXT, ls);
-            return gy - y + lineH(ls) + 10;
-        }
-        for (int i = 0; i < list.size(); i++) {
-            PvInactiveAccessories.Entry e = list.get(i);
-            int sx = gridX + (i % cols) * (s + g), sy = gy + (i / cols) * (s + g);
-            if (offscreen(sy, s)) continue;
-            // A gold edge marks one that outranks the accessory currently counting: it needs moving up the bag.
-            if (e.better()) roundedFill(ctx, sx - 1, sy - 1, sx + s + 1, sy + s + 1, 0xFFFFAA00, 4);
-            rarityBg(ctx, sx, sy, s, PvItems.rarityColor(e.stack()));
-            item(ctx, e.stack(), sx + 1, sy + 1, s - 2);
-            if (hovered(mx, my, sx, sy, s, s)) {
-                ctx.nextStratum();
-                roundedFill(ctx, sx, sy, sx + s, sy + s, overlay(0x28), 3);
-                tooltip("§f" + e.stack().getHoverName().getString(), e.better() ? "§6Not active, but it should be" : "§cNot active",
-                        "§7" + e.reason(), "§7Counting: §f" + e.active().getHoverName().getString(),
-                        e.better() ? "§8Move it above the one counting." : "§8Safe to remove or leave where it is.");
-            }
-        }
-        int rows = (list.size() + cols - 1) / cols;
-        return gy - y + rows * (s + g) + 10;
     }
 
     private static final int[] NO_RECOMB = { 0xFF55FF, 0x55FFFF, 0xAA0000 };
@@ -1825,14 +1793,50 @@ public final class PvScreen extends Screen {
                     lines.add(PvProfileView.rarityColor(e.tier()) + "§l" + e.tier().replace('_', ' '));
                 }
                 lines.add("");
+                double rp = PvMissingAccessories.recombobulatorPrice();
                 if (e.from() != null) lines.add("§7Upgrades: §f" + e.from());
-                lines.add("§7Magical Power: §a+" + e.mpGain() + (e.recomb() ? " §8(with a recombobulator)" : ""));
-                if (e.price() > 0) {
-                    lines.add("§7Price: §6" + PvPages.shortNum(e.price()));
-                    if (e.mpGain() > 0) lines.add("§7Per MP: §6" + PvPages.shortNum(e.price() / e.mpGain()));
+                boolean brackets = false;
+                String mpBracket = !e.recomb() && e.recombMp() >= 0 && e.recombMp() != e.mpGain()
+                        ? " §8(§a+" + e.recombMp() + "§8)" : "";
+                brackets |= !mpBracket.isEmpty();
+                lines.add("§7Magical Power: §a+" + e.mpGain() + mpBracket);
+                if (e.cost() >= 0) {
+                    double costWithRecomb = e.costWith(rp);
+                    brackets |= costWithRecomb >= 0;
+                    lines.add("§7" + (e.sells() > 0 ? "Cost after selling " + e.from() : "Price") + ": §6" + PvPages.shortNum(e.cost())
+                            + (costWithRecomb >= 0 ? " §8(§6" + PvPages.shortNum(costWithRecomb) + "§8)" : ""));
+                    if (e.mpGain() > 0) {
+                        double perMpWithRecomb = e.perMpWith(rp);
+                        brackets |= perMpWithRecomb != Double.MAX_VALUE;
+                        lines.add("§7Per MP: §6" + PvPages.shortNum(e.cost() / e.mpGain())
+                                + (perMpWithRecomb != Double.MAX_VALUE ? " §8(§6" + PvPages.shortNum(perMpWithRecomb) + "§8)" : ""));
+                    }
                 } else {
                     lines.add("§8No price data");
                 }
+                if (e.lineup().size() > 1) {
+                    lines.add("");
+                    lines.add(e.from() != null ? "§7Higher tiers §8(after selling the old one)" : "§7All tiers");
+                    for (PvMissingAccessories.Option o : e.lineup()) {
+                        StringBuilder row = new StringBuilder(o.id().equals(e.id()) ? "§e▶ " : "§8  ")
+                                .append(PvProfileView.rarityColor(o.tier())).append(o.name());
+                        if (o.price() >= 0) {
+                            row.append(" §6").append(PvPages.shortNum(o.price()));
+                            double rowWithRecomb = o.costWith(rp);
+                            if (rowWithRecomb >= 0) { row.append(" §8(§6").append(PvPages.shortNum(rowWithRecomb)).append("§8)"); brackets = true; }
+                            if (o.mpGain() > 0) {
+                                row.append(" §8- §6").append(PvPages.shortNum(o.price() / o.mpGain())).append("§7/MP");
+                                double perWithRecomb = o.perMpWith(rp);
+                                if (perWithRecomb != Double.MAX_VALUE) { row.append(" §8(§6").append(PvPages.shortNum(perWithRecomb)).append("§8)"); brackets = true; }
+                            }
+                        } else {
+                            row.append(" §8no price");
+                        }
+                        lines.add(row.toString());
+                    }
+                }
+                if (e.recomb()) lines.add("§8Includes a recombobulator");
+                else if (brackets) lines.add("§8Brackets include a recombobulator");
                 tooltipLines(lines);
             }
         }

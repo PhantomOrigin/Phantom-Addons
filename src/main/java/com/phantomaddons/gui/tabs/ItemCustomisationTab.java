@@ -17,7 +17,7 @@ public final class ItemCustomisationTab {
     private ItemCustomisationTab() {}
 
     public static void build(MenuBuilder m) {
-        Group ic = m.group("Item Customisation", PhantomConfig::isItemCustomizationEnabled, PhantomConfig::setItemCustomizationEnabled)
+        Group ic = m.group("Animations", PhantomConfig::isItemCustomizationEnabled, PhantomConfig::setItemCustomizationEnabled)
                 .withTooltip("Changes how items look in your hand.");
 
         for (ItemCustomization.ItemCategory cat : ItemCustomization.ItemCategory.values()) {

@@ -94,8 +94,9 @@ public final class PriceFetcher {
             try {
                 String json = get(url);
                 JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-                double price = obj.has(priceField) ? obj.get(priceField).getAsDouble() : -1;
+                double price = obj.has(priceField) && !obj.get(priceField).isJsonNull() ? obj.get(priceField).getAsDouble() : -1;
                 if (price > 0) return price;
+                return -1;
             } catch (ClientError e) {
                 PhantomAddons.LOGGER.warn("[PriceFetcher] No price for {}: {}", url, e.getMessage());
                 return -1;

@@ -31,7 +31,7 @@ public final class KuudraDrops {
     public static final Map<String, String> WEAPON_NAME_TO_ID;
     static {
         Map<String, String> m = new LinkedHashMap<>();
-        m.put("aurora staff",        "AURORA_STAFF");
+        m.put("aurora staff",        "RUNIC_STAFF"); // the Aurora Staff's real SkyBlock id
         m.put("hollow wand",         "HOLLOW_WAND");
         m.put("hellstorm wand",      "HELLSTORM_STAFF");
         m.put("hellstorm staff",     "HELLSTORM_STAFF");
@@ -53,10 +53,10 @@ public final class KuudraDrops {
             if (stripped.contains(e.getKey())) return e.getValue();
         return null;
     }
-
+    
     public static final Set<String> AH_WEAPON_IDS = Set.of(
-        "HOLLOW_WAND", "HELLSTORM_STAFF", "TORMENTOR", "BURNING_KUUDRA_CORE",
-        "ANANKE_FEATHER", "MANDRAA", "KUUDRA_MANDIBLE"
+        "HOLLOW_WAND", "HELLSTORM_STAFF", "TORMENTOR", "BURNING_KUUDRA_CORE", "ANANKE_FEATHER",
+        "RUNIC_STAFF", "MOLTEN_NECKLACE", "MOLTEN_CLOAK", "MOLTEN_BELT", "MOLTEN_BRACELET"
     );
 
     public static final Set<String> AH_ITEM_IDS;
@@ -161,7 +161,7 @@ public final class KuudraDrops {
             BASE_SALVAGE.put("HOLLOW_"  + slot, 100);
             BASE_SALVAGE.put("TERROR_"  + slot, 200);
         }
-        BASE_SALVAGE.put("AURORA_STAFF",    600);
+        BASE_SALVAGE.put("RUNIC_STAFF",     600);
         BASE_SALVAGE.put("MOLTEN_NECKLACE", 600);
         BASE_SALVAGE.put("MOLTEN_CLOAK",    600);
         BASE_SALVAGE.put("MOLTEN_BELT",     600);
@@ -169,7 +169,7 @@ public final class KuudraDrops {
     }
 
     public static final Set<String> SALVAGEABLE_WEAPON_IDS = Set.of(
-        "AURORA_STAFF", "MOLTEN_NECKLACE", "MOLTEN_CLOAK", "MOLTEN_BELT", "MOLTEN_BRACELET"
+        "RUNIC_STAFF", "MOLTEN_NECKLACE", "MOLTEN_CLOAK", "MOLTEN_BELT", "MOLTEN_BRACELET"
     );
 
     public static int salvageEssence(String itemId, int stars) {

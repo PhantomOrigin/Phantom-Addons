@@ -63,7 +63,7 @@ public final class KuudraLootTables {
                 new Guaranteed(S, "SHARD_KRAKEN", 1)
             );
             List<Entry> s1 = new ArrayList<>(armorEntries(4.31));
-            s1.add(new Entry("Aurora Staff", 1.05, A, "AURORA_STAFF"));
+            s1.add(new Entry("Aurora Staff", 1.05, A, "RUNIC_STAFF"));
             s1.add(new Entry("Hollow Wand", 1.05, B, "HOLLOW_WAND"));
             s1.add(new Entry("Molten Necklace", 1.20, A, "MOLTEN_NECKLACE"));
             s1.add(new Entry("Molten Cloak", 1.20, A, "MOLTEN_CLOAK"));
@@ -89,7 +89,7 @@ public final class KuudraLootTables {
                 new Guaranteed(S, "SHARD_KRAKEN", 1)
             );
             List<Entry> s1 = new ArrayList<>(armorEntries(4.06));
-            s1.add(new Entry("Aurora Staff", 0.99, A, "AURORA_STAFF"));
+            s1.add(new Entry("Aurora Staff", 0.99, A, "RUNIC_STAFF"));
             s1.add(new Entry("Hollow Wand", 0.99, B, "HOLLOW_WAND"));
             s1.add(new Entry("Molten Necklace", 1.27, A, "MOLTEN_NECKLACE"));
             s1.add(new Entry("Molten Cloak", 1.27, A, "MOLTEN_CLOAK"));
@@ -117,7 +117,7 @@ public final class KuudraLootTables {
                 new Guaranteed(S, "SHARD_KRAKEN", 1)
             );
             List<Entry> s1 = new ArrayList<>(armorEntries(3.43));
-            s1.add(new Entry("Aurora Staff", 0.84, A, "AURORA_STAFF"));
+            s1.add(new Entry("Aurora Staff", 0.84, A, "RUNIC_STAFF"));
             s1.add(new Entry("Burning Kuudra Core", 0.12, B, "BURNING_KUUDRA_CORE"));
             s1.add(new Entry("Hollow Wand", 0.84, B, "HOLLOW_WAND"));
             s1.add(new Entry("Mandraa", 0.96, S, "MANDRAA"));
@@ -157,7 +157,7 @@ public final class KuudraLootTables {
                 new Guaranteed(S, "SHARD_KRAKEN", 1.25) // 75% 1x, 25% 2x
             );
             List<Entry> s1 = new ArrayList<>(armorEntries(3.09));
-            s1.add(new Entry("Aurora Staff", 0.75, A, "AURORA_STAFF"));
+            s1.add(new Entry("Aurora Staff", 0.75, A, "RUNIC_STAFF"));
             s1.add(new Entry("Burning Kuudra Core", 0.32, B, "BURNING_KUUDRA_CORE"));
             s1.add(new Entry("Hollow Wand", 0.75, B, "HOLLOW_WAND"));
             s1.add(new Entry("Mandraa", 1.08, S, "MANDRAA"));
@@ -213,7 +213,7 @@ public final class KuudraLootTables {
             s1.add(new Entry("Ananke Shard", 0.05, S, "SHARD_ANANKE"));
             s1.add(new Entry("Hellstorm Wand", 0.1, B, "HELLSTORM_STAFF"));
             s1.add(new Entry("Tormentor", 0.1, B, "TORMENTOR"));
-            s1.add(new Entry("Ananke Feather", 0.43, S, "ANANKE_FEATHER"));
+            s1.add(new Entry("Ananke Feather", 0.43, B, "ANANKE_FEATHER"));
             s1.add(new Entry("Burning Kuudra Core", 0.51, B, "BURNING_KUUDRA_CORE"));
             s1.add(new Entry("Daemon Shard", 0.51, S, "SHARD_DAEMON"));
             s1.add(new Entry("Lord Jawbus Shard", 0.51, S, "SHARD_LORD_JAWBUS"));
@@ -221,7 +221,7 @@ public final class KuudraLootTables {
             s1.add(new Entry("Cinderbat Shard", 0.67, S, "SHARD_CINDER_BAT"));
             s1.add(new Entry("Taurus Shard", 0.67, S, "SHARD_TAURUS"));
             s1.add(new Entry("Hollow Wand", 0.72, B, "HOLLOW_WAND"));
-            s1.add(new Entry("Aurora Staff", 0.72, A, "AURORA_STAFF"));
+            s1.add(new Entry("Aurora Staff", 0.72, A, "RUNIC_STAFF"));
             s1.add(new Entry("Mandraa", 1.23, S, "MANDRAA"));
             s1.add(new Entry("Molten Belt", 1.23, A, "MOLTEN_BELT"));
             s1.add(new Entry("Molten Bracelet", 1.23, A, "MOLTEN_BRACELET"));

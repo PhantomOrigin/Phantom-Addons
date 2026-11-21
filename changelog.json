@@ -1,5 +1,35 @@
 [
   {
+    "version": "1.7.6",
+    "title": "Ability Cooldowns and Profile Viewer Updates",
+    "sections": [
+      {
+        "name": "Additions",
+        "items": [
+          "Added Ability Cooldowns to the Skyblock tab, which shows timers for weapon, armor and pet abilities",
+          "Added ability groups, which sort abilities into separate lists that each have their own HUD position and settings",
+          "Added an Inside Range Warning to Tentacle Reach Highlight, which shows a warning on screen while you are inside a tentacle's reach",
+          "Added a note to Kuudra parties in the Party Finder that Shift shows the members' profiles",
+          "Added view tabs, search and progress bars to the Bestiary in the profile viewer",
+          "Added costs, an unmaxed tab, level 10 values and search by ability and description to the Hunting tab in the profile viewer",
+          "Added prices, Magical Power gained and recombobulator costs to Missing Accessories in the profile viewer"
+        ]
+      },
+      {
+        "name": "Other Changes",
+        "items": [
+          "Improved Tentacle Reach Highlight tentacle detection",
+          "The profile viewer now shows a player's current name after a name change",
+          "Fixed the powder totals on the Heart of the Mountain tab in the profile viewer being too high",
+          "The Storage tab in the profile viewer keeps its page arrows in the same place on every page",
+          "Kuudra Loadouts in the profile viewer now shows every armor set, even ones with no saved loadout",
+          "Renamed Lava Customisation to Lava and Item Customisation to Animations",
+          "Fixed some prices in the Profit Tracker"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.7.5",
     "title": "Custom Sounds, Profile Viewer Updates and Auto GFS Refills",
     "sections": [

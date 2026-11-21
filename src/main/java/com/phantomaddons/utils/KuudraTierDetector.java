@@ -81,6 +81,13 @@ public final class KuudraTierDetector {
 
     public static int getForcedTier() { return forcedTier; }
 
+    /** The scoreboard lines as plain text, top to bottom. */
+    public static List<String> sidebarText() {
+        List<String> out = new ArrayList<>();
+        for (String line : getSidebarLines(Minecraft.getInstance())) out.add(TextUtil.stripColor(line).trim());
+        return out;
+    }
+
     private static List<String> getSidebarLines(Minecraft client) {
         List<String> lines = new ArrayList<>();
         if (client.level == null) return lines;

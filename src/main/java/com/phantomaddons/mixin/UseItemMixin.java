@@ -94,6 +94,17 @@ public class UseItemMixin {
         }
     }
 
+    @Inject(
+            method = "useItem(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResult;",
+            at = @At("RETURN"))
+    private void phantomaddons$abilityUse(
+            Player player,
+            InteractionHand hand,
+            CallbackInfoReturnable<InteractionResult> cir) {
+        if (cir.getReturnValue() == InteractionResult.FAIL) return;
+        com.phantomaddons.features.abilities.AbilityCooldowns.onUse(player, hand);
+    }
+
     private static boolean hasAbilityFlay(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         var lore = stack.get(net.minecraft.core.component.DataComponents.LORE);

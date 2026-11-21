@@ -13,17 +13,20 @@ import java.util.List;
 
 public class HudEditorScreen extends Screen {
 
-    private static final int N = 14;
+    private static final int BASE_N = 15;
 
     private static final String[] LABELS = {
         "Mount Timer", "Kuudra Direction", "Split Timer", "Crate Pickup Progress",
         "Build Progress", "Notifications", "Crate Priority", "Kuudra HP",
         "Profit Tracker", "Chest Value", "Backbone Progress Bar", "Chest Tracker",
-        "Stun Reminder", "Tentacle Warning"
+        "Stun Reminder", "Tentacle Warning", "Tentacle Reach Warning"
     };
-    private final float[] px = new float[N];
-    private final float[] py = new float[N];
-    private final float[] ps = new float[N];
+    /** The Ability Cooldowns elements after the fixed ones: the one stacked list, or one icon per ability. */
+    private List<String> abilityIds = List.of();
+    private int n = BASE_N;
+    private float[] px = new float[BASE_N];
+    private float[] py = new float[BASE_N];
+    private float[] ps = new float[BASE_N];
 
     private int    draggingIdx = -1;
     private double dragStartMX, dragStartMY;
@@ -38,6 +41,27 @@ public class HudEditorScreen extends Screen {
 
     @Override
     protected void init() {
+        var ab = PhantomConfig.abilities();
+        if (!ab.enabled) abilityIds = List.of();
+        else {
+            // one element per group that has something in it, then one per ability that has its own icon
+            var ids = new ArrayList<String>();
+            for (int g : ab.activeGroups()) ids.add(LIST_PREFIX + g);
+            ids.addAll(ab.individualAbilities());
+            if (ids.isEmpty()) ids.add(LIST_PREFIX + 1);
+            abilityIds = ids;
+        }
+        n = BASE_N + abilityIds.size();
+        px = new float[n];
+        py = new float[n];
+        ps = new float[n];
+        for (int k = 0; k < abilityIds.size(); k++) {
+            int i = BASE_N + k;
+            String id = abilityIds.get(k);
+            float[] p = isList(id) ? ab.listPos(listGroup(id)) : ab.iconPos(id, k);
+            px[i] = p[0]; py[i] = p[1]; ps[i] = p[2];
+        }
+
         px[0] = PhantomConfig.getMountTimerHudX();
         py[0] = PhantomConfig.getMountTimerHudY();
         ps[0] = PhantomConfig.getMountTimerHudScale();
@@ -93,6 +117,10 @@ public class HudEditorScreen extends Screen {
         px[13] = PhantomConfig.getTentacleWarnHudX();
         py[13] = PhantomConfig.getTentacleWarnHudY();
         ps[13] = PhantomConfig.getTentacleWarnHudScale();
+
+        px[14] = PhantomConfig.getTentacleReachWarnHudX();
+        py[14] = PhantomConfig.getTentacleReachWarnHudY();
+        ps[14] = PhantomConfig.getTentacleReachWarnHudScale();
     }
 
     @Override
@@ -153,6 +181,19 @@ public class HudEditorScreen extends Screen {
         PhantomConfig.setTentacleWarnHudY(py[13]);
         PhantomConfig.setTentacleWarnHudScale(ps[13]);
 
+        PhantomConfig.setTentacleReachWarnHudX(px[14]);
+        PhantomConfig.setTentacleReachWarnHudY(py[14]);
+        PhantomConfig.setTentacleReachWarnHudScale(ps[14]);
+
+        var ab = PhantomConfig.abilities();
+        for (int k = 0; k < abilityIds.size(); k++) {
+            int i = BASE_N + k;
+            String id = abilityIds.get(k);
+            if (isList(id)) ab.setListPos(listGroup(id), px[i], py[i], ps[i]);
+            else ab.setIconPos(id, px[i], py[i], ps[i]);
+        }
+        ab.sanitize();
+
         PhantomConfig.save();
         minecraft.gui.setScreen(parent);
     }
@@ -170,7 +211,7 @@ public class HudEditorScreen extends Screen {
         ctx.text(font, Component.literal("§7Drag to reposition  •  Scroll to resize  •  ESC to save & exit"), 8, 18, 0xFFAAAAAA);
 
         int hoveredIdx = draggingIdx >= 0 ? -1 : elementAt(mx, my);
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < n; i++) {
             int[] b = box(i);
             int bx = b[0], by = b[1], bw = b[2], bh = b[3];
             boolean active = i == draggingIdx || i == hoveredIdx;
@@ -191,7 +232,7 @@ public class HudEditorScreen extends Screen {
         if (labelIdx >= 0) {
             int i  = labelIdx;
             int[] b = box(i);
-            String label = LABELS[i] + String.format("  §7%.1f×", ps[i]);
+            String label = labelOf(i) + String.format("  §7%.1f×", ps[i]);
             int tw = font.width(label);
             int tx = b[0] + (b[2] - tw) / 2;
             int ty = b[1] - font.lineHeight - 6;
@@ -226,11 +267,52 @@ public class HudEditorScreen extends Screen {
 
     private record Line(int x, int y, String text) {}
 
-    private record Element(boolean centered, boolean intAnchor, float baseScale, List<Line> lines, boolean hpBar) {}
+    private record Element(boolean centered, boolean intAnchor, float baseScale, List<Line> lines, boolean hpBar,
+                           java.util.function.Consumer<GuiGraphicsExtractor> painter, int paintW, int paintH) {
+        Element(boolean centered, boolean intAnchor, float baseScale, List<Line> lines, boolean hpBar) {
+            this(centered, intAnchor, baseScale, lines, hpBar, null, 0, 0);
+        }
+    }
+
+    private static final String LIST_PREFIX = "#list:";
+    /** How many lines of a list the editor shows: it always grows downward from the top, one line per ability used. */
+    private static final int LIST_PREVIEW_LINES = 3;
+
+    private static boolean isList(String id) { return id.startsWith(LIST_PREFIX); }
+    private static int listGroup(String id) { return Integer.parseInt(id.substring(LIST_PREFIX.length())); }
+
+    private String labelOf(int i) {
+        if (i < BASE_N) return LABELS[i];
+        String id = abilityIds.get(i - BASE_N);
+        if (isList(id)) return abilityIds.size() > 1 ? "Ability Cooldowns: Group " + listGroup(id) : "Ability Cooldowns";
+        var a = com.phantomaddons.features.abilities.AbilityData.byId(id);
+        return "Ability: " + (a != null ? a.name : id);
+    }
+
+    private Element abilityElement(int i) {
+        var s = PhantomConfig.abilities();
+        String id = abilityIds.get(i - BASE_N);
+        var rows = com.phantomaddons.features.abilities.AbilityHud.previewRows(s);
+        if (isList(id)) {
+            rows = com.phantomaddons.features.abilities.AbilityHud.previewRows(s, listGroup(id));
+            if (rows.isEmpty()) rows = List.of(com.phantomaddons.features.abilities.AbilityHud.sampleRow());
+            final var shown = rows.size() > LIST_PREVIEW_LINES ? rows.subList(0, LIST_PREVIEW_LINES) : rows;
+            int[] size = com.phantomaddons.features.abilities.AbilityHud.listSize(font, s.style(listGroup(id)), shown);
+            return new Element(false, true, 1.0f, List.of(), false,
+                    ctx -> com.phantomaddons.features.abilities.AbilityHud.drawList(ctx, font, s.style(listGroup(id)), shown), size[0], size[1]);
+        }
+        var row = rows.stream().filter(r -> r.id().equals(id)).findFirst()
+                .orElse(com.phantomaddons.features.abilities.AbilityHud.sampleRow());
+        int w = com.phantomaddons.features.abilities.AbilityHud.rowWidth(font, s.style(0), row);
+        int h = com.phantomaddons.features.abilities.AbilityHud.rowHeight(font, s.style(0), row);
+        return new Element(false, true, 1.0f, List.of(), false,
+                ctx -> com.phantomaddons.features.abilities.AbilityHud.draw(ctx, font, s.style(0), row, 0, 0), w, h);
+    }
 
     private static final int HP_BAR_W = 160, HP_BAR_H = 8;
 
     private Element element(int i) {
+        if (i >= BASE_N) return abilityElement(i);
         int lh = font.lineHeight;
         return switch (i) {
             case 0  -> centered(3.0f, new Line(0, 0, "182"));
@@ -263,6 +345,7 @@ public class HudEditorScreen extends Screen {
             case 11 -> leftAligned(List.of(new Line(0, 0, "§f12§7 (§a5§7 / §c2§7)")));
             case 12 -> centered(3.0f, new Line(0, 0, "§cLEAVE BUILD!"));
             case 13 -> centered(1.0f, new Line(0, -lh / 2, "§c§l!!!"));
+            case 14 -> centered(1.0f, new Line(0, -lh / 2, "§c§lINSIDE TENTACLE RANGE!"));
             default -> throw new IllegalArgumentException("No HUD element " + i);
         };
     }
@@ -318,6 +401,7 @@ public class HudEditorScreen extends Screen {
     }
 
     private int[] localBounds(Element e) {
+        if (e.painter() != null) return new int[]{ 0, 0, Math.max(1, e.paintW()), Math.max(1, e.paintH()) };
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
         for (Line l : e.lines()) {
             int x = lineX(e, l);
@@ -357,7 +441,7 @@ public class HudEditorScreen extends Screen {
     }
 
     private int elementAt(double mx, double my) {
-        for (int i = 0; i < N; i++) if (hit(box(i), mx, my)) return i;
+        for (int i = 0; i < n; i++) if (hit(box(i), mx, my)) return i;
         return -1;
     }
 
@@ -377,6 +461,7 @@ public class HudEditorScreen extends Screen {
             ctx.fill(-half - 1, -1,       -half,    HP_BAR_H + 1, 0xFF000000);
             ctx.fill( half,     -1,       half + 1, HP_BAR_H + 1, 0xFF000000);
         }
+        if (e.painter() != null) e.painter().accept(ctx);
         for (Line l : e.lines()) ctx.text(font, l.text(), lineX(e, l), l.y(), 0xFFFFFFFF, true);
         m.popMatrix();
     }
@@ -461,6 +546,15 @@ public class HudEditorScreen extends Screen {
         px[11] = 0.556f; py[11] = 0.958f; ps[11] = 1.0f;
         px[12] = 0.5f;  py[12] = 0.25f; ps[12] = 1.0f;
         px[13] = 0.5f;  py[13] = 0.35f; ps[13] = 3.0f;
+        px[14] = 0.5f;  py[14] = 0.42f; ps[14] = 2.0f;
+        for (int k = 0; k < abilityIds.size(); k++) {
+            int i = BASE_N + k;
+            if (isList(abilityIds.get(k))) {
+                float[] d = PhantomConfig.abilities().defaultListPos(listGroup(abilityIds.get(k)));
+                px[i] = d[0]; py[i] = d[1]; ps[i] = d[2];
+            }
+            else { px[i] = 0.4f; py[i] = Math.min(0.9f, 0.5f + 0.05f * k); ps[i] = 1.0f; }
+        }
     }
 
     private static float clamp01(float v)    { return Math.max(0f, Math.min(1f, v)); }

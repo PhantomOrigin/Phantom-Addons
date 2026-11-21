@@ -7,6 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +29,12 @@ final class PvCollectionsPage {
 
     // ── Shared tile grid ──────────────────────────────────────────────────────
 
-    private record Tile(ItemStack icon, String name, String right, String sub, boolean maxed, boolean dim, List<String> tooltip) {}
+    private record Tile(ItemStack icon, String name, String right, String sub, boolean maxed, boolean dim, List<String> tooltip,
+                        double progress) {
+        Tile(ItemStack icon, String name, String right, String sub, boolean maxed, boolean dim, List<String> tooltip) {
+            this(icon, name, right, sub, maxed, dim, tooltip, -1);
+        }
+    }
 
     private static int tiles(PvPages.Ctx c, List<Tile> tiles, int x, int y, int w) {
         PvScreen s = c.s();
@@ -37,7 +43,9 @@ final class PvCollectionsPage {
         int cols = Math.max(1, w / Math.max(105, Math.round(140 * es)));
         int gap = 4;
         int cw = (w - (cols - 1) * gap) / cols;
-        int ch = slot + 8;
+        boolean bars = false;
+        for (Tile t : tiles) bars |= t.progress >= 0;
+        int ch = slot + (bars ? 11 : 8);
         for (int i = 0; i < tiles.size(); i++) {
             Tile t = tiles.get(i);
             int cx = x + (i % cols) * (cw + gap), cy = y + (i / cols) * (ch + gap);
@@ -53,6 +61,12 @@ final class PvCollectionsPage {
             s.text(c.g(), (t.dim ? "§7" : "") + name, tx, cy + 4, PvTheme.text(), ns);
             s.text(c.g(), t.right, cx + cw - 5 - rightW, cy + 4, t.maxed ? PvTheme.accent() : PvTheme.text(), ns);
             s.text(c.g(), t.sub, tx, cy + 6 + c.lh(ns), PvTheme.dim(), is);
+            if (t.progress >= 0) {
+                int bx = cx + 5, bw = cw - 10, by = cy + ch - 5;
+                GuiDraw.roundedFill(c.g(), bx, by, bx + bw, by + 2, PvTheme.barBg(), 1);
+                int fw = (int) Math.round(bw * Math.min(1.0, t.progress));
+                if (fw > 0) GuiDraw.roundedFill(c.g(), bx, by, bx + fw, by + 2, t.maxed ? PvTheme.accent() : PvTheme.barFg(), 1);
+            }
             if (hov && t.tooltip != null) s.tooltipLines(t.tooltip);
         }
         int rows = (tiles.size() + cols - 1) / cols;
@@ -248,10 +262,10 @@ final class PvCollectionsPage {
             labels.add(PvJson.str(e.getValue(), PvProfileView.prettify(e.getKey()), "name").replaceAll("§.", ""));
         }
 
-        int totalTiers = 0, unlocked = 0, completed = 0, families = 0;
-        Map<String, List<Tile>> perIsland = new HashMap<>();
-        for (String key : islandKeys) {
-            List<Tile> tiles = new ArrayList<>();
+        int totalTiers = 0, unlocked = 0, completed = 0;
+        List<Family> fams = new ArrayList<>();
+        for (int i = 0; i < islandKeys.size(); i++) {
+            String key = islandKeys.get(i), location = labels.get(i);
             for (JsonElement mob : consts.getAsJsonObject(key).getAsJsonArray("mobs")) {
                 JsonObject o = mob.getAsJsonObject();
                 double k = 0;
@@ -261,21 +275,17 @@ final class PvCollectionsPage {
                 int maxTier = 0;
                 for (long t : th) { if (t <= cap) maxTier++; else break; }
                 int tier = Math.min(maxTier, PvPages.cumulativeLevel(k, th));
-                families++;
+                long prevAt = tier > 0 ? th[tier - 1] : 0;
+                long nextAt = tier < maxTier ? th[tier] : prevAt;
+                Family f = new Family(i, location, PvJson.str(o, "?", "name").replaceAll("§.", ""),
+                        head(PvJson.str(o, "", "texture")), k, tier, maxTier, prevAt, nextAt);
+                fams.add(f);
                 totalTiers += tier;
-                if (k > 0) unlocked++;
-                if (maxTier > 0 && tier >= maxTier) completed++;
-                String name = PvJson.str(o, "?", "name").replaceAll("§.", "");
-                List<String> tip = new ArrayList<>();
-                tip.add("§a" + name + " " + PvPages.roman(tier));
-                tip.add("§7Kills: §e" + PvPages.num(k));
-                tip.add(tier >= maxTier ? "§6MAXED" : "§7Next tier: §e" + PvPages.num(th[tier]) + " kills");
-                tiles.add(new Tile(head(PvJson.str(o, "", "texture")), name,
-                        PvPages.roman(tier) + "/" + PvPages.roman(maxTier), PvPages.shortNum(k) + " kills",
-                        maxTier > 0 && tier >= maxTier, k <= 0, tip));
+                if (f.started()) unlocked++;
+                if (f.maxed()) completed++;
             }
-            perIsland.put(key, tiles);
         }
+        int families = fams.size();
 
         int yy = y0;
         int third = avail / 3;
@@ -286,9 +296,96 @@ final class PvCollectionsPage {
         s.text(c.g(), "§7Family tiers: §r" + totalTiers, x0, yy, PvTheme.text(), 0.85f * es);
         yy += c.lh(0.85f * es) + 8;
 
-        yy += s.innerTabsRow(c.g(), c.key(), labels.toArray(new String[0]), x0, yy, avail, c.mx(), c.my()) + 8;
-        String island = islandKeys.get(Math.min(s.innerTab(c.key()), islandKeys.size() - 1));
-        yy += tiles(c, perIsland.get(island), x0, yy, avail);
+        yy += s.searchBox(c.g(), c.key(), "Search bestiary families or locations", x0, yy, avail, c.mx(), c.my()) + 6;
+        String query = s.search(c.key()).trim().toLowerCase(Locale.ROOT);
+
+        int inProgress = 0, notStarted = 0;
+        for (Family f : fams) {
+            if (!f.started()) notStarted++;
+            else if (!f.maxed()) inProgress++;
+        }
+        String[] views = { "All §7(" + families + ")", "In Progress §7(" + inProgress + ")", "Maxed §7(" + completed + ")",
+                "Not Started §7(" + notStarted + ")", "By Location" };
+        yy += s.innerTabsRow(c.g(), c.key(), views, x0, yy, avail, c.mx(), c.my()) + 8;
+        int view = Math.min(s.innerTab(c.key()), views.length - 1);
+
+        List<Family> shown = new ArrayList<>();
+        for (Family f : fams) {
+            if (!query.isEmpty()) {
+                if (f.name.toLowerCase(Locale.ROOT).contains(query) || f.location.toLowerCase(Locale.ROOT).contains(query)) shown.add(f);
+                continue;
+            }
+            boolean in = switch (view) {
+                case 1 -> f.started() && !f.maxed();
+                case 2 -> f.maxed();
+                case 3 -> !f.started();
+                default -> true;
+            };
+            if (in) shown.add(f);
+        }
+        Comparator<Family> byLevel = Comparator.comparingInt(Family::tier).reversed()
+                .thenComparing(Comparator.comparingDouble(Family::kills).reversed()).thenComparing(Family::name);
+        boolean grouped = query.isEmpty() && view == 4;
+        if (query.isEmpty() && view == 1) {
+            shown.sort(Comparator.comparingDouble(Family::progress).reversed().thenComparing(byLevel));
+        } else if (query.isEmpty() && view == 3) {
+            shown.sort(Comparator.comparingInt(Family::island).thenComparing(Family::name));
+        } else {
+            shown.sort(byLevel);
+        }
+
+        if (shown.isEmpty()) {
+            s.text(c.g(), query.isEmpty() ? "Nothing here yet." : "No bestiary families match \"" + query + "\".",
+                    x0, yy, PvTheme.dim(), 0.85f * es);
+            return yy - y0 + c.lh(0.85f * es);
+        }
+        if (!grouped) {
+            List<Tile> tiles = new ArrayList<>();
+            for (Family f : shown) tiles.add(tileOf(f));
+            yy += tiles(c, tiles, x0, yy, avail);
+            return yy - y0;
+        }
+        for (int i = 0; i < islandKeys.size(); i++) {
+            final int island = i;
+            List<Family> here = new ArrayList<>();
+            for (Family f : shown) if (f.island == island) here.add(f);
+            if (here.isEmpty()) continue;
+            int done = 0;
+            for (Family f : here) if (f.maxed()) done++;
+            s.text(c.g(), labels.get(i) + " §7" + done + "/" + here.size() + " maxed", x0, yy, PvTheme.accent(), 0.9f * es);
+            yy += c.lh(0.9f * es) + 4;
+            List<Tile> tiles = new ArrayList<>();
+            for (Family f : here) tiles.add(tileOf(f));
+            yy += tiles(c, tiles, x0, yy, avail) + 6;
+        }
         return yy - y0;
+    }
+
+    private record Family(int island, String location, String name, ItemStack icon, double kills, int tier, int maxTier,
+                          long prevAt, long nextAt) {
+        boolean started() { return kills > 0; }
+        boolean maxed() { return maxTier > 0 && tier >= maxTier; }
+
+        double progress() {
+            if (maxed()) return 1;
+            return nextAt > prevAt ? Math.max(0, Math.min(1, (kills - prevAt) / (double) (nextAt - prevAt))) : 0;
+        }
+    }
+
+    private static Tile tileOf(Family f) {
+        List<String> tip = new ArrayList<>();
+        tip.add("§a" + f.name);
+        tip.add("§7Location: §f" + f.location);
+        tip.add("§7Level: §f" + PvPages.roman(f.tier) + " §7/ §f" + PvPages.roman(f.maxTier));
+        tip.add("§7Kills: §e" + PvPages.num(f.kills));
+        if (f.maxed()) {
+            tip.add("§6MAXED");
+        } else {
+            tip.add("§7Next level at: §e" + PvPages.num(f.nextAt) + " kills §8(" + PvPages.num(Math.max(0, f.nextAt - f.kills)) + " to go)");
+        }
+        String sub = f.maxed() ? PvPages.shortNum(f.kills) + " kills"
+                : PvPages.shortNum(f.kills) + " / " + PvPages.shortNum(f.nextAt) + " kills";
+        return new Tile(f.icon, f.name, PvPages.roman(f.tier) + "/" + PvPages.roman(f.maxTier), sub,
+                f.maxed(), !f.started(), tip, f.progress());
     }
 }

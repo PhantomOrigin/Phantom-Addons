@@ -95,9 +95,28 @@ public class PhantomScreen extends Screen {
         for (Feature f : allLeaves) f.cancel();
     }
 
-    private SoundPicker openPicker() {
-        for (Feature f : allLeaves) if (f instanceof SoundPicker sp && sp.hasPopup()) return sp;
+    private Popup openPicker() {
+        for (Feature f : allLeaves) if (f instanceof Popup sp && sp.hasPopup()) return sp;
         return null;
+    }
+
+    private void refreshDynamic() {
+        boolean changed = false;
+        for (Group g : new ArrayList<>(allGroups)) {
+            if (g.populate == null) continue;
+            Object now = g.stamp.get();
+            if (java.util.Objects.equals(now, g.lastStamp)) continue;
+            g.lastStamp = now;
+            g.children.clear();
+            g.populate.accept(g);
+            changed = true;
+        }
+        if (changed) {
+            allLeaves.clear();
+            allGroups.clear();
+            collect(roots);
+            filteredQuery = null;
+        }
     }
 
     private void buildFeatures() {
@@ -405,7 +424,7 @@ public class PhantomScreen extends Screen {
             if (f instanceof KeyCapture kc && kc.capturing) { kc.onMouseButton(click.button()); return true; }
         }
 
-        SoundPicker picker = openPicker();
+        Popup picker = openPicker();
         if (picker != null && click.button() == InputConstants.MOUSE_BUTTON_LEFT) return picker.popupClick(click.x(), click.y());
 
         if (super.mouseClicked(click, isDoubleClick)) return true;
@@ -522,7 +541,7 @@ public class PhantomScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hScroll, double vScroll) {
-        SoundPicker picker = openPicker();
+        Popup picker = openPicker();
         if (picker != null && picker.popupScroll(mx, my, vScroll)) return true;
         if (mx >= px() && mx <= px() + SIDEBAR_W && my >= py() + HEADER_H && my <= py() + PANEL_H) {
             tabScroll -= (int)(vScroll * 12); return true;
@@ -569,6 +588,7 @@ public class PhantomScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         this.frameDelta = delta;
+        refreshDynamic();
         updateTextInput();
         extractBackground(ctx, mx, my, delta);
 
@@ -630,7 +650,7 @@ public class PhantomScreen extends Screen {
         renderTabs(ctx, px, py, mx, my);
         renderSidebarBar(ctx, px, py, mx, my);
         renderContent(ctx, mx, my);
-        SoundPicker picker = openPicker();
+        Popup picker = openPicker();
         if (picker != null) {
             picker.setArea(cx(), cy(), cw(), ch());
             picker.renderPopup(ctx, this, mx, my);

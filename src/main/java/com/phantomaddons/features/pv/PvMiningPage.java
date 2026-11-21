@@ -104,13 +104,14 @@ final class PvMiningPage {
         yy += 6;
         yy += s.title(c.g(), "Powder", x0, yy);
         for (String[] p : POWDERS) {
-            double cur = PvJson.num(core, 0, "powder_" + p[0]);
-            double spent = PvJson.num(core, 0, "powder_spent_" + p[0]);
+            double total = PvJson.num(core, 0, "powder_" + p[0]);
+            double spent = Math.min(total, PvJson.num(core, 0, "powder_spent_" + p[0] + (preset > 1 ? "_" + preset : "")));
+            double cur = total - spent;
             int rowY = yy;
-            yy += s.statRow(c.g(), p[1], PvPages.shortNum(cur) + " §7/ " + PvPages.shortNum(cur + spent), x0, yy, infoW, ss);
+            yy += s.statRow(c.g(), p[1], PvPages.shortNum(cur) + " §7/ " + PvPages.shortNum(total), x0, yy, infoW, ss);
             if (s.hovered(c.mx(), c.my(), x0, rowY, infoW, c.lh(ss) + 3))
                 s.tooltip(p[1] + " Powder", "§7Available: §e" + PvPages.num(cur), "§7Spent: §e" + PvPages.num(spent),
-                        "§7Total: §e" + PvPages.num(cur + spent));
+                        "§7Total: §e" + PvPages.num(total));
         }
 
         int tx = x0 + infoW + 12;

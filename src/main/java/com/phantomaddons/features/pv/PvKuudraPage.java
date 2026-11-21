@@ -5,7 +5,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 final class PvKuudraPage {
 
@@ -14,7 +13,8 @@ final class PvKuudraPage {
     private static final String[][] TIERS = {
             { "none", "Basic" }, { "hot", "Hot" }, { "burning", "Burning" }, { "fiery", "Fiery" }, { "infernal", "Infernal" } };
 
-    private record Entry(PvProfileView.Loadout loadout, String setLabel) {}
+    /** {@code loadout} is null when no saved loadout uses the armor set. */
+    private record Entry(PvProfileView.Loadout loadout, String setLabel, int wardrobeSlot) {}
 
     static int render(PvPages.Ctx c) {
         float es = c.es();
@@ -129,15 +129,13 @@ final class PvKuudraPage {
                 if (lo.armorSet() != ks.slotNumber()) continue;
                 if (pick == null || (lo.active() && !pick.active())) pick = lo;
             }
-            if (pick != null) entries.add(new Entry(pick, ks.label()));
+            entries.add(new Entry(pick, ks.label(), ks.slotNumber()));
         }
 
-        int titleH = s.title(c.g(), "Kuudra Loadouts §7(" + entries.size() + ")", x, y);
+        int saved = (int) entries.stream().filter(e -> e.loadout() != null).count();
+        int titleH = s.title(c.g(), "Kuudra Loadouts §7(" + saved + ")", x, y);
         if (entries.isEmpty()) {
-            String msg = v.analysis.kuudraSets.isEmpty()
-                    ? "No Kuudra armor sets found in the wardrobe."
-                    : "No saved loadouts use the detected sets: " + v.analysis.kuudraSets.stream()
-                            .map(k -> k.label() + " (#" + k.slotNumber() + ")").collect(Collectors.joining(", "));
+            String msg = "No Kuudra armor sets found in the wardrobe.";
             float ms = 0.85f * es;
             var lines = s.pvFont().split(net.minecraft.network.chat.Component.literal(msg), (int) (w / ms));
             int ly = y + titleH;
@@ -181,6 +179,7 @@ final class PvKuudraPage {
                              int slot, int g, int ip, float ts, float is) {
         PvScreen s = c.s();
         PvProfileView.Loadout lo = e.loadout();
+        if (lo == null) { setOnly(c, e, v, x, y, w, h, slot, g, ip, ts, is); return; }
         com.phantomaddons.gui.GuiDraw.roundedFill(c.g(), x, y, x + w, y + h, PvTheme.overlay(lo.active() ? 0x18 : 0x10), 5);
         if (lo.active()) com.phantomaddons.gui.GuiDraw.roundedFill(c.g(), x + 3, y, x + w - 3, y + 2, PvTheme.on(), 1);
 
@@ -215,6 +214,25 @@ final class PvKuudraPage {
         if (s.hovered(c.mx(), c.my(), x, infoY, w, 2 * (c.lh(is) + 2)))
             s.tooltip("§e" + lo.name(), "§7Set: §r" + e.setLabel(), "§7Power Stone: §r" + power,
                     "§7Tuning: §r" + (lo.tuning().isEmpty() ? "None" : PvScreen.tuningString(lo.tuning())));
+    }
+
+    private static void setOnly(PvPages.Ctx c, Entry e, PvProfileView v, int x, int y, int w, int h,
+                                int slot, int g, int ip, float ts, float is) {
+        PvScreen s = c.s();
+        com.phantomaddons.gui.GuiDraw.roundedFill(c.g(), x, y, x + w, y + h, PvTheme.overlay(0x10), 5);
+        int yy = y + ip;
+        centered(c, fit(s, "§e" + e.setLabel(), w - 2 * ip, ts), x, w, yy, PvTheme.text(), ts);
+        yy += c.lh(ts) + 2;
+        centered(c, fit(s, "§7Wardrobe #" + e.wardrobeSlot(), w - 2 * ip, ts), x, w, yy, PvTheme.text(), ts);
+        yy += c.lh(ts) + 4;
+        PvProfileView.WardrobeSet armor = v.armorSet(e.wardrobeSlot());
+        int sx = x + (w - slot) / 2;
+        for (int r = 0; r < 4; r++) {
+            ItemStack a = armor != null && r < armor.items().length ? armor.items()[r] : ItemStack.EMPTY;
+            s.slot(c.g(), sx, yy + r * (slot + g), slot, a, c.mx(), c.my());
+        }
+        yy += 4 * (slot + g) + 2 + slot + 4;
+        centered(c, "§8No saved loadout", x, w, yy, PvTheme.text(), is);
     }
 
     private static void centered(PvPages.Ctx c, String text, int x, int w, int y, int color, float scale) {

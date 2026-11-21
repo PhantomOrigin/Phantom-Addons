@@ -20,7 +20,6 @@ public final class SuppliesTab {
                 PhantomConfig::isEtherwarpWaypointsEnabled, PhantomConfig::setEtherwarpWaypointsEnabled)
                 .withTooltip("Shows where to etherwarp during supplies."));
 
-        // Pearl waypoints — everything related lives under this dropdown
         Group wp = m.group("Dynamic Waypoints", PhantomConfig::isPearlWaypointsEnabled, PhantomConfig::setPearlWaypointsEnabled)
                 .withTooltip("Shows where to aim your pearls.");
         wp.add(new Toggle("Show All Waypoints",
@@ -145,6 +144,9 @@ public final class SuppliesTab {
         reach.add(new Toggle("Highlight Lava",
                 PhantomConfig::isTentacleReachLava, PhantomConfig::setTentacleReachLava)
                 .withTooltip("Also shows the reach over lava."));
+        reach.add(new Toggle("Inside Range Warning",
+                PhantomConfig::isTentacleReachWarning, PhantomConfig::setTentacleReachWarning)
+                .withTooltip("Shows a warning on your screen while you are inside a tentacle's reach."));
         reach.add(new Slider("Opacity",
                 PhantomConfig::getTentacleReachOpacity, PhantomConfig::setTentacleReachOpacity, "%")
                 .withTooltip("How see-through the highlight is."));

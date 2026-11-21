@@ -17,6 +17,9 @@ public final class Group extends Node {
     final Consumer<Boolean> set;
     final List<Node> children = new ArrayList<>();
     String tooltip;
+    Supplier<Object> stamp;
+    Consumer<Group> populate;
+    Object lastStamp;
     BooleanSupplier warnWhen;
     String warnText;
 
@@ -29,6 +32,14 @@ public final class Group extends Node {
     public Group withTooltip(String t) { this.tooltip = t; return this; }
     public Group withWarning(BooleanSupplier when, String text) { this.warnWhen = when; this.warnText = text; return this; }
     boolean warning() { return warnWhen != null && warnWhen.getAsBoolean(); }
+    public Group dynamic(Supplier<Object> stamp, Consumer<Group> populate) {
+        this.stamp = stamp;
+        this.populate = populate;
+        return this;
+    }
+    public Group sub(String id, String title) {
+        return new Group(title, tab, key + "/" + id, null, null);
+    }
     public Group add(Feature f)        { children.add(new Leaf(f, tab)); return this; }
     public Group add(Group g)          { children.add(g); return this; }
 }

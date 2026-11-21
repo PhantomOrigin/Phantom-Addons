@@ -65,10 +65,15 @@ final class PvStoragePage {
         int gy = ly + s.lineH(ls) + 5;
         boolean showValue = kind != Kind.RIFT_ENDER;
         int valueH = showValue ? s.lineH(ls) + 6 : 0;
-        // Arrows under the grid step through the pages, like the buttons above it.
         int arrowsH = count > 1 ? s.lineH(Math.min(s.es, 1.2f)) + 10 : 0;
-        int sz = s.fitSlot((w - 2 * pad) / 9.12, (h - (gy - y0) - 2 * pad - valueH - arrowsH) / (rows * 1.12));
+        double slotsAvailH = h - (gy - y0) - 2 * pad - valueH - arrowsH;
+        int sz = s.fitSlot((w - 2 * pad) / 9.12, slotsAvailH / (rows * 1.12));
         int g = PvScreen.gapFor(sz);
+        int tallest = rows;
+        if (backpacks) for (PvProfileView.Backpack b : v.backpacks) tallest = Math.max(tallest, (b.items().size() + 8) / 9);
+        else tallest = Math.max(tallest, (Math.min(chest.size(), ENDER_PAGE) + 8) / 9);
+        int tallSz = s.fitSlot((w - 2 * pad) / 9.12, slotsAvailH / (tallest * 1.12));
+        int pagerY = Math.max(gy + tallest * (tallSz + PvScreen.gapFor(tallSz)) + valueH + 4, gy + rows * (sz + g) + valueH + 4);
         int gridW = 9 * (sz + g) - g;
         int gx = x + (w - gridW) / 2;
         for (int i = 0; i < rows * 9; i++) {
@@ -82,8 +87,8 @@ final class PvStoragePage {
                     : PvNetworth.status(v));
             s.text(ctx, text, x + (w - s.textW(text, ls)) / 2, gy + rows * (sz + g) + 4, C_TEXT, ls);
         }
-        if (count > 1) s.pager(ctx, key, count, "Page " + (page + 1) + " / " + count, x, gy + rows * (sz + g) + valueH + 4, w, mx, my);
-        return gy - y0 + rows * (sz + g) + valueH + arrowsH;
+        if (count > 1) s.pager(ctx, key, count, "Page " + (page + 1) + " / " + count, x, pagerY, w, mx, my);
+        return count > 1 ? pagerY - 4 + arrowsH - y0 : gy - y0 + rows * (sz + g) + valueH;
     }
 
     static int pageButtons(PvScreen s, GuiGraphicsExtractor ctx, int key, int count, int page,

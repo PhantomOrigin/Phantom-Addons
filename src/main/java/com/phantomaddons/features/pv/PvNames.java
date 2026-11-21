@@ -39,13 +39,25 @@ final class PvNames {
         return f != null && f.isCompletedExceptionally();
     }
 
+    static String currentName(String uuid) {
+        try {
+            return lookup(uuid, 3_000, 4_000);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     private static String lookup(String uuid) {
+        return lookup(uuid, 6_000, 8_000);
+    }
+
+    private static String lookup(String uuid, int connectMs, int readMs) {
         try {
             HttpURLConnection conn = (HttpURLConnection) URI.create(
                     "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.replace("-", "")).toURL().openConnection();
             conn.setRequestProperty("User-Agent", "PhantomAddons-ProfileViewer");
-            conn.setConnectTimeout(6_000);
-            conn.setReadTimeout(8_000);
+            conn.setConnectTimeout(connectMs);
+            conn.setReadTimeout(readMs);
             if (conn.getResponseCode() != 200) throw new IOException("HTTP " + conn.getResponseCode());
             try (InputStream in = conn.getInputStream()) {
                 JsonObject o = JsonParser.parseString(new String(in.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();

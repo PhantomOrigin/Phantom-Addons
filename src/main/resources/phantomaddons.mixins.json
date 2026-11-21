@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "UseItemMixin",
+    "MinecraftAttackMixin",
     "ClientCommandInternalsMixin",
     "CommandSuggestionsMixin",
     "ContainerScreenMixin",
@@ -31,7 +32,8 @@
     "ChatCardMixin",
     "ChatComponentMixin",
     "ChatComponentAccessor",
-    "ChatScreenMixin"
+    "ChatScreenMixin",
+    "OpenScreenPacketMixin"
   ],
   "injectors": {
     "defaultRequire": 1

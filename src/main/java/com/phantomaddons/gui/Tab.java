@@ -10,6 +10,7 @@ enum Tab {
     LOADOUTS(     "Skyblock", "Loadouts", LoadoutsTab::build),
     PROFILE_VIEWER("Skyblock", "Profile Viewer", ProfileViewerTab::build),
     RENDER(       "Skyblock", "Render",   RenderTab::build),
+    ABILITY_COOLDOWNS("Skyblock", "Ability Cooldowns", AbilityCooldownsTab::build),
     MISC_SKYBLOCK("Skyblock", "Misc",     MiscSkyblockTab::build),
 
     SUPPLIES(   "Kuudra", "Supplies", SuppliesTab::build),
@@ -20,8 +21,8 @@ enum Tab {
 
     DUNGEONS_M7("Dungeons", "M7", DungeonsTab::build),
 
-    FLUID_CUSTOM("Customisation", "Lava Customisation", LavaCustomisationTab::build),
-    ITEM_CUSTOM( "Customisation", "Item Customisation", ItemCustomisationTab::build),
+    FLUID_CUSTOM("Customisation", "Lava", LavaCustomisationTab::build),
+    ITEM_CUSTOM( "Customisation", "Animations", ItemCustomisationTab::build),
     VISUAL_WORDS("Customisation", "Visual Words",       VisualWordsTab::build);
 
     final String category;

@@ -105,6 +105,7 @@ public final class TentacleGrabWarning {
             double hx = mob.getX() - player.x, hz = mob.getZ() - player.z;   // horizontal only: tentacles are tall, so 3D distance would clip them
             if (hx * hx + hz * hz > TRACK_DISTANCE * TRACK_DISTANCE) continue;
             if (mob.isInvisible()) {
+                if (TentacleReach.isBridgeAnimation(mob.getX(), mob.getZ()) && !cubes.containsKey(mob.getUUID())) continue;   // the bridge animation, not a tentacle
                 anchors.add(mob);
             } else {
                 chain.add(mob);

@@ -256,8 +256,6 @@ public final class PvItems {
         return head;
     }
 
-    // details come from the community NotEnoughUpdates repo
-
     public record RepoItem(String displayName, ItemStack stack) {}
 
     private static final String NEU_ITEMS =
@@ -340,6 +338,40 @@ public final class PvItems {
 
     private static CompletableFuture<RepoItem> repoFuture(String id) {
         return REPO.computeIfAbsent(id, k -> CompletableFuture.supplyAsync(() -> fetchRepoItem(k), EXECUTOR));
+    }
+
+    static List<String> fetchDescription(String id) {
+        try {
+            HttpURLConnection conn = (HttpURLConnection) URI.create(
+                    NEU_ITEMS + URLEncoder.encode(id, StandardCharsets.UTF_8) + ".json").toURL().openConnection();
+            conn.setRequestProperty("User-Agent", "PhantomAddons-ProfileViewer");
+            conn.setConnectTimeout(8_000);
+            conn.setReadTimeout(15_000);
+            int code = conn.getResponseCode();
+            if (code == 404) return List.of();
+            if (code != 200) return null;
+            String body;
+            try (InputStream is = conn.getInputStream()) { body = new String(is.readAllBytes(), StandardCharsets.UTF_8); }
+            JsonElement loreEl = JsonParser.parseString(body).getAsJsonObject().get("lore");
+            if (loreEl == null || !loreEl.isJsonArray()) return List.of();
+
+            List<String> out = new ArrayList<>();
+            boolean first = true; // the first line is the name
+            for (JsonElement l : loreEl.getAsJsonArray()) {
+                String line = l.getAsString();
+                if (first) { first = false; continue; }
+                String plain = line.replaceAll("§.", "");
+                if (plain.contains("You can Syphon") || plain.contains("Right-click") || plain.startsWith("❣")
+                        || plain.contains("SHARD (ID")) break;
+                out.add(line);
+            }
+            while (!out.isEmpty() && out.get(out.size() - 1).replaceAll("§.", "").isBlank()) out.remove(out.size() - 1);
+            return out;
+        } catch (IOException e) {
+            return null;
+        } catch (RuntimeException e) {
+            return List.of();
+        }
     }
 
     private static RepoItem fetchRepoItem(String id) {

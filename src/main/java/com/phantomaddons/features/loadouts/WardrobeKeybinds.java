@@ -27,6 +27,8 @@ public final class WardrobeKeybinds {
     private static volatile long nextAllowedAtMs    = 0;
     private static volatile long suppressReopenUntilMs = 0;
 
+    private static volatile long reopenCloseUntilMs = 0;
+    private static final long    REOPEN_CLOSE_TIMEOUT_MS = 3000;
     private static final long    ACTION_COOLDOWN_MS = 200;
     private static final int     CLOSE_DELAY_TICKS  = 1;
 
@@ -148,12 +150,31 @@ public final class WardrobeKeybinds {
     }
 
     private static void scheduleCloseAfterRelease(int keyCode) {
-        if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return; // not included in this edition
+        if (!com.phantomaddons.Edition.CURRENT.fullFeatureSet) return;
         if (!PhantomConfig.isWardrobeAutoCloseEnabled()) return;
-        suppressReopenUntilMs = System.currentTimeMillis() + SUPPRESS_REOPEN_MS + PhantomConfig.getWardrobeExtraAutoCloseMs();
-        if (keyCode < 0) { closeInTicks = CLOSE_DELAY_TICKS; return; }
-        pendingCloseKeyCode = keyCode;
-        pendingCloseTimeoutTicks = CLOSE_TIMEOUT_TICKS;
+        long now = System.currentTimeMillis();
+        if (PhantomConfig.isWardrobeAutoCloseSuppressWindow()) {
+            suppressReopenUntilMs = now + SUPPRESS_REOPEN_MS + PhantomConfig.getWardrobeExtraAutoCloseMs();
+        } else {
+            reopenCloseUntilMs = now + REOPEN_CLOSE_TIMEOUT_MS;
+        }
+        if (keyCode >= 0 && PhantomConfig.isWardrobeAutoCloseWaitForRelease()) {
+            pendingCloseKeyCode = keyCode;
+            pendingCloseTimeoutTicks = CLOSE_TIMEOUT_TICKS;
+        } else if (PhantomConfig.isWardrobeAutoCloseSuppressWindow()) {
+            closeInTicks = CLOSE_DELAY_TICKS;
+        } else {
+            closeContainerNow(Minecraft.getInstance());
+        }
+    }
+
+    public static void onOpenScreenPacket(Minecraft mc, String title) {
+        if (System.currentTimeMillis() >= reopenCloseUntilMs) return;
+        String t = strip(title);
+        if (!WARDROBE_TITLE_PATTERN.matcher(t).find() && !LOADOUTS_TITLE_PATTERN.matcher(t).find()) return;
+        reopenCloseUntilMs = 0;
+        if (pendingCloseKeyCode >= 0) return;
+        closeContainerNow(mc);
     }
 
     public static void onMouseReleased(int button) {
@@ -314,6 +335,8 @@ public final class WardrobeKeybinds {
         pendingCloseKeyCode      = -1;
         pendingCloseTimeoutTicks = -1;
         nextAllowedAtMs          = 0;
+        reopenCloseUntilMs       = 0;
+        suppressReopenUntilMs    = 0;
         for (int i = 0; i < prevDown.length; i++) prevDown[i] = false;
         mouseKeyPrevDown.clear();
     }

@@ -75,7 +75,7 @@ public final class PvConstants {
         return root != null ? PvJson.obj(root, "gems") : null;
     }
 
-    private static final java.util.Set<String> NO_RECOMB_KNOWN = java.util.Set.of("RUNEBOOK", "BEASTSLAYERS_CODEX", "SAFETY_BADGE",
+    private static final java.util.Set<String> NO_RECOMB_KNOWN = java.util.Set.of("RUNEBOOK", "BEASTSLAYERS_CODEX",
             "PANDORAS_BOX", "BOOK_OF_PROGRESSION", "VOTER_BADGE", "VOTER_BADGE_VIP", "VOTER_BADGE_ELITE", "VOTER_BADGE_SUPREME", "RIFT_PRISM");
     private static volatile JsonObject noRecombFor;
     private static volatile java.util.Set<String> noRecombCache = NO_RECOMB_KNOWN;

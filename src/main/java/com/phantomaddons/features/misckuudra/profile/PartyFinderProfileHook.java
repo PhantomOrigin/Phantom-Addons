@@ -2,9 +2,11 @@ package com.phantomaddons.features.misckuudra.profile;
 
 import com.phantomaddons.utils.TextUtil;
 import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +27,24 @@ public final class PartyFinderProfileHook {
 
     public static void reset() {
         wasTriggered = false;
+    }
+
+    public static void register() {
+        ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+            if (!com.phantomaddons.PhantomConfig.isPvPartyFinderPreview()) return;
+            Minecraft mc = Minecraft.getInstance();
+            if (!(mc.gui.screen() instanceof AbstractContainerScreen<?> screen)) return;
+            if (!strip(screen.getTitle().getString()).equalsIgnoreCase("Party Finder")) return;
+
+            boolean hasMembers = false, kuudra = false, dungeon = false;
+            for (Component line : lines) {
+                String text = strip(line.getString()).trim();
+                if (MEMBERS_HEADER.matcher(text).find()) hasMembers = true; // only a party has a members list
+                else if (text.startsWith("Tier:")) kuudra = true;
+                else if (text.startsWith("Dungeon:") || text.startsWith("Floor:")) dungeon = true;
+            }
+            if (hasMembers && kuudra && !dungeon) lines.add(Component.literal("§ePress §bShift §eto view profiles"));
+        });
     }
 
     public static void checkShiftHover(AbstractContainerScreen<?> screen, Slot hoveredSlot, Minecraft mc) {

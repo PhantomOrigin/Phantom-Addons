@@ -233,6 +233,7 @@ public class PhantomConfig {
     public static boolean  isTentacleReachEnabled() { return cfg.tentacleReachEnabled; }
     public static boolean  isTentacleReachGround() { return cfg.tentacleReachGround; }
     public static boolean  isTentacleReachLava() { return cfg.tentacleReachLava; }
+    public static boolean  isTentacleReachWarning() { return cfg.tentacleReachWarning; }
     public static float    getTentacleReachOpacity() { return Math.max(0.02f, Math.min(1.0f, cfg.tentacleReachOpacity)); }
     public enum PvTheme { MATCH, DARK, LIGHT }
     public static boolean  isPvEnabled()      { return RemoteFeatureGate.isEnabled() && cfg.pvEnabled; }
@@ -577,6 +578,7 @@ public class PhantomConfig {
     public static void setTentacleReachEnabled(boolean v) { cfg.tentacleReachEnabled = v; save(); }
     public static void setTentacleReachGround(boolean v) { cfg.tentacleReachGround = v; save(); }
     public static void setTentacleReachLava(boolean v) { cfg.tentacleReachLava = v; save(); }
+    public static void setTentacleReachWarning(boolean v) { cfg.tentacleReachWarning = v; save(); }
     public static void setTentacleReachOpacity(float v) { cfg.tentacleReachOpacity = Math.max(0.02f, Math.min(1.0f, v)); save(); }
     public static void setUiGuiScale(float v) { cfg.uiGuiScale = Math.max(0.7f, Math.min(1.6f, v)); save(); }
     public static void setUiTransparencyEnabled(boolean v) { cfg.uiTransparencyEnabled = v; save(); }
@@ -732,12 +734,20 @@ public class PhantomConfig {
     public static void setCratePriorityHudX(float v)      { cfg.cratePriorityHudX     = clamp01(v); }
     public static void setCratePriorityHudY(float v)      { cfg.cratePriorityHudY     = clamp01(v); }
     public static void setCratePriorityHudScale(float v)  { cfg.cratePriorityHudScale = clampHudScale(v); }
+    public static com.phantomaddons.features.abilities.AbilitySettings abilities() { return cfg.abilities; }
+
     public static float getTentacleWarnHudX()             { return cfg.tentacleWarnHudX; }
     public static float getTentacleWarnHudY()             { return cfg.tentacleWarnHudY; }
     public static float getTentacleWarnHudScale()         { return cfg.tentacleWarnHudScale; }
     public static void setTentacleWarnHudX(float v)       { cfg.tentacleWarnHudX     = clamp01(v); }
     public static void setTentacleWarnHudY(float v)       { cfg.tentacleWarnHudY     = clamp01(v); }
     public static void setTentacleWarnHudScale(float v)   { cfg.tentacleWarnHudScale = clampHudScale(v); }
+    public static float getTentacleReachWarnHudX()        { return cfg.tentacleReachWarnHudX; }
+    public static float getTentacleReachWarnHudY()        { return cfg.tentacleReachWarnHudY; }
+    public static float getTentacleReachWarnHudScale()    { return cfg.tentacleReachWarnHudScale; }
+    public static void setTentacleReachWarnHudX(float v)  { cfg.tentacleReachWarnHudX     = clamp01(v); }
+    public static void setTentacleReachWarnHudY(float v)  { cfg.tentacleReachWarnHudY     = clamp01(v); }
+    public static void setTentacleReachWarnHudScale(float v) { cfg.tentacleReachWarnHudScale = clampHudScale(v); }
     public static boolean isSupplyRecoveryMsgEnabled()      { return cfg.supplyRecoveryMsgEnabled; }
     public static void setSupplyRecoveryMsgEnabled(boolean v){ cfg.supplyRecoveryMsgEnabled = v;  save(); }
     public static boolean isFreshNotifyEnabled()            { return cfg.freshNotifyEnabled; }
@@ -848,7 +858,11 @@ public class PhantomConfig {
     public static void setWardrobeDisableUnequipEnabled(boolean v) { cfg.wardrobeDisableUnequipEnabled = v; save(); }
     public static boolean isWardrobeAutoCloseEnabled()           { return cfg.wardrobeAutoCloseEnabled; }
     public static void setWardrobeAutoCloseEnabled(boolean v)    { cfg.wardrobeAutoCloseEnabled = v; save(); }
-    public static int     getWardrobeExtraAutoCloseMs()          { return cfg.wardrobeExtraAutoCloseMs; }
+    public static boolean isWardrobeAutoCloseWaitForRelease()    { return cfg.wardrobeAutoCloseWaitForRelease; }
+    public static void setWardrobeAutoCloseWaitForRelease(boolean v) { cfg.wardrobeAutoCloseWaitForRelease = v; save(); }
+    public static boolean isWardrobeAutoCloseSuppressWindow()    { return cfg.wardrobeAutoCloseSuppressWindow; }
+    public static void setWardrobeAutoCloseSuppressWindow(boolean v) { cfg.wardrobeAutoCloseSuppressWindow = v; save(); }
+    public static int     getWardrobeExtraAutoCloseMs()         { return cfg.wardrobeExtraAutoCloseMs; }
     public static void setWardrobeExtraAutoCloseMs(int v)        { cfg.wardrobeExtraAutoCloseMs = Math.max(0, v); save(); }
     public static int  getLastEquippedWardrobeSlot()          { return cfg.lastEquippedWardrobeSlot; }
     public static void setLastEquippedWardrobeSlot(int v)     { cfg.lastEquippedWardrobeSlot = v; save(); }
@@ -1004,6 +1018,8 @@ public class PhantomConfig {
             d.kuudraPetLevel   = d.kuudraPetLevel > 0 ? Math.clamp(d.kuudraPetLevel, 1, 100) : cur.kuudraPetLevel;
             d.essenceOfCrimson = Math.clamp(d.essenceOfCrimson, 0, 10);
             d.echoOfEssence    = Math.clamp(d.echoOfEssence, 0, 10);
+            if (d.abilities == null) d.abilities = new com.phantomaddons.features.abilities.AbilitySettings();
+            d.abilities.sanitize();
 
             cfg = d;
 
@@ -1039,6 +1055,7 @@ public class PhantomConfig {
         d.itemCategorySettings = ItemCustomization.serialiseBuiltin();
         d.itemCustomCategories = ItemCustomization.serialiseCustom();
         d.notificationSounds   = new LinkedHashMap<>(notificationSounds);
+        d.abilities            = GSON.fromJson(GSON.toJson(cfg.abilities), com.phantomaddons.features.abilities.AbilitySettings.class);
 
         pendingWrite = d;
         lastSaveRequestMs = System.currentTimeMillis();
@@ -1279,6 +1296,7 @@ public class PhantomConfig {
         boolean tentacleReachEnabled = false;
         boolean tentacleReachGround = false;
         boolean tentacleReachLava = false;
+        boolean tentacleReachWarning = true;
         float   tentacleReachOpacity = 0.10f;
         boolean pvEnabled      = false;
         boolean pvPromptAnswered = false;
@@ -1433,6 +1451,9 @@ public class PhantomConfig {
         float tentacleWarnHudX       = 0.5f;
         float tentacleWarnHudY       = 0.35f;
         float tentacleWarnHudScale   = 3.0f;
+        float tentacleReachWarnHudX     = 0.5f;
+        float tentacleReachWarnHudY     = 0.42f;
+        float tentacleReachWarnHudScale = 2.0f;
         boolean supplyRecoveryMsgEnabled = false;
         boolean freshNotifyEnabled       = false;
         boolean buildStartedNotifyEnabled= false;
@@ -1491,6 +1512,8 @@ public class PhantomConfig {
         boolean wardrobeDisableUnequipEnabled = true;
         boolean wardrobeAutoCloseEnabled      = true;
         int     wardrobeExtraAutoCloseMs      = 0;
+        boolean wardrobeAutoCloseWaitForRelease = false;
+        boolean wardrobeAutoCloseSuppressWindow = false;
         int     lastEquippedWardrobeSlot      = -1;
 
         boolean autoGfsToxic    = false;
@@ -1545,6 +1568,7 @@ public class PhantomConfig {
         Map<String, ItemTransformSettings>               itemCategorySettings     = null;
         List<ItemCustomization.CustomCategory> itemCustomCategories     = null;
         LinkedHashMap<String, NotificationSound> notificationSounds     = null;
+        com.phantomaddons.features.abilities.AbilitySettings abilities  = new com.phantomaddons.features.abilities.AbilitySettings();
 
         @Override protected Data clone() {
             try { return (Data) super.clone(); }

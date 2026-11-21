@@ -68,9 +68,15 @@ public final class LoadoutsTab {
             loadouts.add(new Toggle("Auto Close Loadouts",
                     PhantomConfig::isWardrobeAutoCloseEnabled, PhantomConfig::setWardrobeAutoCloseEnabled)
                     .withTooltip("Closes the menu after you pick a loadout."));
+            loadouts.add(new Toggle("Wait For Key Release",
+                    PhantomConfig::isWardrobeAutoCloseWaitForRelease, PhantomConfig::setWardrobeAutoCloseWaitForRelease)
+                    .withTooltip("Waits until you let go of the key before closing the menu."));
+            loadouts.add(new Toggle("Suppress Reopen Window",
+                    PhantomConfig::isWardrobeAutoCloseSuppressWindow, PhantomConfig::setWardrobeAutoCloseSuppressWindow)
+                    .withTooltip("Closes any wardrobe/loadout menu that opens for a short time after picking, instead of closing when the server reopens it."));
             loadouts.add(new IntInput("Extra Auto Close Ms",
                     PhantomConfig::getWardrobeExtraAutoCloseMs, PhantomConfig::setWardrobeExtraAutoCloseMs)
-                    .withTooltip("Increases the menu suppression time after closing loadout menu. Increase this value if you see the menu reopen after closing"));
+                    .withTooltip("Only used with Suppress Reopen Window. Increases the suppression time. Increase this value if you see the menu reopen after closing"));
         }
         m.sound(loadouts, PhantomConfig.SOUND_WARDROBE_SWAP);
         m.add(loadouts);

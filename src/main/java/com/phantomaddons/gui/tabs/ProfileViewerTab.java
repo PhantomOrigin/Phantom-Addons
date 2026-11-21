@@ -1,6 +1,7 @@
 package com.phantomaddons.gui.tabs;
 
 import com.phantomaddons.PhantomConfig;
+import com.phantomaddons.features.misckuudra.profile.RemoteFeatureGate;
 import com.phantomaddons.gui.Cycle;
 import com.phantomaddons.gui.MenuBuilder;
 import com.phantomaddons.gui.RangeSlider;
@@ -23,6 +24,12 @@ public final class ProfileViewerTab {
         m.add(new Toggle("Party Finder Shift Preview",
                 PhantomConfig::isPvPartyFinderPreview, PhantomConfig::setPvPartyFinderPreview)
                 .withTooltip("Hold Shift over a party to preview its members' profiles."));
+
+        if (RemoteFeatureGate.isEnabled()) {
+            m.add(new Toggle("Kuudra Profile Viewer",
+                    PhantomConfig::isProfileViewerEnabled, PhantomConfig::setProfileViewerEnabled)
+                    .withTooltip("Adds the /kuudra command and a profile prompt when players join your party."));
+        }
 
         m.add(new Toggle("Preserve Last Open Page",
                 PhantomConfig::isPvRememberPage, PhantomConfig::setPvRememberPage)

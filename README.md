@@ -64,6 +64,7 @@
 - Waypoint Line
 - Tentacle Grab Prediction
 - Tentacle Reach Highlight
+- Inside Tentacle Range Notification
 </details>
 
 <details>
@@ -235,6 +236,7 @@ Type these in party chat. They can be switched on or off in the settings.
 - Bazaar prices, player profiles, museum, garden and online status from the [Hypixel Public API](https://api.hypixel.net)
 - Lowest BIN prices from [Tricked's lowest bins](https://lb.tricked.pro/lowestbins)
 - Profile viewer game data from the [NotEnoughUpdates-REPO](https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO) contributors (MIT)
+- Attribute shard level values from [SkyShards](https://github.com/Campionnn/SkyShards) (MIT)
 - Username and UUID lookups via [PlayerDB](https://playerdb.co) and the [Mojang session server](https://wiki.vg/Mojang_API)
 - [Sodium](https://modrinth.com/mod/sodium) by CaffeineMC, which the lava effects are built on, with [Iris](https://modrinth.com/mod/iris) compatibility
 - [Fabric](https://fabricmc.net) Loader and Fabric API

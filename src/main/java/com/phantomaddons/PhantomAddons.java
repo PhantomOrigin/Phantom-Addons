@@ -109,6 +109,7 @@ public class PhantomAddons implements ClientModInitializer {
         FastDpsWarning.register();
         com.phantomaddons.features.stundps.DpsWaypoint.register();
         PartyCommands.register();
+        com.phantomaddons.features.misckuudra.profile.PartyFinderProfileHook.register();
         AutoRequeue.register();
         KuudraSplitTimer.register();
         SplitHud.register();
@@ -142,7 +143,10 @@ public class PhantomAddons implements ClientModInitializer {
         com.phantomaddons.features.misckuudra.KickedTimerHud.register();
         CratePriority.register();
         com.phantomaddons.features.supplies.tentaclewarn.TentacleGrabWarningHud.register();
+        com.phantomaddons.features.supplies.tentaclereach.TentacleReachWarningHud.register();
         com.phantomaddons.features.boss.KuudraHpHud.register();
+        com.phantomaddons.features.abilities.AbilityCooldowns.register();
+        com.phantomaddons.features.abilities.AbilityHud.register();
 
         com.phantomaddons.features.misckuudra.profittracker.ProfitStore.load();
         com.phantomaddons.features.misckuudra.profittracker.ProfitHud.register();

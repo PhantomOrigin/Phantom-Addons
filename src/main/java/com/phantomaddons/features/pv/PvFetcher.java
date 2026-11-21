@@ -98,6 +98,7 @@ public final class PvFetcher {
             try {
                 JsonObject body = PhantomApi.authed(base -> get(base + "/pv?" + query + nameParam));
                 body.remove("cached");
+                useCurrentName(body);
                 long now = System.currentTimeMillis();
                 PvData data = withTime(PvData.parse(body), now);
                 String id = data.uuid.toString().replace("-", "");
@@ -116,6 +117,15 @@ public final class PvFetcher {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }, PvItems.EXECUTOR);
+    }
+
+    private static void useCurrentName(JsonObject body) {
+        try {
+            if (!body.has("uuid")) return;
+            String current = PvNames.currentName(body.get("uuid").getAsString().replace("-", ""));
+            if (current != null && !current.isBlank()) body.addProperty("name", current);
+        } catch (RuntimeException ignored) {
+        }
     }
 
     public static CompletableFuture<PvData> peek(String name, UUID uuid) {

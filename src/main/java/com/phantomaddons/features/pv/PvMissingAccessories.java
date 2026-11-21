@@ -23,8 +23,44 @@ final class PvMissingAccessories {
 
     private static final List<List<String>> EXCLUSIVE = List.of(List.of("DANTE_TALISMAN", "DANTE_RING"));
 
-    record Entry(String id, String name, String tier, int mpGain, String from, double price, boolean recomb, int count) {
-        double perMp() { return price > 0 && mpGain > 0 ? price / mpGain : Double.MAX_VALUE; }
+    record Option(String id, String name, String tier, double price, int mpGain, int recombMp) {
+        double perMp() { return price >= 0 && mpGain > 0 ? price / mpGain : Double.MAX_VALUE; }
+
+        double costWith(double recombPrice) { return price >= 0 && recombMp >= 0 && recombPrice > 0 ? price + recombPrice : -1; }
+
+        double perMpWith(double recombPrice) {
+            double c = costWith(recombPrice);
+            return c >= 0 && recombMp > 0 ? c / recombMp : Double.MAX_VALUE;
+        }
+    }
+
+    record Entry(String id, String name, String tier, int mpGain, String from, double price, boolean recomb, int count,
+                 double sells, List<Option> lineup, int recombMp) {
+        Entry(String id, String name, String tier, int mpGain, String from, double price, boolean recomb, int count) {
+            this(id, name, tier, mpGain, from, price, recomb, count, 0, List.of(), -1);
+        }
+
+        double cost() { return price > 0 ? Math.max(0, price - sells) : -1; }
+
+        double perMp() { double c = cost(); return c >= 0 && mpGain > 0 ? c / mpGain : Double.MAX_VALUE; }
+
+        double costWith(double recombPrice) { double c = cost(); return c >= 0 && recombMp >= 0 && recombPrice > 0 ? c + recombPrice : -1; }
+
+        double perMpWith(double recombPrice) {
+            double c = costWith(recombPrice);
+            return c >= 0 && recombMp > 0 ? c / recombMp : Double.MAX_VALUE;
+        }
+
+        Entry withLineup(List<Option> options, int recombGain) {
+            return new Entry(id, name, tier, mpGain, from, price, recomb, count, sells, options, recombGain);
+        }
+    }
+
+    static double recombobulatorPrice() { return PvConstants.price("RECOMBOBULATOR_3000"); }
+
+    private static int recombGain(String id, String tier, int current) {
+        String next = recombobulatedTier(tier);
+        return next == null || PvConstants.noRecombobulator().contains(id) ? -1 : mp(next) - current;
     }
     record Result(List<Entry> upgrades, List<Entry> missing, int upgradeMp, int missingMp, boolean pricesLoaded) {}
 
@@ -41,13 +77,35 @@ final class PvMissingAccessories {
 
     static int mp(String tier) {
         return switch (tier) {
-            case "COMMON", "SPECIAL" -> 3;
-            case "UNCOMMON", "VERY_SPECIAL" -> 5;
+            case "COMMON" -> 3;
+            case "UNCOMMON" -> 5;
             case "RARE" -> 8;
             case "EPIC" -> 12;
             case "LEGENDARY" -> 16;
             case "MYTHIC", "DIVINE" -> 22;
             default -> 0;
+        };
+    }
+
+    static boolean isSpecial(String tier) {
+        return "SPECIAL".equals(tier) || "VERY_SPECIAL".equals(tier);
+    }
+
+    private static final java.util.regex.Pattern ACCESSORY_POWER = java.util.regex.Pattern.compile("Accessory Power: \\+?(\\d+)");
+
+    static int magicalPower(ItemStack stack, int rarityRgb) {
+        for (String line : PvGear.lore(stack)) {
+            java.util.regex.Matcher m = ACCESSORY_POWER.matcher(line);
+            if (m.find()) return Integer.parseInt(m.group(1));
+        }
+        return switch (rarityRgb) {
+            case 0xFFFFFF -> 3;
+            case 0x55FF55 -> 5;
+            case 0x5555FF -> 8;
+            case 0xAA00AA -> 12;
+            case 0xFFAA00 -> 16;
+            case 0xFF55FF, 0x55FFFF -> 22;
+            default -> 0; // special and very special
         };
     }
 
@@ -99,7 +157,7 @@ final class PvMissingAccessories {
             ItemStack s = v.accessories.get(i);
             owned.add(PvGear.id(s));
             if (!ownedMp.containsKey(PvGear.id(s)) && PvGear.data(s).getIntOr("rarity_upgrades", 0) > 0) ownedRecomb.add(PvGear.id(s));
-            ownedMp.putIfAbsent(PvGear.id(s), PvInactiveAccessories.magicalPower(s, v.accessoryColors.get(i)));
+            ownedMp.putIfAbsent(PvGear.id(s), magicalPower(s, v.accessoryColors.get(i)));
         }
         com.google.gson.JsonElement consumed = PvJson.path(v.member, "rift", "access", "consumed_prism");
         if (consumed != null && consumed.isJsonPrimitive() && consumed.getAsBoolean()) owned.add("RIFT_PRISM");
@@ -113,6 +171,7 @@ final class PvMissingAccessories {
         for (var e : all.entrySet()) {
             String id = e.getKey();
             if (owned.contains(id) || ignored.contains(id) || !seen.add(id)) continue;
+            if (isSpecial(PvJson.str(e.getValue(), "COMMON", "tier"))) continue;
             List<String> group = exclusiveGroup(id);
             if (group != null) {
                 if (group.stream().anyMatch(owned::contains)) continue;
@@ -141,8 +200,12 @@ final class PvMissingAccessories {
                 boolean recomb = ownedRecomb.contains(from) && recombobulatedTier(tier) != null
                         && !PvConstants.noRecombobulator().contains(id);
                 int gain = mp(recomb ? recombobulatedTier(tier) : tier) - current;
+                double oldPrice = PvConstants.price(from), newPrice = PvConstants.price(id), rp = recombobulatorPrice();
+                boolean adjust = oldPrice > 0 && newPrice > 0 && rp > 0;
+                double sale = oldPrice > 0 ? oldPrice + (adjust && ownedRecomb.contains(from) ? rp : 0) : 0;
+                double buy = adjust && recomb ? newPrice + rp : newPrice;
                 ups.add(new Entry(id, name, tier, gain, fromItem != null ? PvJson.str(fromItem, from, "name") : from,
-                        PvConstants.price(id), recomb, 0));
+                        buy, recomb, 0, sale, List.of(), recomb ? -1 : recombGain(id, tier, current)));
             } else if (id.equals(topListed(fam, all))) {
                 miss.add(new Entry(id, name, tier, mp(tier), null, PvConstants.price(id), false, 0));
             }
@@ -150,6 +213,7 @@ final class PvMissingAccessories {
         ups.addAll(recombobulators(v));
         if (bestHat != null) miss.add(bestHat);
         miss.addAll(bestAlternative.values());
+        attachLineups(ups, miss, family, all, ignored);
         Comparator<Entry> order = Comparator.comparingDouble((Entry en) -> en.perMp() == Double.MAX_VALUE ? en.perMp() : Math.round(en.perMp()))
                 .thenComparingInt(en -> en.count > 0 ? -rarityRank(en.tier) : 0)
                 .thenComparingInt(en -> -en.mpGain).thenComparing(Entry::name);
@@ -167,16 +231,44 @@ final class PvMissingAccessories {
         return new Result(ups, miss, upMp, missMp, pricesLoaded);
     }
 
-    private static List<Entry> recombobulators(PvProfileView v) {
-        java.util.Set<ItemStack> inactive = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-        List<PvInactiveAccessories.Entry> idle = PvInactiveAccessories.get(v);
-        if (idle != null) for (PvInactiveAccessories.Entry e : idle) inactive.add(e.stack());
+    private static void attachLineups(List<Entry> ups, List<Entry> miss, Map<String, List<String>> family,
+                                      Map<String, JsonObject> all, Set<String> ignored) {
+        Map<String, List<Option>> upgradeTiers = new HashMap<>();
+        for (Entry en : ups) {
+            if (en.count > 0) continue;
+            String root = family.getOrDefault(en.id, List.of(en.id)).get(0);
+            upgradeTiers.computeIfAbsent(root, k -> new ArrayList<>()).add(new Option(en.id, en.name, en.tier, en.cost(), en.mpGain, en.recombMp));
+        }
+        for (var e : upgradeTiers.entrySet()) {
+            List<String> fam = family.getOrDefault(e.getKey(), List.of(e.getKey()));
+            e.getValue().sort(Comparator.comparingInt(o -> fam.indexOf(o.id())));
+        }
+        ups.replaceAll(en -> en.count > 0 ? en
+                : en.withLineup(upgradeTiers.getOrDefault(family.getOrDefault(en.id, List.of(en.id)).get(0), List.of()), en.recombMp));
 
+        miss.replaceAll(en -> {
+            int own = recombGain(en.id, en.tier, 0);
+            List<String> group = exclusiveGroup(en.id);
+            if (group == null && isHat(en.id)) return en.withLineup(List.of(), own);
+            List<String> members = group != null ? group : family.getOrDefault(en.id, List.of(en.id));
+            List<Option> options = new ArrayList<>();
+            for (String id : members) {
+                JsonObject item = all.get(id);
+                if (item == null || ignored.contains(id)) continue;
+                String tier = PvJson.str(item, "COMMON", "tier");
+                if (isSpecial(tier)) continue;
+                options.add(new Option(id, PvJson.str(item, id, "name"), tier, PvConstants.price(id), mp(tier), recombGain(id, tier, 0)));
+            }
+            return en.withLineup(options, own);
+        });
+    }
+
+    private static List<Entry> recombobulators(PvProfileView v) {
         Map<String, Integer> needed = new java.util.LinkedHashMap<>();
         for (int i = 0; i < v.accessories.size(); i++) {
             ItemStack stack = v.accessories.get(i);
             int rgb = v.accessoryColors.get(i);
-            if (inactive.contains(stack) || !PvScreen.canRecombobulate(stack, rgb)) continue;
+            if (!PvScreen.canRecombobulate(stack, rgb)) continue;
             String tier = switch (rgb) {
                 case 0xFFFFFF -> "COMMON";
                 case 0x55FF55 -> "UNCOMMON";

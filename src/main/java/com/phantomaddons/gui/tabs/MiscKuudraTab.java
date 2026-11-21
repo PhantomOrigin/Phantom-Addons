@@ -201,10 +201,6 @@ public final class MiscKuudraTab {
             autoKick.add(new OptionalIntInput("Gdrag Level", PhantomConfig::getAkMinGdragLevel, PhantomConfig::setAkMinGdragLevel)
                     .withTooltip("The lowest Golden Dragon pet level a player needs."));
             m.add(autoKick);
-
-            m.add(new Toggle("Kuudra Profile Viewer",
-                    PhantomConfig::isProfileViewerEnabled, PhantomConfig::setProfileViewerEnabled)
-                    .withTooltip("Adds the /kuudra command and a profile prompt when players join your party."));
         }
     }
 }
